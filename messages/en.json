@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "site_title": "MyApp",
+    "site_description": "Your app description"
+  },
+  "navigation": {
+    "home": "Home",
+    "about": "About", 
+    "contact": "Contact",
+    "editor": "Editor",
+    "toggle_menu": "Toggle menu",
+    "toggle_language": "Toggle language",
+    "toggle_theme": "Toggle theme"
+  },
+  "footer": {
+    "description": "Your app description",
+    "quick_links": "Quick Links",
+    "category": "Category",
+    "connect": "Connect",
+    "email_label": "Email:",
+    "copyright": "All rights reserved.",
+    "tagline": "Built with modern web technologies"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error"
+  }
+}

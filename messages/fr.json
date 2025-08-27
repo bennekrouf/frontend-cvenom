@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "site_title": "MonApp",
+    "site_description": "Description de votre app"
+  },
+  "navigation": {
+    "home": "Accueil",
+    "about": "À propos",
+    "contact": "Contact", 
+    "editor": "Éditeur",
+    "toggle_menu": "Basculer le menu",
+    "toggle_language": "Changer de langue",
+    "toggle_theme": "Changer de thème"
+  },
+  "footer": {
+    "description": "Description de votre app",
+    "quick_links": "Liens rapides",
+    "category": "Catégorie",
+    "connect": "Contact",
+    "email_label": "Email:",
+    "copyright": "Tous droits réservés.",
+    "tagline": "Créé avec les technologies web modernes"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "error": "Erreur"
+  }
+}

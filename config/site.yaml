@@ -1,0 +1,16 @@
+# Site Configuration
+site:
+  name: "MyApp"
+  domain: "myapp.com"
+  description: "Your app description"
+  locale: "en"
+  
+# Add your configuration here
+api:
+  # example_service_url: "https://api.example.com"
+  
+# Logging preferences (following your Rust preference)
+logging:
+  level: "trace"
+  format: "json"
+  output: "console"
