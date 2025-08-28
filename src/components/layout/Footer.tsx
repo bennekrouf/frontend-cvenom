@@ -28,7 +28,7 @@ const Footer: React.FC = () => {
           {/* Column 1: Logo & Description */}
           <div className="space-y-4">
             <Link href={getLocalizedPath("/")} className="flex items-center space-x-2">
-              <span className="font-bold text-xl text-foreground">MyApp</span>
+              <span className="font-bold text-xl text-foreground">CVFinder</span>
             </Link>
             <p className="text-muted-foreground text-sm">
               {t('description')}
@@ -74,7 +74,7 @@ const Footer: React.FC = () => {
 
         <div className="border-t border-border mt-8 pt-8 flex flex-col md:flex-row md:justify-between items-center">
           <p className="text-sm text-muted-foreground">
-            &copy; {currentYear} MyApp. {t('copyright')}
+            &copy; {currentYear} CVFinder. {t('copyright')}
           </p>
           <p className="text-sm text-muted-foreground mt-2 md:mt-0">
             {t('tagline')}

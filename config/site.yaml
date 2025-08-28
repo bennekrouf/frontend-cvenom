@@ -1,6 +1,6 @@
 # Site Configuration
 site:
-  name: "MyApp"
+  name: "CVFinder"
   domain: "myapp.com"
   description: "Your app description"
   locale: "en"

@@ -4,7 +4,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    const response = await fetch('http://localhost:8000/api/generate', {
+    const response = await fetch('http://127.0.0.1:8000/api/generate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

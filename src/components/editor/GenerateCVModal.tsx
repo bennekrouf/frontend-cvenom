@@ -51,8 +51,6 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
             >
               <option value="en">English</option>
               <option value="fr">Français</option>
-              <option value="ch">中文</option>
-              <option value="ar">العربية</option>
             </select>
           </div>
           <div className="flex justify-end space-x-3">

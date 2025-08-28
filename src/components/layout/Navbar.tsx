@@ -51,7 +51,7 @@ const Navbar: React.FC = () => {
             href={`/${locale}`}
             className="flex items-center space-x-2"
           >
-            <span className="font-bold text-xl text-foreground">MyApp</span>
+            <span className="font-bold text-xl text-foreground">CVFinder</span>
           </Link>
         </div>
 
