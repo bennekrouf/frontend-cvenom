@@ -103,43 +103,44 @@ const showStatus = (message: string, _isError = false) => {
     setIsLoading(false);
   };
 
-  const handleGenerateCV = async (language) => {
-    if (!selectedCollaborator) return;
+  const handleGenerateCV = async (language, template = 'default') => {
+  if (!selectedCollaborator) return;
 
-    setIsGenerating(true);
-    try {
-      const response = await fetch('/api/cv/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          person: selectedCollaborator, 
-          lang: language 
-        })
-      });
+  setIsGenerating(true);
+  try {
+    const response = await fetch('/api/cv/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        person: selectedCollaborator, 
+        lang: language,
+        template: template
+      })
+    });
 
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `cv-${selectedCollaborator}-${language}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        
-        showStatus('CV generated and downloaded successfully!');
-        setShowGenerateModal(false);
-      } else {
-        const errorData = await response.json().catch(() => ({ message: 'Generation failed' }));
-        showStatus(errorData.message || 'Failed to generate CV', true);
-      }
-    } catch (error) {
-      console.error('Error generating CV:', error);
-      showStatus('Failed to generate CV', true);
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cv-${selectedCollaborator}-${language}-${template}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      showStatus('CV generated and downloaded successfully!');
+      setShowGenerateModal(false);
+    } else {
+      const errorData = await response.json().catch(() => ({ message: 'Generation failed' }));
+      showStatus(errorData.message || 'Failed to generate CV', true);
     }
-    setIsGenerating(false);
-  };
+  } catch (error) {
+    console.error('Error generating CV:', error);
+    showStatus('Failed to generate CV', true);
+  }
+  setIsGenerating(false);
+};
 
   // Load file tree from API
   const loadFileTree = async () => {

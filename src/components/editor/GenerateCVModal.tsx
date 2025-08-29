@@ -1,13 +1,17 @@
-// src/components/editor/GenerateCVModal.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
+interface Template {
+  name: string;
+  description: string;
+}
 
 interface GenerateCVModalProps {
   isOpen: boolean;
   onClose: () => void;
   collaboratorName: string | null;
-  onGenerateCV: (language: string) => Promise<void>;
+  onGenerateCV: (language: string, template: string) => Promise<void>;
   isGenerating: boolean;
 }
 
@@ -19,9 +23,39 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
   isGenerating
 }) => {
   const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [selectedTemplate, setSelectedTemplate] = useState('default');
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+
+  // Fetch templates when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchTemplates();
+    }
+  }, [isOpen]);
+
+  const fetchTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const response = await fetch('/api/cv/templates');
+      const data = await response.json();
+      
+      if (data.success) {
+        setTemplates(data.templates);
+        // Set default template if available
+        if (data.templates.length > 0) {
+          const defaultTemplate = data.templates.find(t => t.name === 'default') || data.templates[0];
+          setSelectedTemplate(defaultTemplate.name);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+    }
+    setLoadingTemplates(false);
+  };
 
   const handleGenerate = async () => {
-    await onGenerateCV(selectedLanguage);
+    await onGenerateCV(selectedLanguage, selectedTemplate);
   };
 
   const handleClose = () => {
@@ -51,8 +85,33 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
             >
               <option value="en">English</option>
               <option value="fr">Français</option>
+              <option value="ch">中文</option>
+              <option value="ar">العربية</option>
             </select>
           </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Template
+            </label>
+            {loadingTemplates ? (
+              <div className="text-sm text-muted-foreground">Loading templates...</div>
+            ) : (
+              <select
+                value={selectedTemplate}
+                onChange={(e) => setSelectedTemplate(e.target.value)}
+                disabled={isGenerating}
+                className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-50"
+              >
+                {templates.map((template) => (
+                  <option key={template.name} value={template.name}>
+                    {template.name} - {template.description}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          
           <div className="flex justify-end space-x-3">
             <button
               onClick={handleClose}
@@ -63,7 +122,7 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
             </button>
             <button
               onClick={handleGenerate}
-              disabled={isGenerating}
+              disabled={isGenerating || loadingTemplates}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isGenerating ? 'Generating...' : 'Generate PDF'}
