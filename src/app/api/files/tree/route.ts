@@ -35,7 +35,7 @@ const tree: Record<string, any> = {};
 
 export async function GET() {
   try {
-    const dataPath = join(process.cwd(), '../curimulti/data');
+    const dataPath = join(process.cwd(), '../cvfinder-backend/data');
     const fileTree = await buildFileTree(dataPath);
     
     return NextResponse.json(fileTree);

@@ -9,7 +9,7 @@ export async function GET() {
   } catch (error) {
     console.error('Templates fetch error:', error);
     return NextResponse.json(
-      { success: false, messasrc/components/editor/GenerateCVModa'Failed to fetch templates' },
+      { success: false, message: 'Failed to fetch templates' },
       { status: 500 }
     );
   }

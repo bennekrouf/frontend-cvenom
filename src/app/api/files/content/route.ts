@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const fullPath = join(process.cwd(), '../curimulti/data', filePath);
+    const fullPath = join(process.cwd(), '../cvfinder-backend/data', filePath);
     const content = await readFile(fullPath, 'utf-8');
     
     return new NextResponse(content, {
