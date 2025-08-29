@@ -18,12 +18,15 @@ const tree: Record<string, any> = {};
           children: await buildFileTree(fullPath, relativePath)
         };
       } else {
-        tree[item] = {
-          type: 'file',
-          size: stats.size,
-          modified: stats.mtime
-        };
-      }
+          // Only include .typ and .toml files
+          if (item.endsWith('.typ') || item.endsWith('.toml')) {
+            tree[item] = {
+              type: 'file',
+              size: stats.size,
+              modified: stats.mtime
+            };
+          }
+        }
     }
 
     return tree;
