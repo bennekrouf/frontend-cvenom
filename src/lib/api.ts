@@ -1,4 +1,4 @@
-// src/lib/api.ts
+// src/lib/// src/lib/api.ts
 import { auth } from './firebase';
 
 export interface AuthError {
@@ -6,7 +6,7 @@ export interface AuthError {
   message: string;
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   message?: string;
   error?: string;
@@ -15,7 +15,7 @@ export interface ApiResponse<T = any> {
 
 export interface ApiRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
-  body?: any;
+  body?: unknown;
   requireAuth?: boolean;
   headers?: Record<string, string>;
 }
@@ -40,7 +40,7 @@ async function getAuthToken(): Promise<string | null> {
 /**
  * Make authenticated API request to backend
  */
-export async function apiRequest<T = any>(
+export async function apiRequest<T = unknown>(
   endpoint: string,
   options: ApiRequestOptions = {}
 ): Promise<T> {

@@ -4,6 +4,11 @@ import React from 'react';
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 
+interface FooterNavItem {
+  label: string;
+  path: string;
+}
+
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const locale = useLocale();
@@ -16,7 +21,7 @@ const Footer: React.FC = () => {
   };
 
   // Empty footer navigation - add your own
-  const footerNav = [
+const footerNav: FooterNavItem[] = [
     // Example: { label: t('privacy'), path: "/privacy" },
     // Example: { label: t('terms'), path: "/terms" },
   ];

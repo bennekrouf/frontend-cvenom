@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   FiFolder, 
   FiFile, 
@@ -21,13 +21,26 @@ import GenerateCVModal from './GenerateCVModal';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { createCollaborator, uploadPicture, generateCV } from '@/lib/api';
 
+interface ApiSuccessResponse {
+  success: boolean;
+  message?: string;
+  [key: string]: unknown;
+}
+
+interface FileTreeItem {
+  type: 'file' | 'folder';
+  size?: number;
+  modified?: Date;
+  children?: Record<string, FileTreeItem>;
+}
+
 const FileEditor = () => {
-  const [fileTree, setFileTree] = useState<Record<string, any> | null>(null);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileTree, setFileTree] = useState<Record<string, FileTreeItem> | null>(null);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState('');
   const [expandedFolders, setExpandedFolders] = useState(new Set(['data']));
   const [unsavedChanges, setUnsavedChanges] = useState(false);
-  const [lastSaved, setLastSaved] = useState(null);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -35,24 +48,54 @@ const FileEditor = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
-  const [selectedCollaborator, setSelectedCollaborator] = useState(null);
+  const [selectedCollaborator, setSelectedCollaborator] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   
-  const textareaRef = useRef(null);
-  const autoSaveTimeoutRef = useRef(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Show status message temporarily
-  const showStatus = (message: string, isError = false) => {
+  const showStatus = (message: string) => {
     setStatusMessage(message);
     setTimeout(() => setStatusMessage(''), 3000);
   };
+
+  // Save file content
+  const saveFile = useCallback(async () => {
+    if (!selectedFile) return;
+    
+    try {
+      const response = await fetch('/api/files/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          path: selectedFile,
+          content: fileContent
+        })
+      });
+      
+      if (response.ok) {
+        setUnsavedChanges(false);
+        setLastSaved(new Date());
+        showStatus('File saved successfully!');
+      } else {
+        showStatus('Failed to save file');
+      }
+    } catch (error) {
+      console.error('Error saving file:', error);
+      showStatus('Failed to save file');
+    }
+  }, [selectedFile, fileContent]);
+
+
 
   // Modal handlers with authentication
   const handleCreateCollaborator = async (personName: string) => {
     setIsLoading(true);
     try {
-      const data = await createCollaborator(personName);
+      const response = await createCollaborator(personName);
+      const data = response as ApiSuccessResponse;
       
       if (data.success) {
         showStatus('Collaborator created successfully!');
@@ -61,18 +104,22 @@ const FileEditor = () => {
         setSelectedCollaborator(personName); // Auto-select the new person
         setExpandedFolders(new Set(['data', personName])); // Auto-expand their folder
       } else {
-        showStatus(data.message || 'Failed to create collaborator', true);
+        showStatus(data.message || 'Failed to create collaborator');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating person:', error);
       
       // Handle specific authentication errors
-      if (error.message.includes('Authentication required')) {
-        showStatus('Please sign in to create collaborators', true);
-      } else if (error.message.includes('token expired')) {
-        showStatus('Session expired. Please sign in again', true);
+      if (error instanceof Error) {
+        if (error.message.includes('Authentication required')) {
+          showStatus('Please sign in to create collaborators');
+        } else if (error.message.includes('token expired')) {
+          showStatus('Session expired. Please sign in again');
+        } else {
+          showStatus(error.message || 'Failed to create collaborator');
+        }
       } else {
-        showStatus(error.message || 'Failed to create collaborator', true);
+        showStatus('Failed to create collaborator');
       }
     }
     setIsLoading(false);
@@ -83,24 +130,29 @@ const FileEditor = () => {
 
     setIsLoading(true);
     try {
-      const data = await uploadPicture(selectedCollaborator, file);
+const response = await uploadPicture(selectedCollaborator, file);
+    const data = response as ApiSuccessResponse;
       
       if (data.success) {
         showStatus('Profile picture uploaded successfully!');
         setShowUploadModal(false);
       } else {
-        showStatus(data.message || 'Failed to upload picture', true);
+        showStatus(data.message || 'Failed to upload picture');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error uploading picture:', error);
       
       // Handle specific authentication errors
-      if (error.message.includes('Authentication required')) {
-        showStatus('Please sign in to upload pictures', true);
-      } else if (error.message.includes('token expired')) {
-        showStatus('Session expired. Please sign in again', true);
+      if (error instanceof Error) {
+        if (error.message.includes('Authentication required')) {
+          showStatus('Please sign in to upload pictures');
+        } else if (error.message.includes('token expired')) {
+          showStatus('Session expired. Please sign in again');
+        } else {
+          showStatus(error.message || 'Failed to upload picture');
+        }
       } else {
-        showStatus(error.message || 'Failed to upload picture', true);
+        showStatus('Failed to upload picture');
       }
     }
     setIsLoading(false);
@@ -125,16 +177,20 @@ const FileEditor = () => {
       
       showStatus('CV generated and downloaded successfully!');
       setShowGenerateModal(false);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error generating CV:', error);
       
       // Handle specific authentication errors
-      if (error.message.includes('Authentication required')) {
-        showStatus('Please sign in to generate CVs', true);
-      } else if (error.message.includes('token expired')) {
-        showStatus('Session expired. Please sign in again', true);
+      if (error instanceof Error) {
+        if (error.message.includes('Authentication required')) {
+          showStatus('Please sign in to generate CVs');
+        } else if (error.message.includes('token expired')) {
+          showStatus('Session expired. Please sign in again');
+        } else {
+          showStatus(error.message || 'Failed to generate CV');
+        }
       } else {
-        showStatus(error.message || 'Failed to generate CV', true);
+        showStatus('Failed to generate CV');
       }
     }
     setIsGenerating(false);
@@ -182,34 +238,7 @@ const FileEditor = () => {
       }
     } catch (error) {
       console.error('Error loading file:', error);
-      setFileContent('Error loading file: ' + error.message);
-    }
-  };
-
-  // Save file content
-  const saveFile = async () => {
-    if (!selectedFile) return;
-    
-    try {
-      const response = await fetch('/api/files/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          path: selectedFile,
-          content: fileContent
-        })
-      });
-      
-      if (response.ok) {
-        setUnsavedChanges(false);
-        setLastSaved(new Date());
-        showStatus('File saved successfully!');
-      } else {
-        showStatus('Failed to save file', true);
-      }
-    } catch (error) {
-      console.error('Error saving file:', error);
-      showStatus('Failed to save file', true);
+      setFileContent('Error loading file: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
@@ -240,7 +269,7 @@ const FileEditor = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedFile, fileContent]);
+  }, [saveFile]);
 
   // Load initial file tree
   useEffect(() => {
@@ -259,7 +288,7 @@ const FileEditor = () => {
   };
 
   // Render file tree item
-  const renderFileTreeItem = (name: string, path: string, item: any, level = 0) => {
+  const renderFileTreeItem = (name: string, path: string, item: FileTreeItem, level = 0) => {
     const isFolder = item.type === 'folder';
     const isExpanded = expandedFolders.has(path);
     const isSelected = selectedFile === path;

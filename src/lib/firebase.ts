@@ -51,13 +51,14 @@ export const signInWithGoogle = async (): Promise<AuthResult> => {
       user: result.user,
       error: null
     };
-  } catch (error: any) {
+  } catch (error) {
+    const firebaseError = error as { code?: string; message?: string };
     console.error('Firebase Google sign-in error:', error);
     return {
       user: null,
       error: {
-        code: error.code || 'unknown',
-        message: error.message || 'Authentication failed'
+        code: firebaseError.code || 'unknown',
+        message: firebaseError.message || 'Authentication failed'
       }
     };
   }
@@ -67,11 +68,12 @@ export const signOutUser = async (): Promise<AuthError | null> => {
   try {
     await signOut(auth);
     return null;
-  } catch (error: any) {
+  } catch (error) {
+    const firebaseError = error as { code?: string; message?: string };
     console.error('Firebase sign-out error:', error);
     return {
-      code: error.code || 'unknown',
-      message: error.message || 'Sign out failed'
+      code: firebaseError.code || 'unknown',
+      message: firebaseError.message || 'Sign out failed'
     };
   }
 };

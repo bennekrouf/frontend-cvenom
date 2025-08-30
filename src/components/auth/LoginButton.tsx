@@ -1,8 +1,8 @@
-// src/components/auth/LoginButton.tsx
 'use client';
 
 import React, { useState } from 'react';
 import { FiUser, FiLogOut, FiChevronDown } from 'react-icons/fi';
+import Image from 'next/image';
 import { signInWithGoogle, signOutUser } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -50,10 +50,12 @@ const LoginButton: React.FC = () => {
           className="flex items-center space-x-2 p-1.5 rounded-full hover:bg-secondary transition-colors"
         >
           {user.photoURL ? (
-            <img
+            <Image
               src={user.photoURL}
               alt="Profile"
-              className="w-8 h-8 rounded-full"
+              width={32}
+              height={32}
+              className="rounded-full"
             />
           ) : (
             <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">

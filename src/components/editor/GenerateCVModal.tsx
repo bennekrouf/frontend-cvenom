@@ -34,25 +34,26 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
     }
   }, [isOpen]);
 
-  const fetchTemplates = async () => {
-    setLoadingTemplates(true);
-    try {
-      const response = await fetch('/api/cv/templates');
-      const data = await response.json();
-      
-      if (data.success) {
-        setTemplates(data.templates);
-        // Set default template if available
-        if (data.templates.length > 0) {
-          const defaultTemplate = data.templates.find(t => t.name === 'default') || data.templates[0];
-          setSelectedTemplate(defaultTemplate.name);
-        }
+  // Make sure the Template interface is properly used
+const fetchTemplates = async () => {
+  setLoadingTemplates(true);
+  try {
+    const response = await fetch('/api/cv/templates');
+    const data: { success: boolean; templates: Template[] } = await response.json();
+    
+    if (data.success) {
+      setTemplates(data.templates);
+      // Set default template if available
+      if (data.templates.length > 0) {
+        const defaultTemplate = data.templates.find((t: Template) => t.name === 'default') || data.templates[0];
+        setSelectedTemplate(defaultTemplate.name);
       }
-    } catch (error) {
-      console.error('Error fetching templates:', error);
     }
-    setLoadingTemplates(false);
-  };
+  } catch (error) {
+    console.error('Error fetching templates:', error);
+  }
+  setLoadingTemplates(false);
+};
 
   const handleGenerate = async () => {
     await onGenerateCV(selectedLanguage, selectedTemplate);
