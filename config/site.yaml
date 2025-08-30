@@ -4,10 +4,21 @@ site:
   domain: "myapp.com"
   description: "Your app description"
   locale: "en"
-  
-# Add your configuration here
+
+# Firebase Authentication Configuration
+auth:
+  firebase:
+    apiKey: "AIzaSyATOqzoOFlejYgtKsxPhRHXHCFnR5kc8RA"
+    authDomain: "semantic-27923.firebaseapp.com"
+    projectId: "semantic-27923"
+    storageBucket: "semantic-27923.firebasestorage.app"
+    messagingSenderId: "566168954365"
+    appId: "1:566168954365:web:892d52e66a40201cece594"
+    measurementId: "G-1HXVGY2NFG"
+
+# API Configuration
 api:
-  # example_service_url: "https://api.example.com"
+  backend_url: "http://127.0.0.1:8000"
   
 # Logging preferences (following your Rust preference)
 logging:

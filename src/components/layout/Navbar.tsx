@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { FiMenu, FiX, FiMoon, FiSun, FiGlobe } from 'react-icons/fi';
 import { useTheme } from 'next-themes';
 import { useTranslations, useLocale } from 'next-intl';
+import LoginButton from '@/components/auth/LoginButton';
 
 const Navbar: React.FC = () => {
   const [mounted, setMounted] = useState(false);
@@ -18,7 +19,7 @@ const Navbar: React.FC = () => {
 
   // Empty navigation items - add your own
   const navItems = [
-  { label: t('editor'), path: "/editor" },
+    { label: t('editor'), path: "/editor" },
   ];
 
   // Language options
@@ -69,52 +70,60 @@ const Navbar: React.FC = () => {
             </Link>
           ))}
 
-          {/* Language Switcher */}
-          <div className="relative">
+          <div className="flex items-center space-x-3">
+            {/* Language Switcher */}
+            <div className="relative">
+              <button
+                onClick={toggleLangMenu}
+                className="rounded-full p-2 bg-secondary hover:bg-secondary/80 transition-colors flex items-center"
+                aria-label={t('toggle_language')}
+              >
+                <FiGlobe className="h-5 w-5 mr-1" />
+                <span className="text-sm font-medium">{currentLang.code.toUpperCase()}</span>
+              </button>
+
+              {showLangMenu && (
+                <div className="absolute right-0 mt-2 w-40 bg-background border border-border rounded-lg shadow-lg py-1 z-50">
+                  {languages.map((lang) => (
+                    <Link
+                      key={lang.code}
+                      href={pathname.replace(/^\/[a-z]{2}/, `/${lang.code}`)}
+                      className={`flex items-center px-3 py-2 text-sm hover:bg-secondary transition-colors ${
+                        locale === lang.code ? 'bg-secondary text-primary' : 'text-foreground'
+                      }`}
+                      onClick={() => setShowLangMenu(false)}
+                    >
+                      <span className="mr-2 text-xs font-mono">{lang.code.toUpperCase()}</span>
+                      {lang.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Theme Toggle */}
             <button
-              onClick={toggleLangMenu}
-              className="rounded-full p-2 bg-secondary hover:bg-secondary/80 transition-colors flex items-center"
-              aria-label={t('toggle_language')}
+              onClick={toggleTheme}
+              className="rounded-full p-2 bg-secondary hover:bg-secondary/80 transition-colors"
+              aria-label={t('toggle_theme')}
             >
-              <FiGlobe className="h-5 w-5 mr-1" />
-              <span className="text-sm font-medium">{currentLang.code.toUpperCase()}</span>
+              {mounted && theme === 'dark' ? (
+                <FiSun className="h-5 w-5" />
+              ) : (
+                <FiMoon className="h-5 w-5" />
+              )}
             </button>
 
-            {showLangMenu && (
-              <div className="absolute right-0 mt-2 w-40 bg-background border border-border rounded-lg shadow-lg py-1 z-50">
-                {languages.map((lang) => (
-                  <Link
-                    key={lang.code}
-                    href={pathname.replace(/^\/[a-z]{2}/, `/${lang.code}`)}
-                    className={`flex items-center px-3 py-2 text-sm hover:bg-secondary transition-colors ${
-                      locale === lang.code ? 'bg-secondary text-primary' : 'text-foreground'
-                    }`}
-                    onClick={() => setShowLangMenu(false)}
-                  >
-                    <span className="mr-2 text-xs font-mono">{lang.code.toUpperCase()}</span>
-                    {lang.name}
-                  </Link>
-                ))}
-              </div>
-            )}
+            {/* Login Button */}
+            <LoginButton />
           </div>
-
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleTheme}
-            className="rounded-full p-2 bg-secondary hover:bg-secondary/80 transition-colors"
-            aria-label={t('toggle_theme')}
-          >
-            {mounted && theme === 'dark' ? (
-              <FiSun className="h-5 w-5" />
-            ) : (
-              <FiMoon className="h-5 w-5" />
-            )}
-          </button>
         </nav>
 
         {/* Mobile Navigation Toggle */}
         <div className="flex md:hidden items-center space-x-2">
+          {/* Mobile Login Button */}
+          <LoginButton />
+          
           {/* Mobile Language Switcher */}
           <div className="relative">
             <button

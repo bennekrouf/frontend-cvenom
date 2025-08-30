@@ -18,9 +18,11 @@ import {
 import CreateCollaboratorModal from './CreateCollaboratorModal';
 import UploadPictureModal from './UploadPictureModal';
 import GenerateCVModal from './GenerateCVModal';
+import AuthGuard from '@/components/auth/AuthGuard';
+import { createCollaborator, uploadPicture, generateCV } from '@/lib/api';
 
 const FileEditor = () => {
-const [fileTree, setFileTree] = useState<Record<string, any> | null>(null);
+  const [fileTree, setFileTree] = useState<Record<string, any> | null>(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileContent, setFileContent] = useState('');
   const [expandedFolders, setExpandedFolders] = useState(new Set(['data']));
@@ -41,22 +43,16 @@ const [fileTree, setFileTree] = useState<Record<string, any> | null>(null);
   const autoSaveTimeoutRef = useRef(null);
 
   // Show status message temporarily
-const showStatus = (message: string, _isError = false) => {
+  const showStatus = (message: string, isError = false) => {
     setStatusMessage(message);
     setTimeout(() => setStatusMessage(''), 3000);
   };
 
-  // Modal handlers
-  const handleCreateCollaborator = async (personName) => {
+  // Modal handlers with authentication
+  const handleCreateCollaborator = async (personName: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/cv/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ person: personName })
-      });
-
-      const data = await response.json();
+      const data = await createCollaborator(personName);
       
       if (data.success) {
         showStatus('Collaborator created successfully!');
@@ -67,28 +63,27 @@ const showStatus = (message: string, _isError = false) => {
       } else {
         showStatus(data.message || 'Failed to create collaborator', true);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating person:', error);
-      showStatus('Failed to create collaborator', true);
+      
+      // Handle specific authentication errors
+      if (error.message.includes('Authentication required')) {
+        showStatus('Please sign in to create collaborators', true);
+      } else if (error.message.includes('token expired')) {
+        showStatus('Session expired. Please sign in again', true);
+      } else {
+        showStatus(error.message || 'Failed to create collaborator', true);
+      }
     }
     setIsLoading(false);
   };
 
-  const handleUploadPicture = async (file) => {
+  const handleUploadPicture = async (file: File) => {
     if (!selectedCollaborator) return;
 
     setIsLoading(true);
-    const formData = new FormData();
-    formData.append('person', selectedCollaborator);
-    formData.append('file', file);
-
     try {
-      const response = await fetch('/api/cv/upload-picture', {
-        method: 'POST',
-        body: formData
-      });
-
-      const data = await response.json();
+      const data = await uploadPicture(selectedCollaborator, file);
       
       if (data.success) {
         showStatus('Profile picture uploaded successfully!');
@@ -96,30 +91,29 @@ const showStatus = (message: string, _isError = false) => {
       } else {
         showStatus(data.message || 'Failed to upload picture', true);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading picture:', error);
-      showStatus('Failed to upload picture', true);
+      
+      // Handle specific authentication errors
+      if (error.message.includes('Authentication required')) {
+        showStatus('Please sign in to upload pictures', true);
+      } else if (error.message.includes('token expired')) {
+        showStatus('Session expired. Please sign in again', true);
+      } else {
+        showStatus(error.message || 'Failed to upload picture', true);
+      }
     }
     setIsLoading(false);
   };
 
-  const handleGenerateCV = async (language, template = 'default') => {
-  if (!selectedCollaborator) return;
+  const handleGenerateCV = async (language: string, template: string = 'default') => {
+    if (!selectedCollaborator) return;
 
-  setIsGenerating(true);
-  try {
-    const response = await fetch('/api/cv/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        person: selectedCollaborator, 
-        lang: language,
-        template: template
-      })
-    });
-
-    if (response.ok) {
-      const blob = await response.blob();
+    setIsGenerating(true);
+    try {
+      const blob = await generateCV(selectedCollaborator, language, template);
+      
+      // Create download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -131,16 +125,20 @@ const showStatus = (message: string, _isError = false) => {
       
       showStatus('CV generated and downloaded successfully!');
       setShowGenerateModal(false);
-    } else {
-      const errorData = await response.json().catch(() => ({ message: 'Generation failed' }));
-      showStatus(errorData.message || 'Failed to generate CV', true);
+    } catch (error: any) {
+      console.error('Error generating CV:', error);
+      
+      // Handle specific authentication errors
+      if (error.message.includes('Authentication required')) {
+        showStatus('Please sign in to generate CVs', true);
+      } else if (error.message.includes('token expired')) {
+        showStatus('Session expired. Please sign in again', true);
+      } else {
+        showStatus(error.message || 'Failed to generate CV', true);
+      }
     }
-  } catch (error) {
-    console.error('Error generating CV:', error);
-    showStatus('Failed to generate CV', true);
-  }
-  setIsGenerating(false);
-};
+    setIsGenerating(false);
+  };
 
   // Load file tree from API
   const loadFileTree = async () => {
@@ -158,19 +156,19 @@ const showStatus = (message: string, _isError = false) => {
   };
 
   // Check if file is editable (.typ or .toml)
-  const isEditableFile = (filename) => {
+  const isEditableFile = (filename: string) => {
     return filename.endsWith('.typ') || filename.endsWith('.toml');
   };
 
   // Get file language for syntax highlighting
-  const getFileLanguage = (filename) => {
+  const getFileLanguage = (filename: string) => {
     if (filename.endsWith('.typ')) return 'typst';
     if (filename.endsWith('.toml')) return 'toml';
     return 'text';
   };
 
   // Load file content
-  const loadFile = async (filePath) => {
+  const loadFile = async (filePath: string) => {
     if (!isEditableFile(filePath)) return;
     
     try {
@@ -216,7 +214,7 @@ const showStatus = (message: string, _isError = false) => {
   };
 
   // Handle content change
-  const handleContentChange = (e) => {
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setFileContent(e.target.value);
     setUnsavedChanges(true);
     
@@ -233,7 +231,7 @@ const showStatus = (message: string, _isError = false) => {
 
   // Keyboard shortcuts
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.key === 's') {
         e.preventDefault();
         saveFile();
@@ -242,7 +240,7 @@ const showStatus = (message: string, _isError = false) => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-}, [selectedFile, fileContent, saveFile]);
+  }, [selectedFile, fileContent]);
 
   // Load initial file tree
   useEffect(() => {
@@ -250,7 +248,7 @@ const showStatus = (message: string, _isError = false) => {
   }, []);
 
   // Toggle folder expansion
-  const toggleFolder = (folderPath) => {
+  const toggleFolder = (folderPath: string) => {
     const newExpanded = new Set(expandedFolders);
     if (newExpanded.has(folderPath)) {
       newExpanded.delete(folderPath);
@@ -261,7 +259,7 @@ const showStatus = (message: string, _isError = false) => {
   };
 
   // Render file tree item
-  const renderFileTreeItem = (name, path, item, level = 0) => {
+  const renderFileTreeItem = (name: string, path: string, item: any, level = 0) => {
     const isFolder = item.type === 'folder';
     const isExpanded = expandedFolders.has(path);
     const isSelected = selectedFile === path;
@@ -305,7 +303,7 @@ const showStatus = (message: string, _isError = false) => {
 
           {/* Collaborator Actions Menu */}
           {isCollaboratorFolder && isSelectedCollaborator && (
-          <div className="flex items-center space-x-1 opacity-60 group-hover:opacity-100 transition-opacity ml-2">
+            <div className="flex items-center space-x-1 opacity-60 group-hover:opacity-100 transition-opacity ml-2">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -376,7 +374,6 @@ const showStatus = (message: string, _isError = false) => {
                 }`}
                 title={`Auto-save: ${autoSaveEnabled ? 'ON - Files save automatically after 2s' : 'OFF - Use Ctrl+S or Save button'}`}
               >
-
                 <FiSettings className="w-4 h-4" />
               </button>
             </div>
@@ -439,14 +436,29 @@ const showStatus = (message: string, _isError = false) => {
                 </div>
               )}
               
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="flex items-center space-x-2 px-3 py-1.5 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-colors"
-                title="Add new collaborator"
+              <AuthGuard
+                message="Please sign in to add new collaborators and manage CV files."
+                fallback={
+                  <button
+                    disabled
+                    className="flex items-center space-x-2 px-3 py-1.5 bg-gray-400 text-gray-600 rounded-md text-sm font-medium cursor-not-allowed opacity-50"
+                    title="Sign in to add collaborators"
+                  >
+                    <FiPlus className="w-4 h-4" />
+                    <span>Add Collaborator</span>
+                    <span className="text-xs opacity-75">(Sign in required)</span>
+                  </button>
+                }
               >
-                <FiPlus className="w-4 h-4" />
-                <span>Add Collaborator</span>
-              </button>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="flex items-center space-x-2 px-3 py-1.5 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-colors"
+                  title="Add new collaborator"
+                >
+                  <FiPlus className="w-4 h-4" />
+                  <span>Add Collaborator</span>
+                </button>
+              </AuthGuard>
               
               <button
                 onClick={saveFile}
