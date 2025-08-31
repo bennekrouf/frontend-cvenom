@@ -1,4 +1,4 @@
-// src/lib/// src/lib/api.ts
+// src/lib/api.ts - Updated for tenant-specific file operations
 import { auth } from './firebase';
 
 export interface AuthError {
@@ -83,6 +83,14 @@ export async function apiRequest<T = unknown>(
     return response.blob() as T;
   }
 
+  // Handle plain text responses (like file content)
+  if (contentType && contentType.includes('text/plain')) {
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: Failed to fetch file content`);
+    }
+    return response.text() as T;
+  }
+
   // Handle JSON responses
   if (!response.ok) {
     if (response.status === 401) {
@@ -106,8 +114,31 @@ export async function apiRequest<T = unknown>(
   return response.json();
 }
 
-// Specific API functions
+// Tenant-specific file operations
 
+export async function getTenantFileTree() {
+  return apiRequest('/api/files/tree', {
+    method: 'GET',
+    requireAuth: true  // Now requires authentication for tenant isolation
+  });
+}
+
+export async function getTenantFileContent(filePath: string): Promise<string> {
+  return apiRequest(`/api/files/content?path=${encodeURIComponent(filePath)}`, {
+    method: 'GET',
+    requireAuth: true  // Now requires authentication for tenant isolation
+  });
+}
+
+export async function saveTenantFileContent(filePath: string, content: string) {
+  return apiRequest('/api/files/save', {
+    method: 'POST',
+    body: { path: filePath, content },
+    requireAuth: true
+  });
+}
+
+// Existing API functions
 export async function createCollaborator(personName: string) {
   return apiRequest('/api/create', {
     method: 'POST',
@@ -117,7 +148,6 @@ export async function createCollaborator(personName: string) {
 }
 
 export async function uploadPicture(personName: string, file: File) {
-  // For file uploads, we need to use FormData instead of JSON
   const token = await getAuthToken();
   if (!token) {
     throw new Error('Authentication required');
@@ -164,7 +194,7 @@ export async function generateCV(
 export async function getTemplates() {
   return apiRequest('/api/templates', {
     method: 'GET',
-    requireAuth: false  // This endpoint is public
+    requireAuth: false  // This endpoint remains public
   });
 }
 

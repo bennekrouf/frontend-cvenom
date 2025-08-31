@@ -5,21 +5,31 @@ import {
   FiFolder, 
   FiFile, 
   FiSave, 
-  FiSettings, 
+  FiToggleRight,
+  FiToggleLeft,
   FiCode, 
   FiRefreshCw, 
   FiChevronRight, 
   FiChevronDown,
   FiPlus,
-  FiUpload,
-  FiDownload
+  FiCamera,
+  FiFileText,
+  FiUser
 } from 'react-icons/fi';
 
+import { useAuth } from '@/contexts/AuthContext';
 import CreateCollaboratorModal from './CreateCollaboratorModal';
 import UploadPictureModal from './UploadPictureModal';
 import GenerateCVModal from './GenerateCVModal';
 import AuthGuard from '@/components/auth/AuthGuard';
-import { createCollaborator, uploadPicture, generateCV } from '@/lib/api';
+import { 
+  createCollaborator, 
+  getTenantFileTree,
+  getTenantFileContent,
+  saveTenantFileContent,
+  uploadPicture, 
+  generateCV 
+} from '@/lib/api';
 
 interface ApiSuccessResponse {
   success: boolean;
@@ -35,6 +45,7 @@ interface FileTreeItem {
 }
 
 const FileEditor = () => {
+  const { isAuthenticated, loading, user } = useAuth();
   const [fileTree, setFileTree] = useState<Record<string, FileTreeItem> | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState('');
@@ -51,7 +62,7 @@ const FileEditor = () => {
   const [selectedCollaborator, setSelectedCollaborator] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
-  
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -63,35 +74,33 @@ const FileEditor = () => {
 
   // Save file content
   const saveFile = useCallback(async () => {
-    if (!selectedFile) return;
+    if (!selectedFile || !isAuthenticated) return;
     
     try {
-      const response = await fetch('/api/files/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          path: selectedFile,
-          content: fileContent
-        })
-      });
-      
-      if (response.ok) {
-        setUnsavedChanges(false);
-        setLastSaved(new Date());
-        showStatus('File saved successfully!');
+      await saveTenantFileContent(selectedFile, fileContent);
+      setUnsavedChanges(false);
+      setLastSaved(new Date());
+      showStatus('File saved successfully!');
+    } catch (error) {
+      console.error('Error saving file:', error);
+      if (error instanceof Error) {
+        if (error.message.includes('Authentication required')) {
+          showStatus('Please sign in to save files');
+        } else if (error.message.includes('token expired')) {
+          showStatus('Session expired. Please sign in again');
+        } else {
+          showStatus('Failed to save file');
+        }
       } else {
         showStatus('Failed to save file');
       }
-    } catch (error) {
-      console.error('Error saving file:', error);
-      showStatus('Failed to save file');
     }
-  }, [selectedFile, fileContent]);
-
-
+  }, [selectedFile, fileContent, isAuthenticated]);
 
   // Modal handlers with authentication
   const handleCreateCollaborator = async (personName: string) => {
+    if (!isAuthenticated) return;
+
     setIsLoading(true);
     try {
       const response = await createCollaborator(personName);
@@ -126,13 +135,13 @@ const FileEditor = () => {
   };
 
   const handleUploadPicture = async (file: File) => {
-    if (!selectedCollaborator) return;
+    if (!selectedCollaborator || !isAuthenticated) return;
 
     setIsLoading(true);
     try {
-const response = await uploadPicture(selectedCollaborator, file);
-    const data = response as ApiSuccessResponse;
-      
+      const response = await uploadPicture(selectedCollaborator, file);
+      const data = response as ApiSuccessResponse;
+ 
       if (data.success) {
         showStatus('Profile picture uploaded successfully!');
         setShowUploadModal(false);
@@ -141,7 +150,7 @@ const response = await uploadPicture(selectedCollaborator, file);
       }
     } catch (error) {
       console.error('Error uploading picture:', error);
-      
+
       // Handle specific authentication errors
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
@@ -159,7 +168,7 @@ const response = await uploadPicture(selectedCollaborator, file);
   };
 
   const handleGenerateCV = async (language: string, template: string = 'default') => {
-    if (!selectedCollaborator) return;
+    if (!selectedCollaborator || !isAuthenticated) return;
 
     setIsGenerating(true);
     try {
@@ -174,12 +183,12 @@ const response = await uploadPicture(selectedCollaborator, file);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      
+ 
       showStatus('CV generated and downloaded successfully!');
       setShowGenerateModal(false);
     } catch (error) {
       console.error('Error generating CV:', error);
-      
+
       // Handle specific authentication errors
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
@@ -198,15 +207,27 @@ const response = await uploadPicture(selectedCollaborator, file);
 
   // Load file tree from API
   const loadFileTree = async () => {
+    if (!isAuthenticated) {
+      setFileTree(null);
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const response = await fetch('/api/files/tree');
-      if (response.ok) {
-        const tree = await response.json();
-        setFileTree(tree);
-      }
+      const tree = await getTenantFileTree();
+      setFileTree(tree);
     } catch (error) {
       console.error('Error loading file tree:', error);
+      setFileTree(null);
+      if (error instanceof Error) {
+        if (error.message.includes('Authentication required')) {
+          showStatus('Please sign in to view your files');
+        } else if (error.message.includes('token expired')) {
+          showStatus('Session expired. Please sign in again');
+        } else {
+          showStatus('Failed to load files');
+        }
+      }
     }
     setIsLoading(false);
   };
@@ -225,28 +246,39 @@ const response = await uploadPicture(selectedCollaborator, file);
 
   // Load file content
   const loadFile = async (filePath: string) => {
-    if (!isEditableFile(filePath)) return;
+    if (!isEditableFile(filePath) || !isAuthenticated) return;
     
     try {
-      const response = await fetch(`/api/files/content?path=${encodeURIComponent(filePath)}`);
-      if (response.ok) {
-        const content = await response.text();
-        setFileContent(content);
-        setSelectedFile(filePath);
-        setUnsavedChanges(false);
-        setLastSaved(new Date());
-      }
+      const content = await getTenantFileContent(filePath);
+      setFileContent(content);
+      setSelectedFile(filePath);
+      setUnsavedChanges(false);
+      setLastSaved(new Date());
     } catch (error) {
       console.error('Error loading file:', error);
-      setFileContent('Error loading file: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      if (error instanceof Error) {
+        if (error.message.includes('Authentication required')) {
+          showStatus('Please sign in to access files');
+          setFileContent('Authentication required to view file content');
+        } else if (error.message.includes('token expired')) {
+          showStatus('Session expired. Please sign in again');
+          setFileContent('Session expired. Please sign in again.');
+        } else {
+          setFileContent('Error loading file: ' + error.message);
+        }
+      } else {
+        setFileContent('Error loading file: Unknown error');
+      }
     }
   };
 
   // Handle content change
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (!isAuthenticated) return;
+
     setFileContent(e.target.value);
     setUnsavedChanges(true);
-    
+
     // Auto-save after 2 seconds of inactivity
     if (autoSaveEnabled) {
       if (autoSaveTimeoutRef.current) {
@@ -271,10 +303,18 @@ const response = await uploadPicture(selectedCollaborator, file);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [saveFile]);
 
-  // Load initial file tree
+  // Load files when authentication status changes
   useEffect(() => {
-    loadFileTree();
-  }, []);
+    if (isAuthenticated) {
+      loadFileTree();
+    } else {
+      // Clear data when not authenticated
+      setFileTree(null);
+      setSelectedFile(null);
+      setFileContent('');
+      setSelectedCollaborator(null);
+    }
+  }, [isAuthenticated]);
 
   // Toggle folder expansion
   const toggleFolder = (folderPath: string) => {
@@ -303,13 +343,24 @@ const response = await uploadPicture(selectedCollaborator, file);
             isSelected ? 'bg-primary/10 text-primary' : ''
           } ${isSelectedCollaborator ? 'bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-500' : ''} ${!isEditable && !isFolder ? 'opacity-50' : ''}`}
           style={{ paddingLeft: `${8 + level * 16}px` }}
+          title={
+            isFolder ? 
+              (isCollaboratorFolder ? 
+                `Collaborator folder: ${name} - Click to expand/collapse and select for actions` :
+                `Folder: ${name} - Click to expand/collapse contents`
+              ) :
+              (isEditable ? 
+                `Editable file: ${name} - Click to open in editor (${getFileLanguage(name)})` :
+                `Read-only file: ${name} - File type not supported for editing`
+              )
+          }
           onClick={() => {
             if (isFolder) {
               toggleFolder(path);
               if (isCollaboratorFolder) {
                 setSelectedCollaborator(name);
               }
-            } else if (isEditable) {
+            } else if (isEditable && isAuthenticated) {
               loadFile(path);
             }
           }}
@@ -331,7 +382,7 @@ const response = await uploadPicture(selectedCollaborator, file);
           <span className="text-sm font-medium flex-1">{name}</span>
 
           {/* Collaborator Actions Menu */}
-          {isCollaboratorFolder && isSelectedCollaborator && (
+          {isCollaboratorFolder && isSelectedCollaborator && isAuthenticated && (
             <div className="flex items-center space-x-1 opacity-60 group-hover:opacity-100 transition-opacity ml-2">
               <button
                 onClick={(e) => {
@@ -339,9 +390,9 @@ const response = await uploadPicture(selectedCollaborator, file);
                   setShowUploadModal(true);
                 }}
                 className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground"
-                title="Upload picture"
+                title={`Upload profile picture for ${name} (JPG, PNG supported)`}
               >
-                <FiUpload className="w-3 h-3" />
+                <FiCamera className="w-3 h-3" />
               </button>
               <button
                 onClick={(e) => {
@@ -349,9 +400,9 @@ const response = await uploadPicture(selectedCollaborator, file);
                   setShowGenerateModal(true);
                 }}
                 className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground"
-                title="Generate CV"
+                title={`Generate and download CV PDF for ${name}`}
               >
-                <FiDownload className="w-3 h-3" />
+                <FiFileText className="w-3 h-3" />
               </button>
             </div>
           )}
@@ -391,29 +442,72 @@ const response = await uploadPicture(selectedCollaborator, file);
             <div className="flex gap-2">
               <button
                 onClick={loadFileTree}
-                className="p-1.5 hover:bg-secondary rounded-md transition-colors"
-                title="Refresh"
+                disabled={!isAuthenticated}
+                className="p-1.5 hover:bg-secondary rounded-md transition-colors disabled:opacity-50"
+                title={isAuthenticated ? 
+                  (isLoading ? "Refreshing file tree..." : "Refresh file tree from server") : 
+                  "Sign in to refresh files"
+                }
               >
                 <FiRefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
               </button>
               <button
                 onClick={() => setAutoSaveEnabled(!autoSaveEnabled)}
-                className={`p-1.5 rounded-md transition-colors ${
-                  autoSaveEnabled ? 'bg-primary text-primary-foreground' : 'hover:bg-secondary'
+                disabled={!isAuthenticated}
+                className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${
+                  autoSaveEnabled && isAuthenticated ? 'text-green-600' : 'text-gray-400 hover:bg-secondary'
                 }`}
-                title={`Auto-save: ${autoSaveEnabled ? 'ON - Files save automatically after 2s' : 'OFF - Use Ctrl+S or Save button'}`}
+                title={isAuthenticated ? 
+                  `Auto-save: ${autoSaveEnabled ? 'ON - Files automatically save 2 seconds after editing' : 'OFF - Files must be saved manually with Ctrl+S or Save button'}` : 
+                  "Sign in to enable auto-save feature"
+                }
               >
-                <FiSettings className="w-4 h-4" />
+                {autoSaveEnabled && isAuthenticated ? (
+                  <FiToggleRight className="w-4 h-4" />
+                ) : (
+                  <FiToggleLeft className="w-4 h-4" />
+                )}
               </button>
             </div>
           </div>
+          
+          {/* Tenant Indicator */}
+          {isAuthenticated && user && (
+            <div className="mb-3 p-2 bg-primary/10 border border-primary/20 rounded-md">
+              <div className="flex items-center space-x-2">
+                <FiUser className="w-4 h-4 text-primary" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-primary truncate">
+                    {user.displayName || 'User'}
+                  </p>
+                  <p className="text-xs text-primary/70 truncate">
+                    {user.email}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div className="text-xs text-muted-foreground">
-            Editable: .typ, .toml files only
+            {isAuthenticated ? 
+              "Editable: .typ, .toml files only" : 
+              "Sign in to view and edit your files"
+            }
           </div>
         </div>
-        
+
         <div className="flex-1 overflow-auto p-2">
-          {fileTree ? (
+          {loading ? (
+            <div className="text-sm text-muted-foreground p-2 text-center">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+              Checking authentication...
+            </div>
+          ) : !isAuthenticated ? (
+            <div className="text-center p-4">
+              <FiFolder className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm text-muted-foreground mb-3">Sign in to view your CV files</p>
+            </div>
+          ) : fileTree ? (
             <div className="space-y-1">
               {Object.entries(fileTree).map(([name, item]) =>
                 renderFileTreeItem(name, name, item)
@@ -421,7 +515,7 @@ const response = await uploadPicture(selectedCollaborator, file);
             </div>
           ) : (
             <div className="text-sm text-muted-foreground p-2">
-              {isLoading ? 'Loading files...' : 'No files loaded'}
+              {isLoading ? 'Loading files...' : 'No files found'}
             </div>
           )}
         </div>
@@ -431,7 +525,6 @@ const response = await uploadPicture(selectedCollaborator, file);
       <div className="flex-1 flex flex-col">
         {/* Header with File Actions */}
         <div className="border-b border-border bg-card">
-          {/* File Editor Header */}
           <div className="h-14 flex items-center justify-between px-4">
             <div className="flex items-center space-x-3">
               <FiCode className="w-5 h-5 text-muted-foreground" />
@@ -450,49 +543,53 @@ const response = await uploadPicture(selectedCollaborator, file);
                 ) : null}
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-3">
-              {unsavedChanges && (
+              {unsavedChanges && isAuthenticated && (
                 <div className="flex items-center space-x-2 text-sm text-orange-500">
                   <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
                   <span>Unsaved changes</span>
                 </div>
               )}
-              
-              {lastSaved && (
+
+              {lastSaved && isAuthenticated && (
                 <div className="text-xs text-muted-foreground">
                   Last saved: {lastSaved.toLocaleTimeString()}
                 </div>
               )}
               
-              <AuthGuard
-                message="Please sign in to add new collaborators and manage CV files."
-                fallback={
-                  <button
-                    disabled
-                    className="flex items-center space-x-2 px-3 py-1.5 bg-gray-400 text-gray-600 rounded-md text-sm font-medium cursor-not-allowed opacity-50"
-                    title="Sign in to add collaborators"
-                  >
-                    <FiPlus className="w-4 h-4" />
-                    <span>Add Collaborator</span>
-                    <span className="text-xs opacity-75">(Sign in required)</span>
-                  </button>
-                }
-              >
+              {/* Conditional Add Collaborator button */}
+              {isAuthenticated ? (
                 <button
                   onClick={() => setShowCreateModal(true)}
                   className="flex items-center space-x-2 px-3 py-1.5 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-colors"
-                  title="Add new collaborator"
+                  title="Create a new collaborator folder and CV template"
                 >
                   <FiPlus className="w-4 h-4" />
                   <span>Add Collaborator</span>
                 </button>
-              </AuthGuard>
-              
+              ) : (
+                <button
+                  disabled
+                  className="flex items-center space-x-2 px-3 py-1.5 bg-gray-400 text-gray-600 rounded-md text-sm font-medium cursor-not-allowed opacity-50"
+                  title="Authentication required - Sign in with Google to create collaborators"
+                >
+                  <FiPlus className="w-4 h-4" />
+                  <span>Add Collaborator</span>
+                  <span className="text-xs opacity-75">(Sign in required)</span>
+                </button>
+              )}
+
               <button
                 onClick={saveFile}
-                disabled={!selectedFile || !unsavedChanges}
+                disabled={!selectedFile || !unsavedChanges || !isAuthenticated}
                 className="flex items-center space-x-2 px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
+                title={
+                  !isAuthenticated ? "Sign in to save files" :
+                  !selectedFile ? "Select a file to save" :
+                  !unsavedChanges ? "No unsaved changes" :
+                  "Save current file changes (Ctrl+S)"
+                }
               >
                 <FiSave className="w-4 h-4" />
                 <span>Save</span>
@@ -504,7 +601,17 @@ const response = await uploadPicture(selectedCollaborator, file);
 
         {/* Editor */}
         <div className="flex-1 p-4">
-          {selectedFile ? (
+          {!isAuthenticated ? (
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center text-muted-foreground">
+                <FiUser className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-medium mb-2">Authentication Required</p>
+                <p className="text-sm">
+                  Sign in with Google to access your CV files and start editing
+                </p>
+              </div>
+            </div>
+          ) : selectedFile ? (
             <div className="h-full">
               <textarea
                 ref={textareaRef}
@@ -529,29 +636,33 @@ const response = await uploadPicture(selectedCollaborator, file);
         </div>
       </div>
 
-      {/* Modals */}
-      <CreateCollaboratorModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onCreateCollaborator={handleCreateCollaborator}
-        isLoading={isLoading}
-      />
+      {/* Modals - only show when authenticated */}
+      {isAuthenticated && (
+        <>
+          <CreateCollaboratorModal
+            isOpen={showCreateModal}
+            onClose={() => setShowCreateModal(false)}
+            onCreateCollaborator={handleCreateCollaborator}
+            isLoading={isLoading}
+          />
 
-      <UploadPictureModal
-        isOpen={showUploadModal}
-        onClose={() => setShowUploadModal(false)}
-        collaboratorName={selectedCollaborator}
-        onUploadPicture={handleUploadPicture}
-        isLoading={isLoading}
-      />
+          <UploadPictureModal
+            isOpen={showUploadModal}
+            onClose={() => setShowUploadModal(false)}
+            collaboratorName={selectedCollaborator}
+            onUploadPicture={handleUploadPicture}
+            isLoading={isLoading}
+          />
 
-      <GenerateCVModal
-        isOpen={showGenerateModal}
-        onClose={() => setShowGenerateModal(false)}
-        collaboratorName={selectedCollaborator}
-        onGenerateCV={handleGenerateCV}
-        isGenerating={isGenerating}
-      />
+          <GenerateCVModal
+            isOpen={showGenerateModal}
+            onClose={() => setShowGenerateModal(false)}
+            collaboratorName={selectedCollaborator}
+            onGenerateCV={handleGenerateCV}
+            isGenerating={isGenerating}
+          />
+        </>
+      )}
     </div>
   );
 };

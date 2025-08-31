@@ -86,8 +86,6 @@ const fetchTemplates = async () => {
             >
               <option value="en">English</option>
               <option value="fr">Français</option>
-              <option value="ch">中文</option>
-              <option value="ar">العربية</option>
             </select>
           </div>
           
