@@ -1,8 +1,8 @@
 # Site Configuration
 site:
-  name: "CVFinder"
-  domain: "myapp.com"
-  description: "Your app description"
+  name: "cvenom"
+  domain: "cvenom.com"
+  description: "CV app"
   locale: "en"
 
 # Firebase Authentication Configuration

@@ -1,4 +1,4 @@
-# CVFinder
+# cVenom
 
 A modern, responsive web application built with Next.js, TypeScript, and Tailwind CSS.
 

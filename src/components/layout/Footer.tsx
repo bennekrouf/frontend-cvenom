@@ -33,7 +33,7 @@ const footerNav: FooterNavItem[] = [
           {/* Column 1: Logo & Description */}
           <div className="space-y-4">
             <Link href={getLocalizedPath("/")} className="flex items-center space-x-2">
-              <span className="font-bold text-xl text-foreground">CVFinder</span>
+              <span className="font-bold text-xl text-foreground">cVenom</span>
             </Link>
             <p className="text-muted-foreground text-sm">
               {t('description')}
@@ -72,14 +72,14 @@ const footerNav: FooterNavItem[] = [
               {/* Add your social links here */}
             </div>
             <p className="text-sm text-muted-foreground">
-              {t('email_label')} contact@myapp.com
+              {t('email_label')} contact@mayorana.com
             </p>
           </div>
         </div>
 
         <div className="border-t border-border mt-8 pt-8 flex flex-col md:flex-row md:justify-between items-center">
           <p className="text-sm text-muted-foreground">
-            &copy; {currentYear} CVFinder. {t('copyright')}
+            &copy; {currentYear} Mayorana. {t('copyright')}
           </p>
           <p className="text-sm text-muted-foreground mt-2 md:mt-0">
             {t('tagline')}
