@@ -6,6 +6,13 @@ export interface AuthError {
   message: string;
 }
 
+export interface FileTreeItem {
+  type: 'file' | 'folder';
+  size?: number;
+  modified?: Date;
+  children?: Record<string, FileTreeItem>;
+}
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message?: string;
@@ -99,7 +106,7 @@ export async function apiRequest<T = unknown>(
     if (response.status === 403) {
       throw new Error('Access denied');
     }
-    
+
     let errorMessage = `HTTP ${response.status}`;
     try {
       const errorData = await response.json();
@@ -107,7 +114,7 @@ export async function apiRequest<T = unknown>(
     } catch {
       // Ignore JSON parse error, use default message
     }
-    
+
     throw new Error(errorMessage);
   }
 
@@ -116,7 +123,7 @@ export async function apiRequest<T = unknown>(
 
 // Tenant-specific file operations
 
-export async function getTenantFileTree() {
+export async function getTenantFileTree(): Promise<Record<string, FileTreeItem>> {
   return apiRequest('/api/files/tree', {
     method: 'GET',
     requireAuth: true  // Now requires authentication for tenant isolation
@@ -182,8 +189,8 @@ export async function generateCV(
 ): Promise<Blob> {
   return apiRequest('/api/generate', {
     method: 'POST',
-    body: { 
-      person: personName, 
+    body: {
+      person: personName,
       lang: language,
       template: template
     },

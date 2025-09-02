@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  FiFolder, 
-  FiFile, 
-  FiSave, 
+import {
+  FiFolder,
+  FiFile,
+  FiSave,
   FiToggleRight,
   FiToggleLeft,
-  FiCode, 
-  FiRefreshCw, 
-  FiChevronRight, 
+  FiCode,
+  FiRefreshCw,
+  FiChevronRight,
   FiChevronDown,
   FiPlus,
   FiCamera,
@@ -21,14 +21,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import CreateCollaboratorModal from './CreateCollaboratorModal';
 import UploadPictureModal from './UploadPictureModal';
 import GenerateCVModal from './GenerateCVModal';
-import AuthGuard from '@/components/auth/AuthGuard';
-import { 
-  createCollaborator, 
+import {
+  createCollaborator,
   getTenantFileTree,
   getTenantFileContent,
   saveTenantFileContent,
-  uploadPicture, 
-  generateCV 
+  uploadPicture,
+  generateCV,
 } from '@/lib/api';
 
 interface ApiSuccessResponse {
@@ -54,7 +53,7 @@ const FileEditor = () => {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Collaborator and modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -75,7 +74,7 @@ const FileEditor = () => {
   // Save file content
   const saveFile = useCallback(async () => {
     if (!selectedFile || !isAuthenticated) return;
-    
+
     try {
       await saveTenantFileContent(selectedFile, fileContent);
       setUnsavedChanges(false);
@@ -105,7 +104,7 @@ const FileEditor = () => {
     try {
       const response = await createCollaborator(personName);
       const data = response as ApiSuccessResponse;
-      
+
       if (data.success) {
         showStatus('Collaborator created successfully!');
         setShowCreateModal(false);
@@ -117,7 +116,7 @@ const FileEditor = () => {
       }
     } catch (error) {
       console.error('Error creating person:', error);
-      
+
       // Handle specific authentication errors
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
@@ -141,7 +140,7 @@ const FileEditor = () => {
     try {
       const response = await uploadPicture(selectedCollaborator, file);
       const data = response as ApiSuccessResponse;
- 
+
       if (data.success) {
         showStatus('Profile picture uploaded successfully!');
         setShowUploadModal(false);
@@ -173,7 +172,7 @@ const FileEditor = () => {
     setIsGenerating(true);
     try {
       const blob = await generateCV(selectedCollaborator, language, template);
-      
+
       // Create download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -183,7 +182,7 @@ const FileEditor = () => {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
- 
+
       showStatus('CV generated and downloaded successfully!');
       setShowGenerateModal(false);
     } catch (error) {
@@ -247,7 +246,7 @@ const FileEditor = () => {
   // Load file content
   const loadFile = async (filePath: string) => {
     if (!isEditableFile(filePath) || !isAuthenticated) return;
-    
+
     try {
       const content = await getTenantFileContent(filePath);
       setFileContent(content);
@@ -335,21 +334,20 @@ const FileEditor = () => {
     const isEditable = !isFolder && isEditableFile(name);
     const isCollaboratorFolder = (level === 1 && path.startsWith('data/')) || (level === 0 && name !== 'data' && isFolder);
     const isSelectedCollaborator = isCollaboratorFolder && selectedCollaborator === name;
-    
+
     return (
       <div key={path}>
         <div
-          className={`flex items-center py-1 px-2 hover:bg-secondary/50 cursor-pointer rounded-sm transition-colors group relative ${
-            isSelected ? 'bg-primary/10 text-primary' : ''
-          } ${isSelectedCollaborator ? 'bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-500' : ''} ${!isEditable && !isFolder ? 'opacity-50' : ''}`}
+          className={`flex items-center py-1 px-2 hover:bg-secondary/50 cursor-pointer rounded-sm transition-colors group relative ${isSelected ? 'bg-primary/10 text-primary' : ''
+            } ${isSelectedCollaborator ? 'bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-500' : ''} ${!isEditable && !isFolder ? 'opacity-50' : ''}`}
           style={{ paddingLeft: `${8 + level * 16}px` }}
           title={
-            isFolder ? 
-              (isCollaboratorFolder ? 
+            isFolder ?
+              (isCollaboratorFolder ?
                 `Collaborator folder: ${name} - Click to expand/collapse and select for actions` :
                 `Folder: ${name} - Click to expand/collapse contents`
               ) :
-              (isEditable ? 
+              (isEditable ?
                 `Editable file: ${name} - Click to open in editor (${getFileLanguage(name)})` :
                 `Read-only file: ${name} - File type not supported for editing`
               )
@@ -375,9 +373,8 @@ const FileEditor = () => {
               <FiFolder className={`w-4 h-4 mr-2 ${isCollaboratorFolder ? 'text-blue-500' : 'text-gray-500'}`} />
             </>
           ) : (
-            <FiFile className={`w-4 h-4 mr-2 ${
-              isEditable ? 'text-green-500' : 'text-muted-foreground'
-            }`} />
+            <FiFile className={`w-4 h-4 mr-2 ${isEditable ? 'text-green-500' : 'text-muted-foreground'
+              }`} />
           )}
           <span className="text-sm font-medium flex-1">{name}</span>
 
@@ -406,12 +403,12 @@ const FileEditor = () => {
               </button>
             </div>
           )}
-          
+
           {!isFolder && !isEditable && (
             <span className="ml-auto text-xs text-muted-foreground">readonly</span>
           )}
         </div>
-        
+
         {isFolder && isExpanded && item.children && (
           <div>
             {Object.entries(item.children).map(([childName, childItem]) =>
@@ -444,8 +441,8 @@ const FileEditor = () => {
                 onClick={loadFileTree}
                 disabled={!isAuthenticated}
                 className="p-1.5 hover:bg-secondary rounded-md transition-colors disabled:opacity-50"
-                title={isAuthenticated ? 
-                  (isLoading ? "Refreshing file tree..." : "Refresh file tree from server") : 
+                title={isAuthenticated ?
+                  (isLoading ? "Refreshing file tree..." : "Refresh file tree from server") :
                   "Sign in to refresh files"
                 }
               >
@@ -454,11 +451,10 @@ const FileEditor = () => {
               <button
                 onClick={() => setAutoSaveEnabled(!autoSaveEnabled)}
                 disabled={!isAuthenticated}
-                className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${
-                  autoSaveEnabled && isAuthenticated ? 'text-green-600' : 'text-gray-400 hover:bg-secondary'
-                }`}
-                title={isAuthenticated ? 
-                  `Auto-save: ${autoSaveEnabled ? 'ON - Files automatically save 2 seconds after editing' : 'OFF - Files must be saved manually with Ctrl+S or Save button'}` : 
+                className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${autoSaveEnabled && isAuthenticated ? 'text-green-600' : 'text-gray-400 hover:bg-secondary'
+                  }`}
+                title={isAuthenticated ?
+                  `Auto-save: ${autoSaveEnabled ? 'ON - Files automatically save 2 seconds after editing' : 'OFF - Files must be saved manually with Ctrl+S or Save button'}` :
                   "Sign in to enable auto-save feature"
                 }
               >
@@ -470,7 +466,7 @@ const FileEditor = () => {
               </button>
             </div>
           </div>
-          
+
           {/* Tenant Indicator */}
           {isAuthenticated && user && (
             <div className="mb-3 p-2 bg-primary/10 border border-primary/20 rounded-md">
@@ -487,10 +483,10 @@ const FileEditor = () => {
               </div>
             </div>
           )}
-          
+
           <div className="text-xs text-muted-foreground">
-            {isAuthenticated ? 
-              "Editable: .typ, .toml files only" : 
+            {isAuthenticated ?
+              "Editable: .typ, .toml files only" :
               "Sign in to view and edit your files"
             }
           </div>
@@ -557,7 +553,7 @@ const FileEditor = () => {
                   Last saved: {lastSaved.toLocaleTimeString()}
                 </div>
               )}
-              
+
               {/* Conditional Add Collaborator button */}
               {isAuthenticated ? (
                 <button
@@ -586,9 +582,9 @@ const FileEditor = () => {
                 className="flex items-center space-x-2 px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
                 title={
                   !isAuthenticated ? "Sign in to save files" :
-                  !selectedFile ? "Select a file to save" :
-                  !unsavedChanges ? "No unsaved changes" :
-                  "Save current file changes (Ctrl+S)"
+                    !selectedFile ? "Select a file to save" :
+                      !unsavedChanges ? "No unsaved changes" :
+                        "Save current file changes (Ctrl+S)"
                 }
               >
                 <FiSave className="w-4 h-4" />
