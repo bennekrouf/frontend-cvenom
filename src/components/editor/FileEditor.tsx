@@ -51,7 +51,7 @@ const FileEditor = () => {
   const [expandedFolders, setExpandedFolders] = useState(new Set(['data']));
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   // Collaborator and modal state
@@ -285,7 +285,7 @@ const FileEditor = () => {
       }
       autoSaveTimeoutRef.current = setTimeout(() => {
         saveFile();
-      }, 2000);
+      }, 10000);
     }
   };
 
@@ -454,7 +454,7 @@ const FileEditor = () => {
                 className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${autoSaveEnabled && isAuthenticated ? 'text-green-600' : 'text-gray-400 hover:bg-secondary'
                   }`}
                 title={isAuthenticated ?
-                  `Auto-save: ${autoSaveEnabled ? 'ON - Files automatically save 2 seconds after editing' : 'OFF - Files must be saved manually with Ctrl+S or Save button'}` :
+                  `Auto-save: ${autoSaveEnabled ? 'ON - Files automatically save 10 seconds after editing' : 'OFF - Files must be saved manually with Ctrl+S or Save button'}` :
                   "Sign in to enable auto-save feature"
                 }
               >

@@ -1,36 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readFile } from 'fs/promises';
-import { join } from 'path';
+import { getApiUrl } from '@/lib/config';
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const filePath = searchParams.get('path');
-    
-    if (!filePath) {
-      return NextResponse.json(
-        { error: 'File path is required' },
-        { status: 400 }
-      );
+    const body = await request.json();
+    const apiUrl = getApiUrl();
+
+    const authHeader = request.headers.get('authorization');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (authHeader) {
+      headers.Authorization = authHeader;
     }
 
-    // Security: Only allow .typ and .toml files
-    if (!filePath.endsWith('.typ') && !filePath.endsWith('.toml')) {
-      return NextResponse.json(
-        { error: 'File type not allowed' },
-        { status: 403 }
-      );
-    }
-
-    const fullPath = join(process.cwd(), '../cvenom-backend/data', filePath);
-    const content = await readFile(fullPath, 'utf-8');
-    
-    return new NextResponse(content, {
-      headers: { 'Content-Type': 'text/plain' }
+    const response = await fetch(`${apiUrl}/files/save`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body)
     });
-  } catch {
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: 'Failed to save file to backend' },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('File save proxy error:', error);
     return NextResponse.json(
-      { error: 'Failed to read file' },
+      { error: 'Failed to save file' },
       { status: 500 }
     );
   }

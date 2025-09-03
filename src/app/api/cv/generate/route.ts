@@ -1,24 +1,27 @@
+// src/app/api/cv/generate/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { getApiUrl } from '@/lib/config';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
-    const response = await fetch('http://127.0.0.1:8000/api/generate', {
+    const apiUrl = getApiUrl();
+
+    const response = await fetch(`${apiUrl}/api/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body)
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Generation failed' }));
       return NextResponse.json(errorData, { status: response.status });
     }
-    
+
     const pdfBuffer = await response.arrayBuffer();
-    
+
     return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',

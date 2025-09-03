@@ -1,55 +1,35 @@
-import { NextResponse } from 'next/server';
-import { readdir, stat } from 'fs/promises';
-import { join } from 'path';
+import { NextRequest, NextResponse } from 'next/server';
+import { getApiUrl } from '@/lib/config';
 
-interface FileTreeItem {
-  type: 'file' | 'folder';
-  size?: number;
-  modified?: Date;
-  children?: Record<string, FileTreeItem>;
-}
-
-async function buildFileTree(dirPath: string, basePath: string = ''): Promise<Record<string, FileTreeItem>> {
+export async function GET(request: NextRequest) {
   try {
-    const items = await readdir(dirPath);
-    const tree: Record<string, FileTreeItem> = {};
+    const apiUrl = getApiUrl();
 
-    for (const item of items) {
-      const fullPath = join(dirPath, item);
-      const relativePath = basePath ? `${basePath}/${item}` : item;
-      const stats = await stat(fullPath);
-
-      if (stats.isDirectory()) {
-        tree[item] = {
-          type: 'folder',
-          children: await buildFileTree(fullPath, relativePath)
-        };
-      } else {
-        // Only include .typ and .toml files
-        if (item.endsWith('.typ') || item.endsWith('.toml')) {
-          tree[item] = {
-            type: 'file',
-            size: stats.size,
-            modified: stats.mtime
-          };
-        }
-      }
+    // Forward authorization header if present
+    const authHeader = request.headers.get('authorization');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (authHeader) {
+      headers.Authorization = authHeader;
     }
 
-    return tree;
-  } catch (error) {
-    console.error('Error building file tree:', error);
-    return {};
-  }
-}
+    const response = await fetch(`${apiUrl}/files/tree`, {
+      method: 'GET',
+      headers,
+    });
 
-export async function GET() {
-  try {
-    const dataPath = join(process.cwd(), '../cvenom-backend/data');
-    const fileTree = await buildFileTree(dataPath);
-    
-    return NextResponse.json(fileTree);
-  } catch {
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: 'Failed to fetch file tree from backend' },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('File tree proxy error:', error);
     return NextResponse.json(
       { error: 'Failed to load file tree' },
       { status: 500 }

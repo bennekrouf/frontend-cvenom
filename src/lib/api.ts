@@ -1,4 +1,33 @@
-// src/lib/api.ts - Updated for tenant-specific file operations
+// src/lib/config.ts
+import { getApiUrl } from './config';
+interface ApiConfig {
+  baseUrl: string;
+  timeout: number;
+  retries: number;
+}
+
+interface SiteConfig {
+  api: ApiConfig;
+  site: {
+    name: string;
+    domain: string;
+    description: string;
+    locale: string;
+  };
+}
+
+// Load configuration from YAML
+const config: SiteConfig | null = null;
+
+// Synchronous getter for when config is already loaded
+export const getConfig = (): SiteConfig => {
+  if (!config) {
+    throw new Error('Config not loaded. Call loadConfig() first.');
+  }
+  return config;
+};
+
+// Updated lib/api.ts with centralized config
 import { auth } from './firebase';
 
 export interface AuthError {
@@ -74,8 +103,11 @@ export async function apiRequest<T = unknown>(
     }
   }
 
+  // Get API base URL
+  const apiUrl = getApiUrl();
+
   // Make request
-  const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
+  const response = await fetch(`${apiUrl}${endpoint}`, {
     method,
     headers: requestHeaders,
     body: body ? JSON.stringify(body) : undefined,
@@ -121,19 +153,18 @@ export async function apiRequest<T = unknown>(
   return response.json();
 }
 
-// Tenant-specific file operations
-
+// API functions using centralized config
 export async function getTenantFileTree(): Promise<Record<string, FileTreeItem>> {
   return apiRequest('/api/files/tree', {
     method: 'GET',
-    requireAuth: true  // Now requires authentication for tenant isolation
+    requireAuth: true
   });
 }
 
 export async function getTenantFileContent(filePath: string): Promise<string> {
   return apiRequest(`/api/files/content?path=${encodeURIComponent(filePath)}`, {
     method: 'GET',
-    requireAuth: true  // Now requires authentication for tenant isolation
+    requireAuth: true
   });
 }
 
@@ -145,7 +176,6 @@ export async function saveTenantFileContent(filePath: string, content: string) {
   });
 }
 
-// Existing API functions
 export async function createCollaborator(personName: string) {
   return apiRequest('/api/create', {
     method: 'POST',
@@ -164,7 +194,8 @@ export async function uploadPicture(personName: string, file: File) {
   formData.append('person', personName);
   formData.append('file', file);
 
-  const response = await fetch('http://127.0.0.1:8000/api/upload-picture', {
+  const apiUrl = getApiUrl();
+  const response = await fetch(`${apiUrl}/api/upload-picture`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -201,7 +232,7 @@ export async function generateCV(
 export async function getTemplates() {
   return apiRequest('/api/templates', {
     method: 'GET',
-    requireAuth: false  // This endpoint remains public
+    requireAuth: false
   });
 }
 
