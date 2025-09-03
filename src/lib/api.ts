@@ -155,21 +155,21 @@ export async function apiRequest<T = unknown>(
 
 // API functions using centralized config
 export async function getTenantFileTree(): Promise<Record<string, FileTreeItem>> {
-  return apiRequest('/api/files/tree', {
+  return apiRequest('/files/tree', {
     method: 'GET',
     requireAuth: true
   });
 }
 
 export async function getTenantFileContent(filePath: string): Promise<string> {
-  return apiRequest(`/api/files/content?path=${encodeURIComponent(filePath)}`, {
+  return apiRequest(`/files/content?path=${encodeURIComponent(filePath)}`, {
     method: 'GET',
     requireAuth: true
   });
 }
 
 export async function saveTenantFileContent(filePath: string, content: string) {
-  return apiRequest('/api/files/save', {
+  return apiRequest('/files/save', {
     method: 'POST',
     body: { path: filePath, content },
     requireAuth: true
@@ -177,7 +177,7 @@ export async function saveTenantFileContent(filePath: string, content: string) {
 }
 
 export async function createCollaborator(personName: string) {
-  return apiRequest('/api/create', {
+  return apiRequest('/create', {
     method: 'POST',
     body: { person: personName },
     requireAuth: true
@@ -195,7 +195,7 @@ export async function uploadPicture(personName: string, file: File) {
   formData.append('file', file);
 
   const apiUrl = getApiUrl();
-  const response = await fetch(`${apiUrl}/api/upload-picture`, {
+  const response = await fetch(`${apiUrl}/upload-picture`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -218,7 +218,7 @@ export async function generateCV(
   language: string,
   template: string = 'default'
 ): Promise<Blob> {
-  return apiRequest('/api/generate', {
+  return apiRequest('/generate', {
     method: 'POST',
     body: {
       person: personName,
@@ -230,21 +230,21 @@ export async function generateCV(
 }
 
 export async function getTemplates() {
-  return apiRequest('/api/templates', {
+  return apiRequest('/templates', {
     method: 'GET',
     requireAuth: false
   });
 }
 
 export async function getCurrentUser() {
-  return apiRequest('/api/me', {
+  return apiRequest('/me', {
     method: 'GET',
     requireAuth: true
   });
 }
 
 export async function healthCheck() {
-  return apiRequest('/api/health', {
+  return apiRequest('/health', {
     method: 'GET',
     requireAuth: false
   });
