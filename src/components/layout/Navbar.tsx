@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+// import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -19,8 +19,8 @@ const Navbar: React.FC = () => {
   const t = useTranslations('navigation');
 
   // Empty navigation items - add your own
-  const navItems = [
-    { label: t('editor'), path: "/editor" },
+  const navItems: { label: string; path: string; }[] = [
+    // { label: t('editor'), path: "/editor" },
   ];
 
   // Language options
@@ -44,24 +44,52 @@ const Navbar: React.FC = () => {
 
   const currentLang = languages.find(lang => lang.code === locale) || languages[0];
 
+  const getMotivationalMessage = () => {
+    const messages = locale === 'fr' ? [
+      "Créez un CV qui vous distingue",
+      "Votre prochain emploi vous attend",
+      "Mettez en valeur vos compétences",
+      "Construisez votre avenir professionnel",
+      "Chaque expérience compte",
+      "Transformez vos idées en opportunités"
+    ] : [
+      "Craft a CV that stands out",
+      "Your next opportunity awaits",
+      "Showcase your unique skills",
+      "Build your professional future",
+      "Every experience matters",
+      "Transform your ideas into opportunities"
+    ];
+
+    return messages[Math.floor(Math.random() * messages.length)];
+  };
+
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur-sm">
       <div className="container flex h-16 items-center justify-between">
-        {/* Logo */}
+
         <div className="flex items-center">
-          <Link
-            href={`/${locale}`}
-            className="flex items-center"
-          >
-            <Image
-              src="/logo.png"
-              alt="cVenom"
-              width={58}
-              height={58}
-              className="w-10 h-10"
-            />
-          </Link>
+          <span className="text-sm text-muted-foreground italic">
+            {getMotivationalMessage()}
+          </span>
         </div>
+
+
+        {/* Logo */}
+        {/* <div className="flex items-center"> */}
+        {/*   <Link */}
+        {/*     href={`/${locale}`} */}
+        {/*     className="flex items-center" */}
+        {/*   > */}
+        {/*     <Image */}
+        {/*       src="/logo.png" */}
+        {/*       alt="cVenom" */}
+        {/*       width={58} */}
+        {/*       height={58} */}
+        {/*       className="w-10 h-10" */}
+        {/*     /> */}
+        {/*   </Link> */}
+        {/* </div> */}
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6">
