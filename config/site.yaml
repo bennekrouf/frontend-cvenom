@@ -18,7 +18,7 @@ auth:
 
 # API Configuration
 api:
-  backend_url: "http://127.0.0.1:8000"
+  backend_url: "http://127.0.0.1:4002"
   # backend_url: "https://api.cvenom.com/"  # production
 
 # Logging preferences (following your Rust preference)
