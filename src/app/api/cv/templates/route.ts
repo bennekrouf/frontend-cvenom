@@ -5,7 +5,7 @@ import { getApiUrl } from '@/lib/config';
 export async function GET() {
   try {
     const apiUrl = getApiUrl();
-    const response = await fetch(`${apiUrl}/api/templates`);
+    const response = await fetch(`${apiUrl}/templates`);
     const data = await response.json();
 
     return NextResponse.json(data, { status: response.status });
