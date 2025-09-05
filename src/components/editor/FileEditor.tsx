@@ -14,8 +14,10 @@ import {
   FiPlus,
   FiCamera,
   FiFileText,
+  FiX,
   FiUser
 } from 'react-icons/fi';
+import { useTranslations } from 'next-intl';
 
 import { useAuth } from '@/contexts/AuthContext';
 import CreateCollaboratorModal from './CreateCollaboratorModal';
@@ -29,6 +31,7 @@ import {
   uploadPicture,
   generateCV,
 } from '@/lib/api';
+import ChatComponent from './ChatComponent';
 
 interface ApiSuccessResponse {
   success: boolean;
@@ -43,8 +46,27 @@ interface FileTreeItem {
   children?: Record<string, FileTreeItem>;
 }
 
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
 const FileEditor = () => {
   const { isAuthenticated, loading, user } = useAuth();
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    {
+      id: '1',
+      role: 'assistant',
+      content: isAuthenticated
+        ? 'Hello! I\'m here to help you with your CV creation and editing. How can I assist you today?'
+        : 'Welcome! I can help you with CV creation and editing. Sign in to save your progress and access advanced features, or feel free to ask questions to get started!',
+      timestamp: new Date(),
+    },
+  ]);
+
+  const t = useTranslations('fileEditor');
   const [fileTree, setFileTree] = useState<Record<string, FileTreeItem> | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState('');
@@ -79,22 +101,34 @@ const FileEditor = () => {
       await saveTenantFileContent(selectedFile, fileContent);
       setUnsavedChanges(false);
       setLastSaved(new Date());
-      showStatus('File saved successfully!');
+      showStatus(t('fileSavedSuccess'));
     } catch (error) {
       console.error('Error saving file:', error);
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
-          showStatus('Please sign in to save files');
+          showStatus(t('signInToSave'));
         } else if (error.message.includes('token expired')) {
-          showStatus('Session expired. Please sign in again');
+          showStatus(t('sessionExpired'));
         } else {
-          showStatus('Failed to save file');
+          showStatus(t('saveFileFailed'));
         }
       } else {
-        showStatus('Failed to save file');
+        showStatus(t('saveFileFailed'));
       }
     }
-  }, [selectedFile, fileContent, isAuthenticated]);
+  }, [selectedFile, fileContent, isAuthenticated, t]);
+
+  const closeFile = () => {
+    if (unsavedChanges) {
+      const confirmClose = window.confirm(t('confirmCloseUnsaved'));
+      if (!confirmClose) return;
+    }
+
+    setSelectedFile(null);
+    setFileContent('');
+    setUnsavedChanges(false);
+    setLastSaved(null);
+  };
 
   // Modal handlers with authentication
   const handleCreateCollaborator = async (personName: string) => {
@@ -106,13 +140,13 @@ const FileEditor = () => {
       const data = response as ApiSuccessResponse;
 
       if (data.success) {
-        showStatus('Collaborator created successfully!');
+        showStatus(t('collaboratorCreatedSuccess'));
         setShowCreateModal(false);
         await loadFileTree(); // Refresh file tree
         setSelectedCollaborator(personName); // Auto-select the new person
         setExpandedFolders(new Set(['data', personName])); // Auto-expand their folder
       } else {
-        showStatus(data.message || 'Failed to create collaborator');
+        showStatus(data.message || t('createCollaboratorFailed'));
       }
     } catch (error) {
       console.error('Error creating person:', error);
@@ -120,14 +154,14 @@ const FileEditor = () => {
       // Handle specific authentication errors
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
-          showStatus('Please sign in to create collaborators');
+          showStatus(t('signInToCreateCollaborators'));
         } else if (error.message.includes('token expired')) {
-          showStatus('Session expired. Please sign in again');
+          showStatus(t('sessionExpired'));
         } else {
-          showStatus(error.message || 'Failed to create collaborator');
+          showStatus(error.message || t('createCollaboratorFailed'));
         }
       } else {
-        showStatus('Failed to create collaborator');
+        showStatus(t('createCollaboratorFailed'));
       }
     }
     setIsLoading(false);
@@ -142,10 +176,10 @@ const FileEditor = () => {
       const data = response as ApiSuccessResponse;
 
       if (data.success) {
-        showStatus('Profile picture uploaded successfully!');
+        showStatus(t('pictureUploadedSuccess'));
         setShowUploadModal(false);
       } else {
-        showStatus(data.message || 'Failed to upload picture');
+        showStatus(data.message || t('uploadPictureFailed'));
       }
     } catch (error) {
       console.error('Error uploading picture:', error);
@@ -153,14 +187,14 @@ const FileEditor = () => {
       // Handle specific authentication errors
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
-          showStatus('Please sign in to upload pictures');
+          showStatus(t('signInToUploadPictures'));
         } else if (error.message.includes('token expired')) {
-          showStatus('Session expired. Please sign in again');
+          showStatus(t('sessionExpired'));
         } else {
-          showStatus(error.message || 'Failed to upload picture');
+          showStatus(error.message || t('uploadPictureFailed'));
         }
       } else {
-        showStatus('Failed to upload picture');
+        showStatus(t('uploadPictureFailed'));
       }
     }
     setIsLoading(false);
@@ -183,7 +217,7 @@ const FileEditor = () => {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      showStatus('CV generated and downloaded successfully!');
+      showStatus(t('cvGeneratedSuccess'));
       setShowGenerateModal(false);
     } catch (error) {
       console.error('Error generating CV:', error);
@@ -191,14 +225,14 @@ const FileEditor = () => {
       // Handle specific authentication errors
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
-          showStatus('Please sign in to generate CVs');
+          showStatus(t('signInToGenerateCV'));
         } else if (error.message.includes('token expired')) {
-          showStatus('Session expired. Please sign in again');
+          showStatus(t('sessionExpired'));
         } else {
-          showStatus(error.message || 'Failed to generate CV');
+          showStatus(error.message || t('generateCVFailed'));
         }
       } else {
-        showStatus('Failed to generate CV');
+        showStatus(t('generateCVFailed'));
       }
     }
     setIsGenerating(false);
@@ -220,11 +254,11 @@ const FileEditor = () => {
       setFileTree(null);
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
-          showStatus('Please sign in to view your files');
+          showStatus(t('signInToViewFiles'));
         } else if (error.message.includes('token expired')) {
-          showStatus('Session expired. Please sign in again');
+          showStatus(t('sessionExpired'));
         } else {
-          showStatus('Failed to load files');
+          showStatus(t('loadFilesFailed'));
         }
       }
     }
@@ -257,16 +291,16 @@ const FileEditor = () => {
       console.error('Error loading file:', error);
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
-          showStatus('Please sign in to access files');
-          setFileContent('Authentication required to view file content');
+          showStatus(t('signInToAccessFiles'));
+          setFileContent(t('authRequiredToView'));
         } else if (error.message.includes('token expired')) {
-          showStatus('Session expired. Please sign in again');
-          setFileContent('Session expired. Please sign in again.');
+          showStatus(t('sessionExpired'));
+          setFileContent(t('sessionExpiredMessage'));
         } else {
-          setFileContent('Error loading file: ' + error.message);
+          setFileContent(t('errorLoadingFile') + ': ' + error.message);
         }
       } else {
-        setFileContent('Error loading file: Unknown error');
+        setFileContent(t('errorLoadingFileUnknown'));
       }
     }
   };
@@ -344,12 +378,12 @@ const FileEditor = () => {
           title={
             isFolder ?
               (isCollaboratorFolder ?
-                `Collaborator folder: ${name} - Click to expand/collapse and select for actions` :
-                `Folder: ${name} - Click to expand/collapse contents`
+                t('collaboratorFolderTooltip', { name }) :
+                t('folderTooltip', { name })
               ) :
               (isEditable ?
-                `Editable file: ${name} - Click to open in editor (${getFileLanguage(name)})` :
-                `Read-only file: ${name} - File type not supported for editing`
+                t('editableFileTooltip', { name, language: getFileLanguage(name) }) :
+                t('readonlyFileTooltip', { name })
               )
           }
           onClick={() => {
@@ -387,7 +421,7 @@ const FileEditor = () => {
                   setShowUploadModal(true);
                 }}
                 className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground"
-                title={`Upload profile picture for ${name} (JPG, PNG supported)`}
+                title={t('uploadPictureTooltip', { name })}
               >
                 <FiCamera className="w-3 h-3" />
               </button>
@@ -397,7 +431,7 @@ const FileEditor = () => {
                   setShowGenerateModal(true);
                 }}
                 className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground"
-                title={`Generate and download CV PDF for ${name}`}
+                title={t('generateCVTooltip', { name })}
               >
                 <FiFileText className="w-3 h-3" />
               </button>
@@ -405,7 +439,7 @@ const FileEditor = () => {
           )}
 
           {!isFolder && !isEditable && (
-            <span className="ml-auto text-xs text-muted-foreground">readonly</span>
+            <span className="ml-auto text-xs text-muted-foreground">{t('readonly')}</span>
           )}
         </div>
 
@@ -421,7 +455,7 @@ const FileEditor = () => {
   };
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-[calc(100vh-4rem)] bg-background">
       {/* Status Message */}
       {statusMessage && (
         <div className="fixed top-4 right-4 z-50 bg-card border border-border rounded-lg px-4 py-2 shadow-lg">
@@ -435,15 +469,15 @@ const FileEditor = () => {
       <div className="w-80 border-r border-border bg-card flex flex-col">
         <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-foreground">Files</h2>
+            <h2 className="text-lg font-semibold text-foreground">{t('files')}</h2>
             <div className="flex gap-2">
               <button
                 onClick={loadFileTree}
                 disabled={!isAuthenticated}
                 className="p-1.5 hover:bg-secondary rounded-md transition-colors disabled:opacity-50"
                 title={isAuthenticated ?
-                  (isLoading ? "Refreshing file tree..." : "Refresh file tree from server") :
-                  "Sign in to refresh files"
+                  (isLoading ? t('refreshingFileTree') : t('refreshFileTree')) :
+                  t('signInToRefresh')
                 }
               >
                 <FiRefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -454,8 +488,8 @@ const FileEditor = () => {
                 className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${autoSaveEnabled && isAuthenticated ? 'text-green-600' : 'text-gray-400 hover:bg-secondary'
                   }`}
                 title={isAuthenticated ?
-                  `Auto-save: ${autoSaveEnabled ? 'ON - Files automatically save 10 seconds after editing' : 'OFF - Files must be saved manually with Ctrl+S or Save button'}` :
-                  "Sign in to enable auto-save feature"
+                  `${t('autoSave')}: ${autoSaveEnabled ? t('autoSaveOn') : t('autoSaveOff')}` :
+                  t('signInToEnableAutoSave')
                 }
               >
                 {autoSaveEnabled && isAuthenticated ? (
@@ -486,8 +520,8 @@ const FileEditor = () => {
 
           <div className="text-xs text-muted-foreground">
             {isAuthenticated ?
-              "Editable: .typ, .toml files only" :
-              "Sign in to view and edit your files"
+              t('editableFiles') :
+              t('signInToEdit')
             }
           </div>
         </div>
@@ -496,12 +530,12 @@ const FileEditor = () => {
           {loading ? (
             <div className="text-sm text-muted-foreground p-2 text-center">
               <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-              Checking authentication...
+              {t('checkingAuth')}
             </div>
           ) : !isAuthenticated ? (
             <div className="text-center p-4">
               <FiFolder className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm text-muted-foreground mb-3">Sign in to view your CV files</p>
+              <p className="text-sm text-muted-foreground mb-3">{t('signInToViewFiles')}</p>
             </div>
           ) : fileTree ? (
             <div className="space-y-1">
@@ -511,7 +545,7 @@ const FileEditor = () => {
             </div>
           ) : (
             <div className="text-sm text-muted-foreground p-2">
-              {isLoading ? 'Loading files...' : 'No files found'}
+              {isLoading ? t('loadingFiles') : t('noFilesFound')}
             </div>
           )}
         </div>
@@ -526,7 +560,7 @@ const FileEditor = () => {
               <FiCode className="w-5 h-5 text-muted-foreground" />
               <div>
                 <h1 className="font-semibold text-foreground">
-                  {selectedFile ? selectedFile.split('/').pop() : selectedCollaborator ? `${selectedCollaborator} - No file selected` : 'No file selected'}
+                  {selectedFile ? selectedFile.split('/').pop() : selectedCollaborator ? `${selectedCollaborator} - ${t('noFileSelected')}` : t('noFileSelected')}
                 </h1>
                 {selectedFile ? (
                   <p className="text-xs text-muted-foreground">
@@ -534,23 +568,34 @@ const FileEditor = () => {
                   </p>
                 ) : selectedCollaborator ? (
                   <p className="text-xs text-muted-foreground">
-                    Collaborator: {selectedCollaborator}
+                    {t('collaborator')}: {selectedCollaborator}
                   </p>
                 ) : null}
               </div>
+
+              {/* Close File Button */}
+              {selectedFile && (
+                <button
+                  onClick={closeFile}
+                  className="ml-2 p-1.5 hover:bg-secondary rounded-md transition-colors text-muted-foreground hover:text-foreground"
+                  title={t('closeFileTooltip')}
+                >
+                  <FiX className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
             <div className="flex items-center space-x-3">
               {unsavedChanges && isAuthenticated && (
                 <div className="flex items-center space-x-2 text-sm text-orange-500">
                   <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
-                  <span>Unsaved changes</span>
+                  <span>{t('unsavedChanges')}</span>
                 </div>
               )}
 
               {lastSaved && isAuthenticated && (
                 <div className="text-xs text-muted-foreground">
-                  Last saved: {lastSaved.toLocaleTimeString()}
+                  {t('lastSaved')}: {lastSaved.toLocaleTimeString()}
                 </div>
               )}
 
@@ -559,20 +604,20 @@ const FileEditor = () => {
                 <button
                   onClick={() => setShowCreateModal(true)}
                   className="flex items-center space-x-2 px-3 py-1.5 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-colors"
-                  title="Create a new collaborator folder and CV template"
+                  title={t('createCollaboratorTooltip')}
                 >
                   <FiPlus className="w-4 h-4" />
-                  <span>Add Collaborator</span>
+                  <span>{t('addCollaborator')}</span>
                 </button>
               ) : (
                 <button
                   disabled
                   className="flex items-center space-x-2 px-3 py-1.5 bg-gray-400 text-gray-600 rounded-md text-sm font-medium cursor-not-allowed opacity-50"
-                  title="Authentication required - Sign in with Google to create collaborators"
+                  title={t('authRequiredCollaborators')}
                 >
                   <FiPlus className="w-4 h-4" />
-                  <span>Add Collaborator</span>
-                  <span className="text-xs opacity-75">(Sign in required)</span>
+                  <span>{t('addCollaborator')}</span>
+                  <span className="text-xs opacity-75">({t('signInRequired')})</span>
                 </button>
               )}
 
@@ -581,14 +626,14 @@ const FileEditor = () => {
                 disabled={!selectedFile || !unsavedChanges || !isAuthenticated}
                 className="flex items-center space-x-2 px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
                 title={
-                  !isAuthenticated ? "Sign in to save files" :
-                    !selectedFile ? "Select a file to save" :
-                      !unsavedChanges ? "No unsaved changes" :
-                        "Save current file changes (Ctrl+S)"
+                  !isAuthenticated ? t('signInToSaveFiles') :
+                    !selectedFile ? t('selectFileToSave') :
+                      !unsavedChanges ? t('noUnsavedChanges') :
+                        t('saveFileTooltip')
                 }
               >
                 <FiSave className="w-4 h-4" />
-                <span>Save</span>
+                <span>{t('save')}</span>
                 <span className="text-xs opacity-75">Ctrl+S</span>
               </button>
             </div>
@@ -596,38 +641,37 @@ const FileEditor = () => {
         </div>
 
         {/* Editor */}
-        <div className="flex-1 p-4">
+        <div className="flex-1 overflow-hidden">
           {!isAuthenticated ? (
-            <div className="h-full flex items-center justify-center">
+            <div className="h-full flex items-center justify-center p-4">
               <div className="text-center text-muted-foreground">
                 <FiUser className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium mb-2">Authentication Required</p>
+                <p className="text-lg font-medium mb-2">{t('authenticationRequired')}</p>
                 <p className="text-sm">
-                  Sign in with Google to access your CV files and start editing
+                  {t('signInGoogle')}
                 </p>
               </div>
             </div>
           ) : selectedFile ? (
-            <div className="h-full">
+            <div className="h-full p-4">
               <textarea
                 ref={textareaRef}
                 value={fileContent}
                 onChange={handleContentChange}
                 className="w-full h-full p-4 bg-background border border-border rounded-lg font-mono text-sm leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary selectable"
-                placeholder="Start editing your file..."
+                placeholder={t('startEditingPlaceholder')}
                 spellCheck={false}
               />
             </div>
           ) : (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center text-muted-foreground">
-                <FiFile className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium mb-2">No file selected</p>
-                <p className="text-sm">
-                  Select a .typ or .toml file from the sidebar to start editing
-                </p>
-              </div>
-            </div>
+            /* Chat Component - shown when no file is selected */
+            <ChatComponent
+              isVisible={!selectedFile}
+              isAuthenticated={isAuthenticated}
+              loading={loading}
+              messages={chatMessages}
+              onMessagesChange={setChatMessages}
+            />
           )}
         </div>
       </div>

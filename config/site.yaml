@@ -26,3 +26,9 @@ logging:
   level: "trace"
   format: "json"
   output: "console"
+
+
+# Chat Configuration
+chat:
+  max_messages: 20
+  flush_warning_message: "You've reached the message limit. Would you like to clear the chat history to continue?"
