@@ -1,204 +1,171 @@
+// components/ChatComponent.tsx
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { FiSend, FiUser, FiTrash2, FiLock } from 'react-icons/fi';
+import { FiSend, FiUser, FiDownload, FiEdit, FiFile } from 'react-icons/fi';
 import { FaMagic } from "react-icons/fa";
 import { signInWithGoogle } from '@/lib/firebase';
+import { useAPI0Chat } from '@/hooks/useAPI0Chat';
 
-import { useTranslations } from 'next-intl';
 interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
+  executionResult?: any;
+  type?: 'text' | 'command' | 'result';
 }
 
 interface ChatComponentProps {
   isVisible: boolean;
   isAuthenticated: boolean;
   loading: boolean;
-  messages: ChatMessage[];
-  onMessagesChange: (messages: ChatMessage[]) => void;
 }
 
-// Configuration - in a real app, load this from your config
-const CHAT_CONFIG = {
-  maxMessages: 20,
-  flushWarningMessage: "You've reached the message limit. Would you like to clear the chat history to continue?"
-};
-
 const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticated, loading }) => {
-  const t = useTranslations('chat');
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
       role: 'assistant',
+      type: 'text',
       content: isAuthenticated
-        ? t('welcome_authenticated')
-        : t('welcome_guest'),
+        ? 'Hello! I can help you with CV operations. Try commands like "Generate CV for john-doe" or "Create person profile for jane-smith".'
+        : 'Welcome! Sign in to use CV commands, or ask general questions about CVs.',
       timestamp: new Date(),
     },
   ]);
+
   const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [showFlushDialog, setShowFlushDialog] = useState(false);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-scroll to bottom when new messages arrive
+  const {
+    isLoading,
+    executeCommand,
+    getCommandSuggestions,
+    handlePDFDownload,
+  } = useAPI0Chat();
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isTyping]);
+  }, [messages]);
 
-  // Focus input when component becomes visible
   useEffect(() => {
     if (isVisible && inputRef.current) {
       inputRef.current.focus();
     }
   }, [isVisible]);
 
-  // Update welcome message when authentication state changes
-  useEffect(() => {
-    if (messages.length === 1 && messages[0].id === '1') {
-      setMessages([{
-        id: '1',
-        role: 'assistant',
-        content: isAuthenticated
-          ? 'Hello! I\'m here to help you with your CV creation and editing. How can I assist you today?'
-          : 'Welcome! I can help you with CV creation and editing. Sign in to save your progress and access advanced features, or feel free to ask questions to get started!',
-        timestamp: new Date(),
-      }]);
-    }
-  }, [isAuthenticated, messages.length]);
-
-  // Check if message limit is reached
-  const checkMessageLimit = () => {
-    return messages.length >= CHAT_CONFIG.maxMessages;
-  };
-
-  // Flush chat history
-  const flushMessages = () => {
-    setMessages([
-      {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: isAuthenticated
-          ? 'Chat history has been cleared. How can I help you with your CV?'
-          : 'Chat history has been cleared. I can help you with CV questions, or sign in for the full experience!',
-        timestamp: new Date(),
-      },
-    ]);
-    setShowFlushDialog(false);
-  };
-
-  // Handle authentication
-  const handleSignIn = async () => {
-    setIsSigningIn(true);
-    try {
-      await signInWithGoogle();
-      setShowAuthPrompt(false);
-
-      // Add welcome message after successful sign-in
-      const welcomeMessage: ChatMessage = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: 'Great! You\'re now signed in. I can now help you with advanced CV features like file editing and collaboration. What would you like to work on?',
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, welcomeMessage]);
-    } catch (error) {
-      console.error('Sign-in failed:', error);
-    }
-    setIsSigningIn(false);
-  };
-
-  // Fake responses for demonstration
-  const getFakeResponse = (userMessage: string, isAuth: boolean): string => {
-    const authenticatedResponses = [
-      "I can help you create a professional CV. What specific section would you like to work on?",
-      "That's a great question! For CV writing, I'd recommend focusing on quantifiable achievements.",
-      "I see you're working on your resume. Would you like tips on formatting or content structure?",
-      "Based on your message, here are some suggestions for improving your CV...",
-      "Let me help you with that. CV optimization is all about highlighting your unique value proposition.",
-      "I understand what you're looking for. The key to a standout CV is clear, concise communication of your skills.",
-    ];
-
-    const unauthenticatedResponses = [
-      "I can give you some general CV tips! For personalized assistance and file editing, consider signing in.",
-      "Here's some advice for CV writing. Sign in to access advanced features like template editing and collaboration.",
-      "That's a good question about CVs! I can provide basic guidance, or you can sign in for the full experience.",
-      "For CV optimization, focus on clear achievements. Sign in to work with actual CV files and templates.",
-      "I can help with general CV advice! For editing your actual CV files, you'll want to sign in first.",
-      "Great question! I can share CV best practices. Sign in to access collaborative features and file editing.",
-    ];
-
-    const responses = isAuth ? authenticatedResponses : unauthenticatedResponses;
-    return responses[Math.floor(Math.random() * responses.length)];
-  };
-
-  // Simulate typing delay
-  const simulateTyping = async (response: string) => {
-    setIsTyping(true);
-
-    // Simulate typing delay based on message length
-    const typingDelay = Math.min(response.length * 30, 2000) + 500;
-
-    await new Promise(resolve => setTimeout(resolve, typingDelay));
-
-    setIsTyping(false);
-
+  const addMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
     const newMessage: ChatMessage = {
+      ...message,
       id: Date.now().toString(),
-      role: 'assistant',
-      content: response,
       timestamp: new Date(),
     };
-
     setMessages(prev => [...prev, newMessage]);
+    return newMessage;
   };
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
-    // For unauthenticated users, show auth prompt after a few messages
-    if (!isAuthenticated && messages.length >= 5) {
+    // For unauthenticated users, show auth prompt for commands
+    if (!isAuthenticated) {
       setShowAuthPrompt(true);
       return;
     }
 
-    // Check message limit for authenticated users
-    if (isAuthenticated && checkMessageLimit()) {
-      setShowFlushDialog(true);
-      return;
-    }
-
-    // Add user message
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
+    const userMessage = addMessage({
       role: 'user',
       content: inputValue.trim(),
-      timestamp: new Date(),
-    };
+    });
 
-    setMessages(prev => [...prev, userMessage]);
+    const messageContent = inputValue.trim();
     setInputValue('');
+    setShowSuggestions(false);
 
-    // Check again after adding user message (for assistant response)
-    const currentLength = messages.length + 1;
-    if (isAuthenticated && currentLength >= CHAT_CONFIG.maxMessages) {
-      setShowFlushDialog(true);
-      return;
+    if (isAuthenticated) {
+      try {
+        const result = await executeCommand(messageContent);
+
+        if (result.success) {
+          let responseContent = '';
+          let resultData = null;
+
+          // Handle conversation responses
+          if (result.type === 'conversation') {
+            addMessage({
+              role: 'assistant',
+              type: 'text',
+              content: result.data?.content || result.data?.response || 'I can help you with CV questions.',
+            });
+            return;
+          }
+
+          // Handle action responses
+          if (result.type === 'pdf') {
+            responseContent = '✅ CV generated successfully! Click below to download.';
+            resultData = result;
+            handlePDFDownload(result);
+          } else if (result.type === 'edit') {
+            responseContent = `✅ Ready to edit: ${result.data?.section} section for ${result.data?.person}`;
+            resultData = result;
+          } else if (result.type === 'file_content') {
+            responseContent = `✅ File content retrieved: ${result.data?.path}`;
+            resultData = result;
+          } else {
+            responseContent = '✅ Command executed successfully!';
+            if (result.data) {
+              resultData = result.data;
+              responseContent += `\n\nResult: ${JSON.stringify(result.data, null, 2)}`;
+            }
+          }
+
+          addMessage({
+            role: 'assistant',
+            type: 'result',
+            content: responseContent,
+            executionResult: resultData,
+          });
+        } else {
+          addMessage({
+            role: 'assistant',
+            type: 'text',
+            content: `❌ ${result.error}`,
+          });
+        }
+      } catch (error) {
+        addMessage({
+          role: 'assistant',
+          type: 'text',
+          content: `❌ Error: ${error instanceof Error ? error.message : 'Command failed'}`,
+        });
+      }
+      // }
+    } else {
+      // Regular conversation - simulate AI response
+      setTimeout(() => {
+        const responses = [
+          "I can help you with CV-related questions! For advanced operations like generating PDFs or editing files, try signing in and using commands.",
+          "Great question about CVs! I can provide general advice, or you can sign in to use command features like 'Generate CV for [person]'.",
+          "For CV best practices, focus on clear achievements and quantifiable results. Sign in to access file editing and generation features.",
+        ];
+
+        addMessage({
+          role: 'assistant',
+          type: 'text',
+          content: responses[Math.floor(Math.random() * responses.length)],
+        });
+      }, 1000);
     }
-
-    // Generate and add fake response
-    const response = getFakeResponse(userMessage.content, isAuthenticated);
-    await simulateTyping(response);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -208,36 +175,66 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputValue(value);
+    setShowSuggestions(value.length > 2 && isAuthenticated);
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setInputValue(suggestion);
+    setShowSuggestions(false);
+    inputRef.current?.focus();
+  };
+
+  const handleSignIn = async () => {
+    setIsSigningIn(true);
+    try {
+      await signInWithGoogle();
+      setShowAuthPrompt(false);
+      addMessage({
+        role: 'assistant',
+        type: 'text',
+        content: '🎉 Welcome! You can now use commands like:\n• "Generate CV for john-doe"\n• "Create person profile for jane-smith"\n• "Get CV templates"',
+      });
+    } catch (error) {
+      console.error('Sign-in failed:', error);
+    }
+    setIsSigningIn(false);
+  };
+
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
+
+  const suggestions = showSuggestions ? getCommandSuggestions(inputValue) : [];
 
   if (!isVisible) return null;
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Authentication Prompt Modal */}
+      {/* Auth Prompt Modal */}
       {showAuthPrompt && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-card border border-border rounded-lg p-6 w-96">
             <div className="flex items-center space-x-3 mb-4">
               <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                <FiLock className="w-5 h-5 text-primary" />
+                <FaMagic className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-foreground">Enhanced Experience Available</h3>
-                <p className="text-sm text-muted-foreground">Get the most out of your CV assistant</p>
+                <h3 className="text-lg font-semibold text-foreground">CV Commands Available</h3>
+                <p className="text-sm text-muted-foreground">Sign in to execute CV operations</p>
               </div>
             </div>
             <p className="text-sm text-muted-foreground mb-6">
-              Sign in to unlock advanced features like file editing, collaboration tools, and unlimited conversations.
+              Commands like CV generation and file editing require authentication to access your CVenom account.
             </p>
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setShowAuthPrompt(false)}
                 className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors"
               >
-                Continue as Guest
+                Cancel
               </button>
               <button
                 onClick={handleSignIn}
@@ -249,34 +246,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
                 ) : (
                   <FiUser className="w-4 h-4" />
                 )}
-                <span>{isSigningIn ? 'Signing in...' : 'Sign In with Google'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Flush Dialog */}
-      {showFlushDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-card border border-border rounded-lg p-6 w-96">
-            <h3 className="text-lg font-semibold text-foreground mb-4">Chat Limit Reached</h3>
-            <p className="text-sm text-muted-foreground mb-6">
-              {CHAT_CONFIG.flushWarningMessage}
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowFlushDialog(false)}
-                className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={flushMessages}
-                className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-              >
-                <FiTrash2 className="w-4 h-4" />
-                <span>Clear Chat</span>
+                <span>{isSigningIn ? 'Signing in...' : 'Sign In'}</span>
               </button>
             </div>
           </div>
@@ -294,18 +264,14 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
               <h2 className="font-semibold text-foreground">CV Assistant</h2>
               <p className="text-xs text-muted-foreground">
                 {isAuthenticated
-                  ? t('header_subtitle_authenticated')
-                  : t('header_subtitle_guest')
+                  ? 'Natural language CV commands enabled'
+                  : 'Sign in for command execution'
                 }
               </p>
             </div>
           </div>
           <div className="text-xs text-muted-foreground">
-            {isAuthenticated ? (
-              `${messages.length}/${CHAT_CONFIG.maxMessages} messages`
-            ) : (
-              loading ? 'Checking auth...' : 'Guest mode'
-            )}
+            {isLoading && '⚡ Processing...'}
           </div>
         </div>
       </div>
@@ -318,8 +284,10 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[80%] rounded-lg px-4 py-3 ${message.role === 'user'
-                ? 'bg-primary text-primary-foreground'
+              className={`max-w-[85%] rounded-lg px-4 py-3 ${message.role === 'user'
+                ? message.type === 'command'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-primary text-primary-foreground'
                 : 'bg-card border border-border text-foreground'
                 }`}
             >
@@ -330,9 +298,52 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
                   </div>
                 )}
                 <div className="flex-1">
-                  <p className="text-sm leading-relaxed selectable">{message.content}</p>
+                  <div className="flex items-center space-x-2 mb-1">
+                    {message.type === 'command' && (
+                      <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">CMD</span>
+                    )}
+                    {message.type === 'result' && (
+                      <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded">RESULT</span>
+                    )}
+                  </div>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+
+                  {/* Execution result actions */}
+                  {message.executionResult && (
+                    <div className="mt-3 space-y-2">
+                      {message.executionResult.type === 'pdf' && (
+                        <button
+                          onClick={() => handlePDFDownload(message.executionResult)}
+                          className="flex items-center space-x-2 px-3 py-1.5 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
+                        >
+                          <FiDownload className="w-3 h-3" />
+                          <span>Download PDF</span>
+                        </button>
+                      )}
+                      {message.executionResult.type === 'edit' && (
+                        <button
+                          className="flex items-center space-x-2 px-3 py-1.5 bg-orange-500 text-white rounded text-xs hover:bg-orange-600 transition-colors"
+                        >
+                          <FiEdit className="w-3 h-3" />
+                          <span>Open Editor</span>
+                        </button>
+                      )}
+                      {message.executionResult.type === 'file_content' && (
+                        <div className="bg-secondary rounded p-2 text-xs">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <FiFile className="w-3 h-3" />
+                            <span className="font-medium">{message.executionResult.data?.path}</span>
+                          </div>
+                          <pre className="text-xs overflow-x-auto max-h-32 overflow-y-auto">
+                            {message.executionResult.data?.content}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <p className={`text-xs mt-2 ${message.role === 'user'
-                    ? 'text-primary-foreground/70'
+                    ? 'text-white/70'
                     : 'text-muted-foreground'
                     }`}>
                     {formatTime(message.timestamp)}
@@ -348,13 +359,13 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
           </div>
         ))}
 
-        {/* Typing Indicator */}
-        {isTyping && (
+        {/* Loading Indicator */}
+        {isLoading && (
           <div className="flex justify-start">
             <div className="max-w-[80%] rounded-lg px-4 py-3 bg-card border border-border">
               <div className="flex items-center space-x-2">
                 <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <FaMagic className="w-3 h-3 text-primary" />
+                  <FaMagic className="w-3 h-3 text-primary animate-pulse" />
                 </div>
                 <div className="flex space-x-1">
                   <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
@@ -369,6 +380,24 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Suggestions */}
+      {showSuggestions && suggestions.length > 0 && (
+        <div className="border-t border-border bg-card px-4 py-2">
+          <div className="text-xs text-muted-foreground mb-2">Suggested commands:</div>
+          <div className="space-y-1">
+            {suggestions.slice(0, 3).map((suggestion, index) => (
+              <button
+                key={index}
+                onClick={() => handleSuggestionClick(suggestion)}
+                className="block w-full text-left px-3 py-2 text-sm bg-secondary hover:bg-secondary/80 rounded transition-colors"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Input Area */}
       <div className="border-t border-border bg-card px-4 py-3">
         <div className="relative">
@@ -376,18 +405,18 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
             ref={inputRef}
             type="text"
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={handleInputChange}
             onKeyPress={handleKeyPress}
             placeholder={isAuthenticated
-              ? "Ask me anything about CV creation..."
-              : "Ask me about CV tips... (Sign in for advanced features)"
+              ? "Try: 'Generate CV for john-doe' or ask questions..."
+              : "Ask about CVs or sign in for commands..."
             }
-            className="w-full pl-4 pr-12 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none selectable"
-            disabled={isTyping}
+            className="w-full pl-4 pr-12 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+            disabled={isLoading}
           />
           <button
             onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isTyping}
+            disabled={!inputValue.trim() || isLoading}
             className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             title="Send message (Enter)"
           >
@@ -396,8 +425,8 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
         </div>
         <p className="text-xs text-muted-foreground mt-2 text-center">
           {isAuthenticated
-            ? 'Press Enter to send • This is a demo chat with fake responses'
-            : 'Press Enter to send • Sign in to unlock unlimited conversations and CV editing'
+            ? 'Natural language commands powered by API0 • Press Enter to send'
+            : 'Sign in to unlock CV command execution • Press Enter to send'
           }
         </p>
       </div>
