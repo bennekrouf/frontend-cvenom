@@ -113,6 +113,8 @@ export async function apiRequest<T = unknown>(
     body: body ? JSON.stringify(body) : undefined,
   });
 
+
+
   // Handle non-JSON responses (like PDF downloads)
   const contentType = response.headers.get('Content-Type');
   if (contentType && contentType.includes('application/pdf')) {
@@ -151,6 +153,14 @@ export async function apiRequest<T = unknown>(
   }
 
   return response.json();
+}
+
+export async function deleteCollaborator(personName: string) {
+  return apiRequest('/delete-person', {
+    method: 'POST',
+    body: { person: personName },
+    requireAuth: true
+  });
 }
 
 // API functions using centralized config

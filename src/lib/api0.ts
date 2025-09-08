@@ -5,6 +5,7 @@ interface Parameter {
   name: string;
   description: string;
   semantic_value?: string;
+  value?: string; // Add this for compatibility
 }
 
 interface AnalysisResult {
@@ -21,6 +22,15 @@ interface AnalysisResult {
   json_output: string;
 }
 
+interface FileAttachment {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  data: string; // base64 encoded
+  preview?: string;
+}
+
 class API0Service {
   private baseUrl: string;
   private apiKey: string;
@@ -30,14 +40,29 @@ class API0Service {
     this.apiKey = apiKey;
   }
 
-  async analyzeSentence(sentence: string): Promise<AnalysisResult[]> {
+  async analyzeSentence(sentence: string, attachments: FileAttachment[] = []): Promise<AnalysisResult[]> {
+    const requestBody: any = { sentence };
+
+    // Add image context if there are image attachments
+    if (attachments.length > 0) {
+      const imageAttachments = attachments.filter(att => att.type.startsWith('image/'));
+      if (imageAttachments.length > 0) {
+        requestBody.images = imageAttachments.map(att => ({
+          name: att.name,
+          type: att.type,
+          data: att.data
+        }));
+        requestBody.has_images = true;
+      }
+    }
+
     const response = await fetch(`${this.baseUrl}/api/analyze`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ sentence }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
@@ -48,8 +73,8 @@ class API0Service {
     return response.json();
   }
 
-  async processAndExecute(sentence: string): Promise<any> {
-    const results = await this.analyzeSentence(sentence);
+  async processAndExecute(sentence: string, attachments: FileAttachment[] = []): Promise<any> {
+    const results = await this.analyzeSentence(sentence, attachments);
 
     if (results.length === 0) {
       throw new Error('I didn\'t understand that command. Try being more specific about what you want to do.');
@@ -61,21 +86,101 @@ class API0Service {
     // Extract parameters from API0 response
     const params = this.extractParameters(bestMatch.parameters);
 
+    // Check if this is an image upload operation
+    const isImageUpload = attachments.some(att => att.type.startsWith('image/')) &&
+      (bestMatch.endpoint_name.toLowerCase().includes('upload') ||
+        bestMatch.endpoint_name.toLowerCase().includes('picture') ||
+        bestMatch.api_group_id === 'image_operations');
+
+    if (isImageUpload) {
+      return this.executeImageUpload(bestMatch, params, attachments);
+    }
+
     // Execute the endpoint using the structured data from API0
     return this.executeEndpoint(bestMatch, params);
+  }
+
+  private async executeImageUpload(
+    endpoint: AnalysisResult,
+    params: Record<string, string>,
+    attachments: FileAttachment[]
+  ): Promise<any> {
+    // Find the person parameter
+    const personName = params.person || params.name;
+    if (!personName) {
+      throw new Error('Please specify which collaborator to upload the image for (e.g., "Upload picture for john-doe")');
+    }
+
+    // Get the first image attachment
+    const imageAttachment = attachments.find(att => att.type.startsWith('image/'));
+    if (!imageAttachment) {
+      throw new Error('No image attachment found');
+    }
+
+    try {
+      // Get authentication token
+      const token = await this.getCVenonAuth();
+
+      // Convert base64 to blob
+      const binaryString = atob(imageAttachment.data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: imageAttachment.type });
+      const file = new File([blob], imageAttachment.name, { type: imageAttachment.type });
+
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('person', personName);
+      formData.append('file', file);
+
+      // Upload using the CVenom API endpoint
+      const uploadUrl = `${endpoint.base}/upload-picture`;
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Upload failed: ${errorText}`);
+      }
+
+      const result = await response.json();
+
+      return {
+        type: 'image_upload',
+        success: true,
+        message: `Profile picture uploaded successfully for ${personName}`,
+        endpoint_name: endpoint.endpoint_name,
+        data: {
+          person: personName,
+          filename: imageAttachment.name,
+          ...result
+        }
+      };
+    } catch (error) {
+      throw new Error(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   private extractParameters(parameters: Parameter[]): Record<string, string> {
     const params: Record<string, string> = {};
     parameters.forEach(param => {
-      if (param.semantic_value) {
-        params[param.name] = param.semantic_value;
+      // Handle both semantic_value and value for compatibility
+      const value = param.semantic_value || param.value;
+      if (value) {
+        params[param.name] = value;
       }
     });
     return params;
   }
 
-  private async executeEndpoint(endpoint: AnalysisResult, params: Record<string, string>): Promise<any> {
+  private async executeEndpoint(endpoint: AnalysisResult, params: Record<string, string>): Promise<Record<string, unknown>> {
     // Handle general conversation responses
     if (endpoint.api_group_id === 'conversation' && endpoint.endpoint_id === 'general_conversation') {
       try {
@@ -167,7 +272,8 @@ class API0Service {
     // Check if this is a CVenom endpoint that needs authentication
     return baseUrl.includes('localhost:4002') ||
       baseUrl.includes('cv.') ||
-      baseUrl.includes('cvenom');
+      baseUrl.includes('cvenom') ||
+      baseUrl.includes('127.0.0.1:4002');
   }
 
   private async getCVenonAuth(): Promise<string> {
@@ -222,4 +328,4 @@ export function getAPI0(): API0Service {
   return api0Service;
 }
 
-export type { AnalysisResult, Parameter };
+export type { AnalysisResult, Parameter, FileAttachment };

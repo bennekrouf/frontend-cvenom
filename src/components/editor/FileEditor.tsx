@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   FiFolder,
   FiFile,
+  FiTrash2,
   FiSave,
   FiToggleRight,
   FiToggleLeft,
@@ -19,6 +20,8 @@ import {
 } from 'react-icons/fi';
 import { useTranslations } from 'next-intl';
 
+import DeleteCollaboratorModal from './DeleteCollaboratorModal';
+import { deleteCollaborator } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import CreateCollaboratorModal from './CreateCollaboratorModal';
 import UploadPictureModal from './UploadPictureModal';
@@ -55,6 +58,9 @@ interface ChatMessage {
 
 const FileEditor = () => {
   const { isAuthenticated, loading, user } = useAuth();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -86,6 +92,35 @@ const FileEditor = () => {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleDeleteCollaborator = async () => {
+    if (!selectedCollaborator || !isAuthenticated) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await deleteCollaborator(selectedCollaborator);
+      const data = response as ApiSuccessResponse;
+
+      if (data.success) {
+        showStatus(t('deleteCollaboratorSuccess'));
+        setShowDeleteModal(false);
+        setSelectedCollaborator(null);
+        setSelectedFile(null);
+        setFileContent('');
+        await loadFileTree(); // Refresh file tree
+      } else {
+        showStatus(data.message || t('deleteCollaboratorFailed'));
+      }
+    } catch (error) {
+      console.error('Error deleting collaborator:', error);
+      showStatus(t('deleteCollaboratorFailed'));
+    }
+    setIsDeleting(false);
+  };
 
   // Show status message temporarily
   const showStatus = (message: string) => {
@@ -239,7 +274,7 @@ const FileEditor = () => {
   };
 
   // Load file tree from API
-  const loadFileTree = async () => {
+  const loadFileTree = useCallback(async () => {
     if (!isAuthenticated) {
       setFileTree(null);
       return;
@@ -263,7 +298,7 @@ const FileEditor = () => {
       }
     }
     setIsLoading(false);
-  };
+  }, [isAuthenticated, t]);
 
   // Check if file is editable (.typ or .toml)
   const isEditableFile = (filename: string) => {
@@ -347,7 +382,7 @@ const FileEditor = () => {
       setFileContent('');
       setSelectedCollaborator(null);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, loadFileTree]);
 
   // Toggle folder expansion
   const toggleFolder = (folderPath: string) => {
@@ -358,6 +393,12 @@ const FileEditor = () => {
       newExpanded.add(folderPath);
     }
     setExpandedFolders(newExpanded);
+  };
+
+  // Handle delete button click - FIXED
+  const handleDeleteClick = (collaboratorName: string) => {
+    setSelectedCollaborator(collaboratorName);
+    setShowDeleteModal(true);
   };
 
   // Render file tree item
@@ -412,7 +453,7 @@ const FileEditor = () => {
           )}
           <span className="text-sm font-medium flex-1">{name}</span>
 
-          {/* Collaborator Actions Menu */}
+          {/* Collaborator Actions Menu - FIXED */}
           {isCollaboratorFolder && isSelectedCollaborator && isAuthenticated && (
             <div className="flex items-center space-x-1 opacity-60 group-hover:opacity-100 transition-opacity ml-2">
               <button
@@ -435,6 +476,16 @@ const FileEditor = () => {
               >
                 <FiFileText className="w-3 h-3" />
               </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteClick(name); // FIXED: Call the proper handler
+                }}
+                className="p-1 hover:bg-red-500/20 rounded text-muted-foreground hover:text-red-500"
+                title={`Delete collaborator ${name} and all associated files`}
+              >
+                <FiTrash2 className="w-3 h-3" />
+              </button>
             </div>
           )}
 
@@ -453,6 +504,14 @@ const FileEditor = () => {
       </div>
     );
   };
+
+  if (!mounted) {
+    return (
+      <div className="flex h-[calc(100vh-4rem)] bg-background">
+        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-background">
@@ -669,8 +728,6 @@ const FileEditor = () => {
               isVisible={!selectedFile}
               isAuthenticated={isAuthenticated}
               loading={loading}
-              messages={chatMessages}
-              onMessagesChange={setChatMessages}
             />
           )}
         </div>
@@ -700,6 +757,15 @@ const FileEditor = () => {
             collaboratorName={selectedCollaborator}
             onGenerateCV={handleGenerateCV}
             isGenerating={isGenerating}
+          />
+
+          {/* Delete Modal - FIXED: Pass correct props */}
+          <DeleteCollaboratorModal
+            isOpen={showDeleteModal}
+            onClose={() => setShowDeleteModal(false)}
+            collaboratorName={selectedCollaborator}
+            onDeleteCollaborator={handleDeleteCollaborator}
+            isDeleting={isDeleting}
           />
         </>
       )}

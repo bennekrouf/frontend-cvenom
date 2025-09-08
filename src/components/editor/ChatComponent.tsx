@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { FiSend, FiUser, FiDownload, FiEdit, FiFile } from 'react-icons/fi';
+import { FiSend, FiUser, FiDownload, FiEdit, FiFile, FiPaperclip, FiX, FiImage } from 'react-icons/fi';
 import { FaMagic } from "react-icons/fa";
 import { signInWithGoogle } from '@/lib/firebase';
 import { useAPI0Chat } from '@/hooks/useAPI0Chat';
@@ -15,6 +15,16 @@ interface ChatMessage {
   timestamp: Date;
   executionResult?: any;
   type?: 'text' | 'command' | 'result';
+  attachments?: FileAttachment[];
+}
+
+interface FileAttachment {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  data: string; // base64 encoded
+  preview?: string; // for images
 }
 
 interface ChatComponentProps {
@@ -41,9 +51,12 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [attachments, setAttachments] = useState<FileAttachment[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     isLoading,
@@ -66,6 +79,105 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
     }
   }, [isVisible]);
 
+  // File handling functions
+  const isImageFile = (file: File): boolean => {
+    return file.type.startsWith('image/');
+  };
+
+  const isSupportedFile = (file: File): boolean => {
+    const supportedTypes = [
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'application/pdf',
+      'text/plain',
+      'application/json'
+    ];
+    return supportedTypes.includes(file.type) || file.type.startsWith('image/');
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(',')[1]); // Remove data URL prefix
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const createImagePreview = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileSelect = async (files: FileList | null) => {
+    if (!files) return;
+
+    const newAttachments: FileAttachment[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+
+      if (!isSupportedFile(file)) {
+        alert(`File type ${file.type} is not supported. Supported types: images, PDF, text files.`);
+        continue;
+      }
+
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        alert(`File ${file.name} is too large. Maximum size is 10MB.`);
+        continue;
+      }
+
+      try {
+        const base64Data = await fileToBase64(file);
+        const preview = isImageFile(file) ? await createImagePreview(file) : undefined;
+
+        const attachment: FileAttachment = {
+          id: Date.now().toString() + i,
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          data: base64Data,
+          preview
+        };
+
+        newAttachments.push(attachment);
+      } catch (error) {
+        console.error('Error processing file:', error);
+        alert(`Error processing file ${file.name}`);
+      }
+    }
+
+    setAttachments(prev => [...prev, ...newAttachments]);
+  };
+
+  const removeAttachment = (id: string) => {
+    setAttachments(prev => prev.filter(att => att.id !== id));
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    handleFileSelect(e.dataTransfer.files);
+  };
+
   const addMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
     const newMessage: ChatMessage = {
       ...message,
@@ -77,7 +189,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
   };
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() && attachments.length === 0) return;
 
     // For unauthenticated users, show auth prompt for commands
     if (!isAuthenticated) {
@@ -87,16 +199,40 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
 
     const userMessage = addMessage({
       role: 'user',
-      content: inputValue.trim(),
+      content: inputValue.trim() || 'Attached files',
+      attachments: [...attachments]
     });
 
     const messageContent = inputValue.trim();
+    const messageAttachments = [...attachments];
+
+    // Clear input and attachments
     setInputValue('');
+    setAttachments([]);
     setShowSuggestions(false);
 
     if (isAuthenticated) {
       try {
-        const result = await executeCommand(messageContent);
+        let commandToExecute = messageContent;
+
+        // If there are image attachments, enhance the command for API0
+        const imageAttachments = messageAttachments.filter(att => isImageFile({ type: att.type } as File));
+
+        console.log('Chat: messageAttachments:', messageAttachments.length);
+        console.log('Chat: imageAttachments:', imageAttachments.length);
+
+        if (imageAttachments.length > 0) {
+          // If no text command provided, suggest image-related commands
+          if (!messageContent.trim()) {
+            commandToExecute = "Process the uploaded image for CV profile picture";
+          } else {
+            // Enhance existing command with image context
+            commandToExecute = `${messageContent} using the uploaded image`;
+          }
+        }
+
+        console.log('Chat: calling executeCommand with attachments:', messageAttachments.length);
+        const result = await executeCommand(commandToExecute, messageAttachments);
 
         if (result.success) {
           let responseContent = '';
@@ -112,8 +248,13 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
             return;
           }
 
-          // Handle action responses
-          if (result.type === 'pdf') {
+          // Handle image upload responses
+          if (result.type === 'image_upload') {
+            responseContent = `✅ Image processed successfully! ${result.data?.message || ''}`;
+            resultData = result;
+          }
+          // Handle other action responses
+          else if (result.type === 'pdf') {
             responseContent = '✅ CV generated successfully! Click below to download.';
             resultData = result;
             handlePDFDownload(result);
@@ -151,22 +292,6 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
           content: `❌ Error: ${error instanceof Error ? error.message : 'Command failed'}`,
         });
       }
-      // }
-    } else {
-      // Regular conversation - simulate AI response
-      setTimeout(() => {
-        const responses = [
-          "I can help you with CV-related questions! For advanced operations like generating PDFs or editing files, try signing in and using commands.",
-          "Great question about CVs! I can provide general advice, or you can sign in to use command features like 'Generate CV for [person]'.",
-          "For CV best practices, focus on clear achievements and quantifiable results. Sign in to access file editing and generation features.",
-        ];
-
-        addMessage({
-          role: 'assistant',
-          type: 'text',
-          content: responses[Math.floor(Math.random() * responses.length)],
-        });
-      }, 1000);
     }
   };
 
@@ -197,12 +322,20 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
       addMessage({
         role: 'assistant',
         type: 'text',
-        content: '🎉 Welcome! You can now use commands like:\n• "Generate CV for john-doe"\n• "Create person profile for jane-smith"\n• "Get CV templates"',
+        content: '🎉 Welcome! You can now use commands like:\n• "Generate CV for john-doe"\n• "Create person profile for jane-smith"\n• "Upload profile picture" (with image attachment)',
       });
     } catch (error) {
       console.error('Sign-in failed:', error);
     }
     setIsSigningIn(false);
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   const formatTime = (date: Date) => {
@@ -229,7 +362,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
               </div>
             </div>
             <p className="text-sm text-muted-foreground mb-6">
-              Commands like CV generation and file editing require authentication to access your CVenom account.
+              Commands like CV generation, file editing, and image processing require authentication to access your CVenom account.
             </p>
             <div className="flex justify-end space-x-3">
               <button
@@ -279,7 +412,22 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div
+        className={`flex-1 overflow-y-auto p-4 space-y-4 ${isDragOver ? 'bg-primary/5 border-2 border-dashed border-primary' : ''}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {isDragOver && (
+          <div className="absolute inset-0 flex items-center justify-center z-10 bg-background/80">
+            <div className="text-center">
+              <FiPaperclip className="w-8 h-8 mx-auto mb-2 text-primary" />
+              <p className="text-lg font-medium text-primary">Drop files here</p>
+              <p className="text-sm text-muted-foreground">Images, PDFs, and text files supported</p>
+            </div>
+          </div>
+        )}
+
         {messages.map((message) => (
           <div
             key={message.id}
@@ -308,7 +456,33 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
                       <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded">RESULT</span>
                     )}
                   </div>
+
                   <p className="text-sm leading-relaxed whitespace-pre-wrap selectable">{message.content}</p>
+
+                  {/* Display attachments */}
+                  {message.attachments && message.attachments.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {message.attachments.map((attachment) => (
+                        <div key={attachment.id} className="flex items-center space-x-3 p-2 bg-secondary/50 rounded border">
+                          {attachment.preview ? (
+                            <img
+                              src={attachment.preview}
+                              alt={attachment.name}
+                              className="w-12 h-12 object-cover rounded"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
+                              <FiFile className="w-6 h-6 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium truncate">{attachment.name}</p>
+                            <p className="text-xs text-muted-foreground">{formatFileSize(attachment.size)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Execution result actions */}
                   {message.executionResult && (
@@ -330,15 +504,13 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
                           <span>Open Editor</span>
                         </button>
                       )}
-                      {message.executionResult.type === 'file_content' && (
-                        <div className="bg-secondary rounded p-2 text-xs">
+                      {message.executionResult.type === 'image_upload' && (
+                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded p-2 text-xs">
                           <div className="flex items-center space-x-2 mb-1">
-                            <FiFile className="w-3 h-3" />
-                            <span className="font-medium">{message.executionResult.data?.path}</span>
+                            <FiImage className="w-3 h-3 text-green-600" />
+                            <span className="font-medium text-green-800 dark:text-green-200">Image Processed</span>
                           </div>
-                          <pre className="text-xs overflow-x-auto max-h-32 overflow-y-auto">
-                            {message.executionResult.data?.content}
-                          </pre>
+                          <p className="text-green-700 dark:text-green-300">{message.executionResult.data?.message}</p>
                         </div>
                       )}
                     </div>
@@ -382,6 +554,42 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Attachments Preview */}
+      {attachments.length > 0 && (
+        <div className="border-t border-border bg-card px-4 py-2">
+          <div className="text-xs text-muted-foreground mb-2">Attachments ({attachments.length}):</div>
+          <div className="flex flex-wrap gap-2">
+            {attachments.map((attachment) => (
+              <div key={attachment.id} className="relative group">
+                <div className="flex items-center space-x-2 p-2 bg-secondary rounded border">
+                  {attachment.preview ? (
+                    <img
+                      src={attachment.preview}
+                      alt={attachment.name}
+                      className="w-8 h-8 object-cover rounded"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-muted rounded flex items-center justify-center">
+                      <FiFile className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate max-w-20">{attachment.name}</p>
+                    <p className="text-xs text-muted-foreground">{formatFileSize(attachment.size)}</p>
+                  </div>
+                  <button
+                    onClick={() => removeAttachment(attachment.id)}
+                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/20 rounded transition-all"
+                  >
+                    <FiX className="w-3 h-3 text-red-500" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Suggestions */}
       {showSuggestions && suggestions.length > 0 && (
         <div className="border-t border-border bg-card px-4 py-2">
@@ -410,21 +618,46 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
             onChange={handleInputChange}
             onKeyDown={handleKeyPress}
             placeholder={isAuthenticated
-              ? t('input_placeholder_authenticated')
+              ? attachments.length > 0
+                ? "Add a message about the attached files..."
+                : t('input_placeholder_authenticated')
               : t('input_placeholder_guest')
             }
-            className="w-full pl-4 pr-12 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+            className="w-full pl-4 pr-20 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
             disabled={isLoading}
           />
-          <button
-            onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isLoading}
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            title="Send message (Enter)"
-          >
-            <FiSend className="w-4 h-4" />
-          </button>
+
+          {/* File Input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*,.pdf,.txt,.json"
+            onChange={(e) => handleFileSelect(e.target.files)}
+            className="hidden"
+          />
+
+          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+              title="Attach files (images, PDFs, text)"
+              disabled={isLoading}
+            >
+              <FiPaperclip className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={handleSendMessage}
+              disabled={(!inputValue.trim() && attachments.length === 0) || isLoading}
+              className="p-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Send message (Enter)"
+            >
+              <FiSend className="w-4 h-4" />
+            </button>
+          </div>
         </div>
+
         {/* Input Area footer text */}
         <p className="text-xs text-muted-foreground mt-2 text-center">
           {isAuthenticated

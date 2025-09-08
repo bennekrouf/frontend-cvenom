@@ -8,10 +8,22 @@
       "show_profile": "Show my user profile",
       "generate_pdf": "Generate PDF for john-doe using keyteo template",
       "show_file_tree": "Show file tree",
-      "get_file_content": "Get file content for john-doe/cv_params.toml"
+      "get_file_content": "Get file content for john-doe/cv_params.toml",
+      "delete_collaborator": "Delete collaborator john-doe",
+      "upload_picture": "Upload profile picture for john-doe",
+      "process_image": "Process uploaded image for CV",
+      "set_profile_picture": "Set profile picture using attached image"
     },
     "footer_text": "Natural language commands powered by api0.ai • Press Enter to send",
     "footer_text_guest": "Sign in to unlock CV command execution • Press Enter to send",
+    "image_processing": "Processing uploaded image...",
+    "image_upload_success": "Image uploaded successfully!",
+    "image_upload_error": "Failed to process image",
+    "file_too_large": "File is too large. Maximum size is 10MB.",
+    "unsupported_file_type": "File type not supported. Supported: images, PDF, text files.",
+    "drop_files_here": "Drop files here",
+    "attach_files": "Attach files (images, PDFs, text)",
+    "attachments": "Attachments",
     "assistant_title": "CV Assistant",
     "assistant_subtitle_authenticated": "Natural language CV commands enabled",
     "assistant_subtitle_guest": "Sign in for command execution",
@@ -68,7 +80,7 @@
   },
   "fileEditor": {
     "files": "Files",
-    "addCollaborator": "Add Collaborator",
+    "addCollaborator": "Create",
     "editableFiles": "Editable: .typ, .toml files only",
     "signInToEdit": "Sign in to view and edit your files",
     "noFileSelected": "No file selected",
@@ -124,6 +136,17 @@
     "signInToSaveFiles": "Sign in to save files",
     "selectFileToSave": "Select a file to save",
     "noUnsavedChanges": "No unsaved changes",
-    "saveFileTooltip": "Save current file changes (Ctrl+S)"
+    "saveFileTooltip": "Save current file changes (Ctrl+S)",
+    "deleteCollaboratorTitle": "Delete Collaborator",
+    "deleteCollaboratorSubtitle": "This action cannot be undone",
+    "deleteCollaboratorWarning": "Are you sure you want to delete {name}? This will permanently remove:",
+    "deleteCollaboratorWarningFiles": "All CV files and configurations",
+    "deleteCollaboratorWarningPictures": "Profile pictures and assets",
+    "deleteCollaboratorWarningCVs": "Generated CV templates and history",
+    "deleteCollaboratorConfirm": "Delete Forever",
+    "deleteCollaboratorSuccess": "Collaborator deleted successfully!",
+    "deleteCollaboratorFailed": "Failed to delete collaborator",
+    "deleting": "Deleting...",
+    "cancel": "Cancel"
   }
 }

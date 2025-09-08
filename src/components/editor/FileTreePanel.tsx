@@ -9,7 +9,7 @@ import {
   FiToggleLeft,
   FiChevronRight,
   FiChevronDown,
-  // FiPlus,
+  FiTrash2,
   FiCamera,
   FiFileText,
   FiUser
@@ -40,6 +40,7 @@ interface FileTreePanelProps {
   onLoadFile: (filePath: string) => void;
   onSelectCollaborator: (name: string) => void;
   onShowUploadModal: () => void;
+  onDeleteCollaborator: () => void;
   onShowGenerateModal: () => void;
 }
 
@@ -56,6 +57,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
   onLoadFileTree,
   onToggleAutoSave,
   // onCreateCollaborator,
+  onDeleteCollaborator,
   onToggleFolder,
   onLoadFile,
   onSelectCollaborator,
@@ -146,6 +148,16 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
                 title={`Generate and download CV PDF for ${name}`}
               >
                 <FiFileText className="w-3 h-3" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteCollaborator();
+                }}
+                className="p-1 hover:bg-red-500/20 rounded text-muted-foreground hover:text-red-500"
+                title={`Delete collaborator ${name} and all associated files`}
+              >
+                <FiTrash2 className="w-3 h-3" />
               </button>
             </div>
           )}
