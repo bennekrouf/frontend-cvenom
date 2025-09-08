@@ -1,5 +1,20 @@
 {
   "chat": {
+    "suggestions": {
+      "generate_cv": "Generate CV for john-doe in English",
+      "create_profile": "Create person profile for jane-smith",
+      "get_templates": "Get CV templates",
+      "edit_experience": "Edit experience section for john-doe",
+      "show_profile": "Show my user profile",
+      "generate_pdf": "Generate PDF for john-doe using keyteo template",
+      "show_file_tree": "Show file tree",
+      "get_file_content": "Get file content for john-doe/cv_params.toml"
+    },
+    "footer_text": "Natural language commands powered by api0.ai • Press Enter to send",
+    "footer_text_guest": "Sign in to unlock CV command execution • Press Enter to send",
+    "assistant_title": "CV Assistant",
+    "assistant_subtitle_authenticated": "Natural language CV commands enabled",
+    "assistant_subtitle_guest": "Sign in for command execution",
     "welcome_authenticated": "Hello! I'm here to help you with your CV creation and editing. How can I assist you today?",
     "welcome_guest": "Welcome! I can help you with CV creation and editing. Sign in to save your progress and access advanced features, or feel free to ask questions to get started!",
     "auth_success": "Great! You're now signed in. I can now help you with advanced CV features like file editing and collaboration. What would you like to work on?",

@@ -1,6 +1,7 @@
 // hooks/useAPI0Chat.ts
 import { useState, useCallback } from 'react';
 import { getAPI0, type AnalysisResult } from '@/lib/api0';
+import { useTranslations } from 'next-intl';
 
 interface ExecutionResult {
   success: boolean;
@@ -18,6 +19,8 @@ interface API0ChatState {
 }
 
 export function useAPI0Chat() {
+  const t = useTranslations('chat.suggestions');
+
   const [state, setState] = useState<API0ChatState>({
     isAnalyzing: false,
     isExecuting: false,
@@ -103,14 +106,14 @@ export function useAPI0Chat() {
 
   const getCommandSuggestions = useCallback((input: string): string[] => {
     const suggestions = [
-      "Generate CV for john-doe in English",
-      "Create person profile for jane-smith",
-      "Get CV templates",
-      "Edit experience section for john-doe",
-      "Show my user profile",
-      "Generate PDF for john-doe using keyteo template",
-      "Show file tree",
-      "Get file content for john-doe/cv_params.toml",
+      t('generate_cv'),
+      t('create_profile'),
+      t('get_templates'),
+      t('edit_experience'),
+      t('show_profile'),
+      t('generate_pdf'),
+      t('show_file_tree'),
+      t('get_file_content'),
     ];
 
     if (!input.trim()) return suggestions.slice(0, 4);
@@ -118,7 +121,7 @@ export function useAPI0Chat() {
     return suggestions.filter(suggestion =>
       suggestion.toLowerCase().includes(input.toLowerCase())
     );
-  }, []);
+  }, [t]);
 
   const handlePDFDownload = useCallback((result: ExecutionResult) => {
     if (result.success && result.type === 'pdf' && result.data?.blob) {

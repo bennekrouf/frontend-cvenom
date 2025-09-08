@@ -6,6 +6,7 @@ import { FiSend, FiUser, FiDownload, FiEdit, FiFile } from 'react-icons/fi';
 import { FaMagic } from "react-icons/fa";
 import { signInWithGoogle } from '@/lib/firebase';
 import { useAPI0Chat } from '@/hooks/useAPI0Chat';
+import { useTranslations } from 'next-intl';
 
 interface ChatMessage {
   id: string;
@@ -23,14 +24,15 @@ interface ChatComponentProps {
 }
 
 const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticated, loading }) => {
+  const t = useTranslations('chat');
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
       role: 'assistant',
       type: 'text',
       content: isAuthenticated
-        ? 'Hello! I can help you with CV operations. Try commands like "Generate CV for john-doe" or "Create person profile for jane-smith".'
-        : 'Welcome! Sign in to use CV commands, or ask general questions about CVs.',
+        ? t('welcome_authenticated')
+        : t('welcome_guest'),
       timestamp: new Date(),
     },
   ]);
@@ -261,17 +263,17 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
               <FaMagic className="w-4 h-4 text-primary-foreground" />
             </div>
             <div>
-              <h2 className="font-semibold text-foreground">CV Assistant</h2>
+              <h2 className="font-semibold text-foreground">{t('assistant_title')}</h2>
               <p className="text-xs text-muted-foreground">
                 {isAuthenticated
-                  ? 'Natural language CV commands enabled'
-                  : 'Sign in for command execution'
+                  ? t('assistant_subtitle_authenticated')
+                  : t('assistant_subtitle_guest')
                 }
               </p>
             </div>
           </div>
           <div className="text-xs text-muted-foreground">
-            {isLoading && '⚡ Processing...'}
+            {isLoading && 'Processing...'}
           </div>
         </div>
       </div>
@@ -306,7 +308,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
                       <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded">RESULT</span>
                     )}
                   </div>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap selectable">{message.content}</p>
 
                   {/* Execution result actions */}
                   {message.executionResult && (
@@ -406,10 +408,10 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
             type="text"
             value={inputValue}
             onChange={handleInputChange}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyPress}
             placeholder={isAuthenticated
-              ? "Try: 'Generate CV for john-doe' or ask questions..."
-              : "Ask about CVs or sign in for commands..."
+              ? t('input_placeholder_authenticated')
+              : t('input_placeholder_guest')
             }
             className="w-full pl-4 pr-12 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
             disabled={isLoading}
@@ -423,10 +425,11 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
             <FiSend className="w-4 h-4" />
           </button>
         </div>
+        {/* Input Area footer text */}
         <p className="text-xs text-muted-foreground mt-2 text-center">
           {isAuthenticated
-            ? 'Natural language commands powered by API0 • Press Enter to send'
-            : 'Sign in to unlock CV command execution • Press Enter to send'
+            ? t('footer_text')
+            : t('footer_text_guest')
           }
         </p>
       </div>
