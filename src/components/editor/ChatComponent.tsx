@@ -261,23 +261,29 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
           // Handle image upload responses
           if (result.type === 'image_upload') {
             responseContent = `✅ Image processed successfully! ${result.data?.message as string || ''}`;
-            resultData = result;
+            resultData = result as ExecutionResult; // Add explicit cast
           }
-          // Handle other action responses
+          // For PDF:
           else if (result.type === 'pdf') {
             responseContent = '✅ CV generated successfully! Click below to download.';
-            resultData = result;
+            resultData = result as ExecutionResult; // Add explicit cast
             handlePDFDownload(result);
-          } else if (result.type === 'edit') {
+          }
+          // For edit:
+          else if (result.type === 'edit') {
             responseContent = `✅ Ready to edit: ${result.data?.section as string} section for ${result.data?.person as string}`;
-            resultData = result;
-          } else if (result.type === 'file_content') {
+            resultData = result as ExecutionResult; // Add explicit cast
+          }
+          // For file content:
+          else if (result.type === 'file_content') {
             responseContent = `✅ File content retrieved: ${result.data?.path as string}`;
-            resultData = result;
-          } else {
+            resultData = result as ExecutionResult; // Add explicit cast
+          }
+          // For other types:
+          else {
             responseContent = '✅ Command executed successfully!';
             if (result.data) {
-              resultData = result.data;
+              resultData = result as ExecutionResult; // Add explicit cast
               responseContent += `\n\nResult: ${JSON.stringify(result.data, null, 2)}`;
             }
           }
@@ -286,7 +292,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
             role: 'assistant',
             type: 'result',
             content: responseContent,
-            executionResult: resultData,
+            ...(resultData && { executionResult: resultData }),
           });
         } else {
           addMessage({

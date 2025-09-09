@@ -18,7 +18,6 @@ import {
   FiX,
   FiUser
 } from 'react-icons/fi';
-import { FaMagic } from 'react-icons/fa';
 import { useTranslations } from 'next-intl';
 
 import DeleteCollaboratorModal from './DeleteCollaboratorModal';
@@ -50,28 +49,11 @@ interface FileTreeItem {
   children?: Record<string, FileTreeItem>;
 }
 
-interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-}
-
 const FileEditor = () => {
   const { isAuthenticated, loading, user } = useAuth();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: isAuthenticated
-        ? 'Hello! I\'m here to help you with your CV creation and editing. How can I assist you today?'
-        : 'Welcome! I can help you with CV creation and editing. Sign in to save your progress and access advanced features, or feel free to ask questions to get started!',
-      timestamp: new Date(),
-    },
-  ]);
 
   const t = useTranslations('fileEditor');
   const [fileTree, setFileTree] = useState<Record<string, FileTreeItem> | null>(null);

@@ -41,7 +41,7 @@ class API0Service {
   }
 
   async analyzeSentence(sentence: string, attachments: FileAttachment[] = []): Promise<AnalysisResult[]> {
-    const requestBody: any = { sentence };
+    const requestBody: Record<string, unknown> = { sentence };
 
     // Add image context if there are image attachments
     if (attachments.length > 0) {
@@ -73,7 +73,7 @@ class API0Service {
     return response.json();
   }
 
-  async processAndExecute(sentence: string, attachments: FileAttachment[] = []): Promise<any> {
+  async processAndExecute(sentence: string, attachments: FileAttachment[] = []): Promise<Record<string, unknown>> {
     const results = await this.analyzeSentence(sentence, attachments);
 
     if (results.length === 0) {
@@ -104,7 +104,7 @@ class API0Service {
     endpoint: AnalysisResult,
     params: Record<string, string>,
     attachments: FileAttachment[]
-  ): Promise<any> {
+  ): Promise<Record<string, unknown>> {
     // Find the person parameter
     const personName = params.person || params.name;
     if (!personName) {
