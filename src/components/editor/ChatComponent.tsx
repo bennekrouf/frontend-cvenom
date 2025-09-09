@@ -13,9 +13,20 @@ interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
-  executionResult?: any;
+  executionResult?: ExecutionResult;
   type?: 'text' | 'command' | 'result';
   attachments?: FileAttachment[];
+}
+
+interface ExecutionResult {
+  success: boolean;
+  data?: Record<string, unknown>;
+  error?: string;
+  type?: 'pdf' | 'edit' | 'data' | 'file_content' | 'image_upload' | 'conversation';
+  action?: string;
+  blob?: Blob;
+  filename?: string;
+  message?: string;
 }
 
 interface FileAttachment {
@@ -30,10 +41,9 @@ interface FileAttachment {
 interface ChatComponentProps {
   isVisible: boolean;
   isAuthenticated: boolean;
-  loading: boolean;
 }
 
-const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticated, loading }) => {
+const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticated }) => {
   const t = useTranslations('chat');
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -197,7 +207,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
       return;
     }
 
-    const userMessage = addMessage({
+    addMessage({
       role: 'user',
       content: inputValue.trim() || 'Attached files',
       attachments: [...attachments]
@@ -243,14 +253,14 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
             addMessage({
               role: 'assistant',
               type: 'text',
-              content: result.data?.content || result.data?.response || 'I can help you with CV questions.',
+              content: result.data?.content as string || result.data?.response as string || 'I can help you with CV questions.',
             });
             return;
           }
 
           // Handle image upload responses
           if (result.type === 'image_upload') {
-            responseContent = `✅ Image processed successfully! ${result.data?.message || ''}`;
+            responseContent = `✅ Image processed successfully! ${result.data?.message as string || ''}`;
             resultData = result;
           }
           // Handle other action responses
@@ -259,10 +269,10 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
             resultData = result;
             handlePDFDownload(result);
           } else if (result.type === 'edit') {
-            responseContent = `✅ Ready to edit: ${result.data?.section} section for ${result.data?.person}`;
+            responseContent = `✅ Ready to edit: ${result.data?.section as string} section for ${result.data?.person as string}`;
             resultData = result;
           } else if (result.type === 'file_content') {
-            responseContent = `✅ File content retrieved: ${result.data?.path}`;
+            responseContent = `✅ File content retrieved: ${result.data?.path as string}`;
             resultData = result;
           } else {
             responseContent = '✅ Command executed successfully!';
@@ -388,29 +398,6 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
         </div>
       )}
 
-      {/* Chat Header */}
-      <div className="border-b border-border bg-card px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-              <FaMagic className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <div>
-              <h2 className="font-semibold text-foreground">{t('assistant_title')}</h2>
-              <p className="text-xs text-muted-foreground">
-                {isAuthenticated
-                  ? t('assistant_subtitle_authenticated')
-                  : t('assistant_subtitle_guest')
-                }
-              </p>
-            </div>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {isLoading && 'Processing...'}
-          </div>
-        </div>
-      </div>
-
       {/* Messages Area */}
       <div
         className={`flex-1 overflow-y-auto p-4 space-y-4 ${isDragOver ? 'bg-primary/5 border-2 border-dashed border-primary' : ''}`}
@@ -465,6 +452,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
                       {message.attachments.map((attachment) => (
                         <div key={attachment.id} className="flex items-center space-x-3 p-2 bg-secondary/50 rounded border">
                           {attachment.preview ? (
+                            // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={attachment.preview}
                               alt={attachment.name}
@@ -489,7 +477,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
                     <div className="mt-3 space-y-2">
                       {message.executionResult.type === 'pdf' && (
                         <button
-                          onClick={() => handlePDFDownload(message.executionResult)}
+                          onClick={() => handlePDFDownload(message.executionResult!)}
                           className="flex items-center space-x-2 px-3 py-1.5 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors"
                         >
                           <FiDownload className="w-3 h-3" />
@@ -510,7 +498,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
                             <FiImage className="w-3 h-3 text-green-600" />
                             <span className="font-medium text-green-800 dark:text-green-200">Image Processed</span>
                           </div>
-                          <p className="text-green-700 dark:text-green-300">{message.executionResult.data?.message}</p>
+                          <p className="text-green-700 dark:text-green-300">{message.executionResult.data?.message as string}</p>
                         </div>
                       )}
                     </div>
@@ -563,6 +551,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
               <div key={attachment.id} className="relative group">
                 <div className="flex items-center space-x-2 p-2 bg-secondary rounded border">
                   {attachment.preview ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={attachment.preview}
                       alt={attachment.name}

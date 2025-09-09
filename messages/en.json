@@ -79,6 +79,8 @@
     "error": "Error"
   },
   "fileEditor": {
+    "cvAssistantEnabled": "Natural language CV commands enabled",
+    "cvAssistantSignIn": "Sign in for command execution",
     "files": "Files",
     "addCollaborator": "Create",
     "editableFiles": "Editable: .typ, .toml files only",

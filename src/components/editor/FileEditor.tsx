@@ -18,6 +18,7 @@ import {
   FiX,
   FiUser
 } from 'react-icons/fi';
+import { FaMagic } from 'react-icons/fa';
 import { useTranslations } from 'next-intl';
 
 import DeleteCollaboratorModal from './DeleteCollaboratorModal';
@@ -619,7 +620,7 @@ const FileEditor = () => {
               <FiCode className="w-5 h-5 text-muted-foreground" />
               <div>
                 <h1 className="font-semibold text-foreground">
-                  {selectedFile ? selectedFile.split('/').pop() : selectedCollaborator ? `${selectedCollaborator} - ${t('noFileSelected')}` : t('noFileSelected')}
+                  {selectedFile ? selectedFile.split('/').pop() : selectedCollaborator ? selectedCollaborator : 'CV Assistant'}
                 </h1>
                 {selectedFile ? (
                   <p className="text-xs text-muted-foreground">
@@ -627,9 +628,13 @@ const FileEditor = () => {
                   </p>
                 ) : selectedCollaborator ? (
                   <p className="text-xs text-muted-foreground">
-                    {t('collaborator')}: {selectedCollaborator}
+                    Collaborator selected • Use chat for commands
                   </p>
-                ) : null}
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    {isAuthenticated ? t('cvAssistantEnabled') : t('cvAssistantSignIn')}
+                  </p>
+                )}
               </div>
 
               {/* Close File Button */}
@@ -727,7 +732,6 @@ const FileEditor = () => {
             <ChatComponent
               isVisible={!selectedFile}
               isAuthenticated={isAuthenticated}
-              loading={loading}
             />
           )}
         </div>
