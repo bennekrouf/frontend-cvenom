@@ -39,12 +39,23 @@ export function useAPI0Chat() {
   });
 
   const handleImageUpload = useCallback(async (
-    endpoint: AnalysisResult,
+    sentence: string,
     attachments: FileAttachment[]
   ): Promise<Record<string, unknown>> => {
-    // Extract person name from the endpoint parameters or ask user to specify
+
+    // Use API0 to analyze and find the person parameter
+    const api0 = getAPI0();
+    const results = await api0.analyzeSentence(sentence, attachments);
+
+    if (results.length === 0) {
+      throw new Error('Could not understand the upload command. Try: "Upload picture for john-doe"');
+    }
+
+    const endpoint = results[0];
+
+    // Extract person name from the endpoint parameters
     const personParam = endpoint.parameters.find(p => p.name === 'person' || p.name === 'name');
-    const personName = personParam?.semantic_value;
+    const personName = personParam?.semantic_value || personParam?.value;
 
     if (!personName) {
       throw new Error('Please specify which collaborator to upload the image for (e.g., "Upload picture for john-doe")');
@@ -79,8 +90,8 @@ export function useAPI0Chat() {
       formData.append('person', personName);
       formData.append('file', file);
 
-      // Use the direct backend URL from API0 response
-      const uploadUrl = `${endpoint.base}${endpoint.path}`;
+      // Use the API endpoint from API0 analysis
+      const uploadUrl = `${endpoint.base}/upload-picture`;
 
       const response = await fetch(uploadUrl, {
         method: 'POST',
@@ -140,14 +151,27 @@ export function useAPI0Chat() {
         }
       }
 
+      // Check if this is likely an image upload before calling API0
+      const hasImages = attachments.some(att => att.type.startsWith('image/'));
+      const isUploadCommand = sentence.toLowerCase().includes('upload') ||
+        sentence.toLowerCase().includes('picture') ||
+        sentence.toLowerCase().includes('photo');
+
       setState(prev => ({
         ...prev,
         isAnalyzing: false,
         isExecuting: true,
       }));
 
-      // Let processAndExecute handle the analysis and execution
-      const executionResult = await api0.processAndExecute(enhancedSentence, attachments);
+      let executionResult: Record<string, unknown>;
+
+      if (hasImages && isUploadCommand) {
+        // Handle image upload directly here with proper auth
+        executionResult = await handleImageUpload(enhancedSentence, attachments);
+      } else {
+        // Let API0 handle regular commands
+        executionResult = await api0.processAndExecute(enhancedSentence, attachments);
+      }
 
       const result: ExecutionResult = {
         success: true,
@@ -178,7 +202,7 @@ export function useAPI0Chat() {
 
       return result;
     }
-  }, []);
+  }, [handleImageUpload]);
 
   const getCommandSuggestions = useCallback((input: string): string[] => {
     const suggestions = [

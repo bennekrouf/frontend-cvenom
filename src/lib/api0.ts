@@ -86,86 +86,8 @@ class API0Service {
     // Extract parameters from API0 response
     const params = this.extractParameters(bestMatch.parameters);
 
-    // Check if this is an image upload operation
-    const isImageUpload = attachments.some(att => att.type.startsWith('image/')) &&
-      (bestMatch.endpoint_name.toLowerCase().includes('upload') ||
-        bestMatch.endpoint_name.toLowerCase().includes('picture') ||
-        bestMatch.api_group_id === 'image_operations');
-
-    if (isImageUpload) {
-      return this.executeImageUpload(bestMatch, params, attachments);
-    }
-
-    // Execute the endpoint using the structured data from API0
+    // Just execute normally - no special image upload handling here
     return this.executeEndpoint(bestMatch, params);
-  }
-
-  private async executeImageUpload(
-    endpoint: AnalysisResult,
-    params: Record<string, string>,
-    attachments: FileAttachment[]
-  ): Promise<Record<string, unknown>> {
-    // Find the person parameter
-    const personName = params.person || params.name;
-    if (!personName) {
-      throw new Error('Please specify which collaborator to upload the image for (e.g., "Upload picture for john-doe")');
-    }
-
-    // Get the first image attachment
-    const imageAttachment = attachments.find(att => att.type.startsWith('image/'));
-    if (!imageAttachment) {
-      throw new Error('No image attachment found');
-    }
-
-    try {
-      // Get authentication token
-      const token = await this.getCVenonAuth();
-
-      // Convert base64 to blob
-      const binaryString = atob(imageAttachment.data);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      const blob = new Blob([bytes], { type: imageAttachment.type });
-      const file = new File([blob], imageAttachment.name, { type: imageAttachment.type });
-
-      // Create FormData for file upload
-      const formData = new FormData();
-      formData.append('person', personName);
-      formData.append('file', file);
-
-      // Upload using the CVenom API endpoint
-      const uploadUrl = `${endpoint.base}/upload-picture`;
-      const response = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Upload failed: ${errorText}`);
-      }
-
-      const result = await response.json();
-
-      return {
-        type: 'image_upload',
-        success: true,
-        message: `Profile picture uploaded successfully for ${personName}`,
-        endpoint_name: endpoint.endpoint_name,
-        data: {
-          person: personName,
-          filename: imageAttachment.name,
-          ...result
-        }
-      };
-    } catch (error) {
-      throw new Error(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
   }
 
   private extractParameters(parameters: Parameter[]): Record<string, string> {
@@ -206,9 +128,7 @@ class API0Service {
     const fullUrl = `${endpoint.base}${endpoint.path}`;
 
     // Prepare headers
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    const headers: Record<string, string> = {};
 
     // Add authentication if needed (for CVenom endpoints)
     if (this.needsAuth(endpoint.base)) {
@@ -216,16 +136,27 @@ class API0Service {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // Prepare request body based on verb
+    // Prepare request body based on endpoint type
+    let requestBody: BodyInit;
+
+    // Check if this is an image upload endpoint that needs FormData
+    if (endpoint.endpoint_name.toLowerCase().includes('upload') &&
+      endpoint.endpoint_name.toLowerCase().includes('picture')) {
+
+      // This should be handled by the React hook, not here
+      throw new Error('Image uploads should be handled by the React component with proper file handling');
+    } else {
+      // Regular JSON request
+      headers['Content-Type'] = 'application/json';
+      requestBody = JSON.stringify(params);
+    }
+
+    // Prepare request options
     const requestOptions: RequestInit = {
       method: endpoint.verb,
       headers,
+      body: ['POST', 'PUT', 'PATCH'].includes(endpoint.verb.toUpperCase()) ? requestBody : undefined,
     };
-
-    // Add body for POST/PUT requests
-    if (['POST', 'PUT', 'PATCH'].includes(endpoint.verb.toUpperCase())) {
-      requestOptions.body = JSON.stringify(params);
-    }
 
     // Make the actual API call
     const response = await fetch(fullUrl, requestOptions);
@@ -239,7 +170,6 @@ class API0Service {
     const contentType = response.headers.get('content-type');
 
     if (contentType?.includes('application/pdf')) {
-      // Handle PDF downloads
       const blob = await response.blob();
       return {
         type: 'pdf',
@@ -248,7 +178,6 @@ class API0Service {
         endpoint_name: endpoint.endpoint_name,
       };
     } else if (contentType?.includes('application/json')) {
-      // Handle JSON responses
       const jsonData = await response.json();
       return {
         type: 'json',
@@ -257,7 +186,6 @@ class API0Service {
         message: this.generateSuccessMessage(endpoint, params),
       };
     } else {
-      // Handle text responses
       const textData = await response.text();
       return {
         type: 'text',
