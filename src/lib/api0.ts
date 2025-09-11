@@ -310,7 +310,7 @@ class API0Service {
 let api0Service: API0Service | null = null;
 
 export function initAPI0(): API0Service {
-  const baseUrl = process.env.NEXT_PUBLIC_API0_BASE_URL || 'http://localhost:8080';
+  const baseUrl = process.env.NEXT_PUBLIC_API0_BASE_URL || 'http://localhost:5009';
   const apiKey = process.env.NEXT_PUBLIC_API0_API_KEY;
 
   if (!apiKey) {

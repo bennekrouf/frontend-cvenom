@@ -140,55 +140,14 @@ export function useAPI0Chat() {
         }
       }
 
-      const results = await api0.analyzeSentence(enhancedSentence);
-
       setState(prev => ({
         ...prev,
         isAnalyzing: false,
         isExecuting: true,
-        lastAnalysis: results
       }));
 
-      if (results.length === 0) {
-        const result: ExecutionResult = {
-          success: false,
-          error: 'I didn\'t understand that command. Try being more specific about what you want to do with your CV.',
-        };
-
-        setState(prev => ({
-          ...prev,
-          isExecuting: false,
-          lastExecution: result
-        }));
-
-        return result;
-      }
-
-      // Get the best match
-      const bestMatch = results[0];
-
-      // Check if this is an image upload operation
-      const isImageUpload = attachments.some(att => att.type.startsWith('image/')) &&
-        (bestMatch.endpoint_name.toLowerCase().includes('upload') ||
-          bestMatch.endpoint_name.toLowerCase().includes('picture') ||
-          sentence.toLowerCase().includes('upload') ||
-          sentence.toLowerCase().includes('picture'));
-
-      console.log('API0 Best Match:', bestMatch);
-      console.log('Is Image Upload:', isImageUpload);
-      console.log('Attachments:', attachments.length);
-
-      let executionResult: Record<string, unknown>;
-
-      if (isImageUpload && attachments.length > 0) {
-        // Handle image upload specifically using API0 endpoint
-        console.log('Taking image upload path');
-        executionResult = await handleImageUpload(bestMatch, attachments);
-      } else {
-        // Handle regular command execution
-        console.log('Taking regular command path');
-        executionResult = await api0.processAndExecute(sentence, attachments);
-      }
+      // Let processAndExecute handle the analysis and execution
+      const executionResult = await api0.processAndExecute(enhancedSentence, attachments);
 
       const result: ExecutionResult = {
         success: true,
@@ -219,7 +178,7 @@ export function useAPI0Chat() {
 
       return result;
     }
-  }, [handleImageUpload]);
+  }, []);
 
   const getCommandSuggestions = useCallback((input: string): string[] => {
     const suggestions = [
