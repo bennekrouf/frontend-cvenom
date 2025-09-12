@@ -1,11 +1,11 @@
-// lib/api0.ts
+// lib/api0.ts - Enhanced with conversation management
 import { getAuth } from 'firebase/auth';
 
 interface Parameter {
   name: string;
   description: string;
   semantic_value?: string;
-  value?: string; // Add this for compatibility
+  value?: string;
 }
 
 interface AnalysisResult {
@@ -31,17 +31,74 @@ interface FileAttachment {
   preview?: string;
 }
 
+interface StartAnalysisRequest {
+  user_id?: string;
+  context?: Record<string, unknown>;
+}
+
+interface StartAnalysisResponse {
+  conversation_id: string;
+  success: boolean;
+  message?: string;
+}
+
+interface AnalyzeRequest {
+  conversation_id: string;
+  sentence: string;
+  images?: Array<{
+    name: string;
+    type: string;
+    data: string;
+  }>;
+  has_images?: boolean;
+  context?: Record<string, unknown>;
+}
+
 class API0Service {
   private baseUrl: string;
   private apiKey: string;
+  private conversationId: string | null = null;
 
   constructor(baseUrl: string, apiKey: string) {
     this.baseUrl = baseUrl;
     this.apiKey = apiKey;
   }
 
+  async startConversation(context?: Record<string, unknown>): Promise<string> {
+    const requestBody: StartAnalysisRequest = {
+      user_id: await this.getUserId(),
+      context
+    };
+
+    const response = await fetch(`${this.baseUrl}/api/analyze/start`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to start conversation');
+    }
+
+    const result: StartAnalysisResponse = await response.json();
+    this.conversationId = result.conversation_id;
+    return result.conversation_id;
+  }
+
   async analyzeSentence(sentence: string, attachments: FileAttachment[] = []): Promise<AnalysisResult[]> {
-    const requestBody: Record<string, unknown> = { sentence };
+    // Ensure we have a conversation ID
+    if (!this.conversationId) {
+      await this.startConversation();
+    }
+
+    const requestBody: AnalyzeRequest = {
+      conversation_id: this.conversationId!,
+      sentence
+    };
 
     // Add image context if there are image attachments
     if (attachments.length > 0) {
@@ -67,6 +124,14 @@ class API0Service {
 
     if (!response.ok) {
       const error = await response.json();
+
+      // Handle conversation ID validation errors
+      if (response.status === 403 || error.error?.includes('conversation')) {
+        // Reset conversation ID and retry once
+        this.conversationId = null;
+        return this.analyzeSentence(sentence, attachments);
+      }
+
       throw new Error(error.error || 'Analysis failed');
     }
 
@@ -86,14 +151,32 @@ class API0Service {
     // Extract parameters from API0 response
     const params = this.extractParameters(bestMatch.parameters);
 
-    // Just execute normally - no special image upload handling here
     return this.executeEndpoint(bestMatch, params);
+  }
+
+  // Get current conversation ID
+  getConversationId(): string | null {
+    return this.conversationId;
+  }
+
+  // Reset conversation (useful for new chat sessions)
+  resetConversation(): void {
+    this.conversationId = null;
+  }
+
+  // Set conversation ID (useful when restoring a session)
+  setConversationId(id: string): void {
+    this.conversationId = id;
+  }
+
+  private async getUserId(): Promise<string | undefined> {
+    const auth = getAuth();
+    return auth.currentUser?.uid;
   }
 
   private extractParameters(parameters: Parameter[]): Record<string, string> {
     const params: Record<string, string> = {};
     parameters.forEach(param => {
-      // Handle both semantic_value and value for compatibility
       const value = param.semantic_value || param.value;
       if (value) {
         params[param.name] = value;
@@ -112,6 +195,7 @@ class API0Service {
           content: jsonOutput.response,
           intent: jsonOutput.intent,
           endpoint_name: endpoint.endpoint_name,
+          conversation_id: this.conversationId,
         };
       } catch (error) {
         console.error('Failed to parse conversation response:', error);
@@ -120,6 +204,7 @@ class API0Service {
           content: 'I can help you with CV-related questions and commands.',
           intent: 'general_question',
           endpoint_name: endpoint.endpoint_name,
+          conversation_id: this.conversationId,
         };
       }
     }
@@ -143,12 +228,15 @@ class API0Service {
     if (endpoint.endpoint_name.toLowerCase().includes('upload') &&
       endpoint.endpoint_name.toLowerCase().includes('picture')) {
 
-      // This should be handled by the React hook, not here
       throw new Error('Image uploads should be handled by the React component with proper file handling');
     } else {
-      // Regular JSON request
+      // Regular JSON request - include conversation_id in params
       headers['Content-Type'] = 'application/json';
-      requestBody = JSON.stringify(params);
+      const requestParams = {
+        ...params,
+        conversation_id: this.conversationId
+      };
+      requestBody = JSON.stringify(requestParams);
     }
 
     // Prepare request options
@@ -176,6 +264,7 @@ class API0Service {
         blob: blob,
         filename: this.generateFilename(endpoint, params),
         endpoint_name: endpoint.endpoint_name,
+        conversation_id: this.conversationId,
       };
     } else if (contentType?.includes('application/json')) {
       const jsonData = await response.json();
@@ -184,6 +273,7 @@ class API0Service {
         data: jsonData,
         endpoint_name: endpoint.endpoint_name,
         message: this.generateSuccessMessage(endpoint, params),
+        conversation_id: this.conversationId,
       };
     } else {
       const textData = await response.text();
@@ -192,12 +282,12 @@ class API0Service {
         content: textData,
         endpoint_name: endpoint.endpoint_name,
         message: this.generateSuccessMessage(endpoint, params),
+        conversation_id: this.conversationId,
       };
     }
   }
 
   private needsAuth(baseUrl: string): boolean {
-    // Check if this is a CVenom endpoint that needs authentication
     return baseUrl.includes('localhost:4002') ||
       baseUrl.includes('cv.') ||
       baseUrl.includes('cvenom') ||
@@ -212,7 +302,6 @@ class API0Service {
   }
 
   private generateFilename(endpoint: AnalysisResult, params: Record<string, string>): string {
-    // Generate appropriate filename based on endpoint and parameters
     if (endpoint.endpoint_name.toLowerCase().includes('cv') ||
       endpoint.endpoint_name.toLowerCase().includes('resume')) {
       const person = params.person || params.name || 'document';
@@ -223,7 +312,6 @@ class API0Service {
   }
 
   private generateSuccessMessage(endpoint: AnalysisResult, params: Record<string, string>): string {
-    // Generate contextual success message
     const action = endpoint.endpoint_name;
     const person = params.person || params.name;
 
@@ -234,7 +322,7 @@ class API0Service {
   }
 }
 
-// Singleton instance - initialized with server-side API key
+// Singleton instance
 let api0Service: API0Service | null = null;
 
 export function initAPI0(): API0Service {
@@ -256,4 +344,4 @@ export function getAPI0(): API0Service {
   return api0Service;
 }
 
-export type { AnalysisResult, Parameter, FileAttachment };
+export type { AnalysisResult, Parameter, FileAttachment, StartAnalysisResponse, AnalyzeRequest };

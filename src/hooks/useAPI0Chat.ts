@@ -1,4 +1,4 @@
-// hooks/useAPI0Chat.ts
+// hooks/useAPI0Chat.ts - Clean working version
 import { useState, useCallback } from 'react';
 import { getAPI0, type AnalysisResult } from '@/lib/api0';
 import { useTranslations } from 'next-intl';
@@ -22,13 +22,14 @@ interface ExecutionResult {
   success: boolean;
   data?: Record<string, unknown>;
   error?: string;
-  error_code?: string; // Add this if needed
-  suggestions?: string[]; // Add this line
+  error_code?: string;
+  suggestions?: string[];
   type?: 'pdf' | 'edit' | 'data' | 'file_content' | 'image_upload' | 'conversation';
   action?: string;
   blob?: Blob;
   filename?: string;
   message?: string;
+  conversation_id?: string;
 }
 
 interface API0ChatState {
@@ -36,6 +37,8 @@ interface API0ChatState {
   isExecuting: boolean;
   lastAnalysis: AnalysisResult[] | null;
   lastExecution: ExecutionResult | null;
+  conversationId: string | null;
+  conversationStarted: boolean;
 }
 
 export function useAPI0Chat() {
@@ -46,15 +49,57 @@ export function useAPI0Chat() {
     isExecuting: false,
     lastAnalysis: null,
     lastExecution: null,
+    conversationId: null,
+    conversationStarted: false,
   });
+
+  const startConversation = useCallback(async (): Promise<string> => {
+    try {
+      const api0 = getAPI0();
+      const conversationId = await api0.startConversation({
+        application: 'cvenom',
+        user_type: 'cv_creator',
+        timestamp: new Date().toISOString()
+      });
+
+      setState(prev => ({
+        ...prev,
+        conversationId,
+        conversationStarted: true,
+      }));
+
+      return conversationId;
+    } catch (error) {
+      console.error('Failed to start conversation:', error);
+      throw error;
+    }
+  }, []);
+
+  const resetConversation = useCallback(() => {
+    const api0 = getAPI0();
+    api0.resetConversation();
+
+    setState(prev => ({
+      ...prev,
+      conversationId: null,
+      conversationStarted: false,
+      lastAnalysis: null,
+      lastExecution: null,
+    }));
+  }, []);
 
   const handleImageUpload = useCallback(async (
     sentence: string,
     attachments: FileAttachment[]
   ): Promise<Record<string, unknown>> => {
 
-    // Use API0 to analyze and find the person parameter
     const api0 = getAPI0();
+
+    // Ensure conversation is started
+    if (!state.conversationStarted) {
+      await startConversation();
+    }
+
     const results = await api0.analyzeSentence(sentence, attachments);
 
     if (results.length === 0) {
@@ -86,7 +131,6 @@ export function useAPI0Chat() {
       }
       const token = await user.getIdToken();
 
-
       // Convert base64 back to blob (file is already compressed)
       const binaryString = atob(imageAttachment.data);
       const bytes = new Uint8Array(binaryString.length);
@@ -107,6 +151,12 @@ export function useAPI0Chat() {
       const formData = new FormData();
       formData.append('person', personName);
       formData.append('file', file);
+
+      // Include conversation ID if available
+      const currentConversationId = api0.getConversationId();
+      if (currentConversationId) {
+        formData.append('conversation_id', currentConversationId);
+      }
 
       // Use the API endpoint from API0 analysis
       const uploadUrl = `${endpoint.base}/upload-picture`;
@@ -130,6 +180,7 @@ export function useAPI0Chat() {
         type: 'image_upload',
         success: true,
         message: `Profile picture uploaded successfully for ${personName}`,
+        conversation_id: currentConversationId,
         data: {
           person: personName,
           filename: imageAttachment.name,
@@ -139,7 +190,7 @@ export function useAPI0Chat() {
     } catch (error) {
       throw new Error(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }, []);
+  }, [state.conversationStarted, startConversation]);
 
   const executeCommand = useCallback(async (
     sentence: string,
@@ -154,6 +205,12 @@ export function useAPI0Chat() {
 
     try {
       const api0 = getAPI0();
+
+      // Ensure conversation is started for authenticated users
+      const auth = getAuth();
+      if (auth.currentUser && !state.conversationStarted) {
+        await startConversation();
+      }
 
       // Enhance sentence with attachment context for API0
       let enhancedSentence = sentence;
@@ -191,22 +248,27 @@ export function useAPI0Chat() {
         backendResponse = await api0.processAndExecute(enhancedSentence, attachments);
       }
 
+      // Update conversation ID from response if available
+      const responseConversationId = backendResponse.conversation_id as string;
+      if (responseConversationId && responseConversationId !== state.conversationId) {
+        setState(prev => ({
+          ...prev,
+          conversationId: responseConversationId,
+          conversationStarted: true,
+        }));
+      }
+
       // Check if the backend returned a failure response
-      if (backendResponse && typeof backendResponse === 'object' && (backendResponse.success === false || backendResponse?.data?.success === false)) {
-        // This is a failure response from backend, return it directly
-        // const result: ExecutionResult = {
-        //   success: false,
-        //   error: backendResponse.error as string || 'Operation failed',
-        //   error_code: backendResponse.error_code as string,
-        //   suggestions: backendResponse.suggestions as string[],
-        //   // Don't wrap in data, return the failure response directly
-        // };
+      if (backendResponse && typeof backendResponse === 'object' &&
+        ('success' in backendResponse && backendResponse.success === false ||
+          'data' in backendResponse && typeof backendResponse.data === 'object' &&
+          backendResponse.data && 'success' in backendResponse.data &&
+          (backendResponse.data as Record<string, unknown>).success === false)) {
 
         const result: ExecutionResult = {
           ...backendResponse as Partial<ExecutionResult>,
-          success: false, // Ensure success is false
+          success: false,
         };
-
 
         setState(prev => ({
           ...prev,
@@ -223,6 +285,7 @@ export function useAPI0Chat() {
         data: backendResponse,
         type: (backendResponse.type as ExecutionResult['type']) || 'data',
         action: backendResponse.action as string,
+        conversation_id: responseConversationId || state.conversationId || undefined,
       };
 
       setState(prev => ({
@@ -247,7 +310,8 @@ export function useAPI0Chat() {
 
       return result;
     }
-  }, [handleImageUpload]);
+  }, [state.conversationStarted, state.conversationId, startConversation, handleImageUpload]);
+
   const getCommandSuggestions = useCallback((input: string): string[] => {
     const suggestions = [
       t('generate_cv'),
@@ -259,7 +323,7 @@ export function useAPI0Chat() {
       t('show_file_tree'),
       t('get_file_content'),
       t('delete_collaborator'),
-      'Upload profile picture for john-doe', // Add image-related suggestions
+      'Upload profile picture for john-doe',
       'Process uploaded image for CV',
       'Set profile picture using attached image'
     ];
@@ -290,6 +354,8 @@ export function useAPI0Chat() {
     executeCommand,
     getCommandSuggestions,
     handlePDFDownload,
+    startConversation,
+    resetConversation,
     isLoading: state.isAnalyzing || state.isExecuting,
   };
 }

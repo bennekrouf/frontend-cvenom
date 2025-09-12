@@ -9,7 +9,7 @@ import { useAPI0Chat } from '@/hooks/useAPI0Chat';
 import { useTranslations } from 'next-intl';
 import { FILE_SIZE_LIMITS } from '@/utils/fileSizeConstants';
 import { compressImage } from '@/utils/imageCompression';
-
+import { FiRefreshCw } from 'react-icons/fi';
 
 interface ChatMessage {
   id: string;
@@ -76,6 +76,9 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
     executeCommand,
     getCommandSuggestions,
     handlePDFDownload,
+    conversationId,
+    conversationStarted,
+    resetConversation,
   } = useAPI0Chat();
 
   const scrollToBottom = () => {
@@ -448,6 +451,54 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
           </div>
         </div>
       )}
+
+
+      {/* Conversation Status Bar */}
+      {isAuthenticated && (
+        <div className="border-b border-border bg-secondary/30 px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            {conversationStarted && conversationId ? (
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-xs font-mono text-muted-foreground">
+                  Session: {conversationId.slice(-8)}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                <span className="text-xs text-muted-foreground">Ready to start conversation</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center space-x-2">
+            {conversationStarted && (
+              <button
+                onClick={() => {
+                  const confirmReset = window.confirm('Start a new conversation? This will reset the chat context.');
+                  if (confirmReset) {
+                    resetConversation();
+                    setMessages([{
+                      id: Date.now().toString(),
+                      role: 'assistant',
+                      type: 'text',
+                      content: 'New conversation started! How can I help you with your CV?',
+                      timestamp: new Date(),
+                    }]);
+                  }
+                }}
+                className="flex items-center space-x-1 px-2 py-1 text-xs bg-secondary hover:bg-secondary/80 rounded transition-colors"
+                title="Start new conversation"
+              >
+                <FiRefreshCw className="w-3 h-3" />
+                <span>New Session</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
 
       {/* Messages Area */}
       <div
