@@ -7,6 +7,9 @@ import { FaMagic } from "react-icons/fa";
 import { signInWithGoogle } from '@/lib/firebase';
 import { useAPI0Chat } from '@/hooks/useAPI0Chat';
 import { useTranslations } from 'next-intl';
+import { FILE_SIZE_LIMITS } from '@/utils/fileSizeConstants';
+import { compressImage } from '@/utils/imageCompression';
+
 
 interface ChatMessage {
   id: string;
@@ -136,27 +139,36 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
       const file = files[i];
 
       if (!isSupportedFile(file)) {
-        alert(`File type ${file.type} is not supported. Supported types: images, PDF, text files.`);
+        alert(t('unsupported_file_type'));
         continue;
       }
 
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        alert(`File ${file.name} is too large. Maximum size is 10MB.`);
+      // Check size before processing
+      const maxSize = isImageFile(file) ? FILE_SIZE_LIMITS.IMAGE_MAX_INITIAL : FILE_SIZE_LIMITS.OTHER_MAX_INITIAL;
+      if (file.size > maxSize) {
+        alert(t('file_too_large'));
         continue;
       }
 
       try {
-        const base64Data = await fileToBase64(file);
-        const preview = isImageFile(file) ? await createImagePreview(file) : undefined;
+        // Compress images, keep others as-is
+        const processedFile = isImageFile(file)
+          ? await compressImage(file, FILE_SIZE_LIMITS.COMPRESSED_TARGET)
+          : file;
+
+        const base64Data = await fileToBase64(processedFile);
+        const preview = isImageFile(file) ? await createImagePreview(processedFile) : undefined;
 
         const attachment: FileAttachment = {
           id: Date.now().toString() + i,
           name: file.name,
-          type: file.type,
-          size: file.size,
+          type: processedFile.type,
+          size: processedFile.size,
           data: base64Data,
           preview
         };
+
+        console.log(`File processed: ${file.name}, Original: ${formatFileSize(file.size)}, Final: ${formatFileSize(processedFile.size)}`);
 
         newAttachments.push(attachment);
       } catch (error) {
@@ -261,29 +273,29 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
           // Handle image upload responses
           if (result.type === 'image_upload') {
             responseContent = `✅ Image processed successfully! ${result.data?.message as string || ''}`;
-            resultData = result as ExecutionResult; // Add explicit cast
+            resultData = result as ExecutionResult;
           }
           // For PDF:
           else if (result.type === 'pdf') {
             responseContent = '✅ CV generated successfully! Click below to download.';
-            resultData = result as ExecutionResult; // Add explicit cast
+            resultData = result as ExecutionResult;
             handlePDFDownload(result);
           }
           // For edit:
           else if (result.type === 'edit') {
             responseContent = `✅ Ready to edit: ${result.data?.section as string} section for ${result.data?.person as string}`;
-            resultData = result as ExecutionResult; // Add explicit cast
+            resultData = result as ExecutionResult;
           }
           // For file content:
           else if (result.type === 'file_content') {
             responseContent = `✅ File content retrieved: ${result.data?.path as string}`;
-            resultData = result as ExecutionResult; // Add explicit cast
+            resultData = result as ExecutionResult;
           }
           // For other types:
           else {
             responseContent = '✅ Command executed successfully!';
             if (result.data) {
-              resultData = result as ExecutionResult; // Add explicit cast
+              resultData = result as ExecutionResult;
               responseContent += `\n\nResult: ${JSON.stringify(result.data, null, 2)}`;
             }
           }
@@ -295,12 +307,45 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
             ...(resultData && { executionResult: resultData }),
           });
         } else {
+          // Handle both top-level error and nested data.error
+          let errorMessage = result.error || 'Operation failed';
+          let errorSuggestions: string[] = [];
+
+          // Check if error is nested inside data property
+          if (result.data && typeof result.data === 'object') {
+            const errorData = result.data as Record<string, unknown>;
+            if (errorData.error && typeof errorData.error === 'string') {
+              errorMessage = errorData.error as string;
+            }
+            if (errorData.suggestions && Array.isArray(errorData.suggestions)) {
+              errorSuggestions = errorData.suggestions as string[];
+            }
+          }
+
+          // Also check for suggestions at top level
+          if (result.suggestions && Array.isArray(result.suggestions)) {
+            errorSuggestions = result.suggestions as string[];
+          }
+
+          // Format suggestions as clean text without quotes
+          let suggestionsText = '';
+          if (errorSuggestions.length > 0) {
+            suggestionsText = errorSuggestions
+              .map(suggestion => suggestion.replace(/^['"]|['"]$/g, '')) // Remove surrounding quotes if any
+              .join('\n• ');
+
+            if (suggestionsText) {
+              suggestionsText = '\n\nSuggestions:\n• ' + suggestionsText;
+            }
+          }
+
           addMessage({
             role: 'assistant',
             type: 'text',
-            content: `❌ ${result.error}`,
+            content: `❌ ${errorMessage}${suggestionsText}`,
           });
         }
+
       } catch (error) {
         addMessage({
           role: 'assistant',

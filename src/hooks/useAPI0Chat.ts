@@ -4,6 +4,11 @@ import { getAPI0, type AnalysisResult } from '@/lib/api0';
 import { useTranslations } from 'next-intl';
 import { getAuth } from 'firebase/auth';
 
+import {
+  formatFileSize
+} from '@/utils/fileHelpers';
+import { FILE_SIZE_LIMITS } from '@/utils/fileSizeConstants';
+
 interface FileAttachment {
   id: string;
   name: string;
@@ -17,8 +22,13 @@ interface ExecutionResult {
   success: boolean;
   data?: Record<string, unknown>;
   error?: string;
+  error_code?: string; // Add this if needed
+  suggestions?: string[]; // Add this line
   type?: 'pdf' | 'edit' | 'data' | 'file_content' | 'image_upload' | 'conversation';
   action?: string;
+  blob?: Blob;
+  filename?: string;
+  message?: string;
 }
 
 interface API0ChatState {
@@ -76,7 +86,8 @@ export function useAPI0Chat() {
       }
       const token = await user.getIdToken();
 
-      // Convert base64 back to blob for upload
+
+      // Convert base64 back to blob (file is already compressed)
       const binaryString = atob(imageAttachment.data);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
@@ -84,6 +95,13 @@ export function useAPI0Chat() {
       }
       const blob = new Blob([bytes], { type: imageAttachment.type });
       const file = new File([blob], imageAttachment.name, { type: imageAttachment.type });
+
+      // Final size check before upload
+      if (file.size > FILE_SIZE_LIMITS.UPLOAD_HARD_LIMIT) {
+        throw new Error(`File still too large after compression: ${formatFileSize(file.size)}. Please use a smaller image.`);
+      }
+
+      console.log(`Uploading compressed image: ${formatFileSize(file.size)}`);
 
       // Create FormData for the upload
       const formData = new FormData();
@@ -163,21 +181,48 @@ export function useAPI0Chat() {
         isExecuting: true,
       }));
 
-      let executionResult: Record<string, unknown>;
+      let backendResponse: Record<string, unknown>;
 
       if (hasImages && isUploadCommand) {
         // Handle image upload directly here with proper auth
-        executionResult = await handleImageUpload(enhancedSentence, attachments);
+        backendResponse = await handleImageUpload(enhancedSentence, attachments);
       } else {
         // Let API0 handle regular commands
-        executionResult = await api0.processAndExecute(enhancedSentence, attachments);
+        backendResponse = await api0.processAndExecute(enhancedSentence, attachments);
       }
 
+      // Check if the backend returned a failure response
+      if (backendResponse && typeof backendResponse === 'object' && (backendResponse.success === false || backendResponse?.data?.success === false)) {
+        // This is a failure response from backend, return it directly
+        // const result: ExecutionResult = {
+        //   success: false,
+        //   error: backendResponse.error as string || 'Operation failed',
+        //   error_code: backendResponse.error_code as string,
+        //   suggestions: backendResponse.suggestions as string[],
+        //   // Don't wrap in data, return the failure response directly
+        // };
+
+        const result: ExecutionResult = {
+          ...backendResponse as Partial<ExecutionResult>,
+          success: false, // Ensure success is false
+        };
+
+
+        setState(prev => ({
+          ...prev,
+          isExecuting: false,
+          lastExecution: result
+        }));
+
+        return result;
+      }
+
+      // This is a successful response, wrap it in data
       const result: ExecutionResult = {
         success: true,
-        data: executionResult,
-        type: (executionResult.type as ExecutionResult['type']) || 'data',
-        action: executionResult.action as string,
+        data: backendResponse,
+        type: (backendResponse.type as ExecutionResult['type']) || 'data',
+        action: backendResponse.action as string,
       };
 
       setState(prev => ({
@@ -203,7 +248,6 @@ export function useAPI0Chat() {
       return result;
     }
   }, [handleImageUpload]);
-
   const getCommandSuggestions = useCallback((input: string): string[] => {
     const suggestions = [
       t('generate_cv'),
