@@ -113,10 +113,9 @@ export async function apiRequest<T = unknown>(
     body: body ? JSON.stringify(body) : undefined,
   });
 
-
-
   // Handle non-JSON responses (like PDF downloads)
   const contentType = response.headers.get('Content-Type');
+
   if (contentType && contentType.includes('application/pdf')) {
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: Failed to download PDF`);
@@ -124,7 +123,7 @@ export async function apiRequest<T = unknown>(
     return response.blob() as T;
   }
 
-  // Handle plain text responses (like file content)
+  // Handle plain text responses (like file content)  
   if (contentType && contentType.includes('text/plain')) {
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: Failed to fetch file content`);
@@ -132,7 +131,15 @@ export async function apiRequest<T = unknown>(
     return response.text() as T;
   }
 
-  // Handle JSON responses (including errors)
+  // Handle JSON responses
+  const jsonData = await response.json();
+
+  // Check for success:false in response body (even with HTTP 200)
+  if (jsonData && typeof jsonData === 'object' && 'success' in jsonData && jsonData.success === false) {
+    throw new Error(jsonData.error || 'Operation failed');
+  }
+
+  // Handle HTTP error status codes
   if (!response.ok) {
     if (response.status === 401) {
       throw new Error('Authentication required or token expired');
@@ -141,23 +148,8 @@ export async function apiRequest<T = unknown>(
       throw new Error('Access denied');
     }
 
-    // Try to get error details from JSON response
-    try {
-      const errorData = await response.json();
-      const errorMessage = errorData.error || errorData.message || `HTTP ${response.status}`;
-      throw new Error(errorMessage);
-    } catch (jsonError) {
-      // If JSON parsing fails, use status text
-      throw new Error(`HTTP ${response.status}`);
-    }
-  }
-
-  // For successful responses, parse JSON normally
-  const jsonData = await response.json();
-
-  // Check if it's a success:false response (backend returned 200 but with error)
-  if (jsonData && typeof jsonData === 'object' && 'success' in jsonData && jsonData.success === false) {
-    throw new Error(jsonData.error || 'Operation failed');
+    const errorMessage = jsonData.message || jsonData.error || `HTTP ${response.status}`;
+    throw new Error(errorMessage);
   }
 
   return jsonData;

@@ -258,20 +258,22 @@ export function useAPI0Chat() {
         }));
       }
 
-      // Check if the backend returned a failure response
-      if (backendResponse && typeof backendResponse === 'object' &&
-        ('success' in backendResponse && backendResponse.success === false)) {
+      // Check if the backend response indicates failure
+      // Look for the actual backend error nested in backendResponse.data
+      let actualBackendData = backendResponse;
+      if (backendResponse.data && typeof backendResponse.data === 'object') {
+        actualBackendData = backendResponse.data as Record<string, unknown>;
+      }
 
-        // Extract the actual error message and suggestions
-        const errorMessage = (backendResponse.error as string) || 'Operation failed';
-        const suggestions = (backendResponse.suggestions as string[]) || [];
+      if (actualBackendData && typeof actualBackendData === 'object' &&
+        'success' in actualBackendData && actualBackendData.success === false) {
 
+        // This is an error response from the backend
         const result: ExecutionResult = {
           success: false,
-          error: errorMessage,
-          suggestions: suggestions,
-          error_code: backendResponse.error_code as string,
-          type: (backendResponse.type as ExecutionResult['type']) || 'data',
+          error: (actualBackendData.error as string) || 'Operation failed',
+          suggestions: (actualBackendData.suggestions as string[]) || [],
+          error_code: actualBackendData.error_code as string,
           conversation_id: responseConversationId || state.conversationId || undefined,
         };
 
@@ -284,7 +286,7 @@ export function useAPI0Chat() {
         return result;
       }
 
-      // This is a successful response, wrap it in data
+      // This is a successful response
       const result: ExecutionResult = {
         success: true,
         data: backendResponse,
