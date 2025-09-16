@@ -240,18 +240,20 @@ const FileEditor = () => {
     } catch (error) {
       console.error('Error generating CV:', error);
 
-      // Handle specific authentication errors
+      let errorMessage = t('generateCVFailed');
+
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
-          showStatus(t('signInToGenerateCV'));
+          errorMessage = t('signInToGenerateCV');
         } else if (error.message.includes('token expired')) {
-          showStatus(t('sessionExpired'));
+          errorMessage = t('sessionExpired');
         } else {
-          showStatus(error.message || t('generateCVFailed'));
+          // Use the actual error message from the backend
+          errorMessage = error.message;
         }
-      } else {
-        showStatus(t('generateCVFailed'));
       }
+
+      showStatus(errorMessage);
     }
     setIsGenerating(false);
   };

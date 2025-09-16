@@ -132,7 +132,7 @@ export async function apiRequest<T = unknown>(
     return response.text() as T;
   }
 
-  // Handle JSON responses
+  // Handle JSON responses (including errors)
   if (!response.ok) {
     if (response.status === 401) {
       throw new Error('Authentication required or token expired');
@@ -141,18 +141,26 @@ export async function apiRequest<T = unknown>(
       throw new Error('Access denied');
     }
 
-    let errorMessage = `HTTP ${response.status}`;
+    // Try to get error details from JSON response
     try {
       const errorData = await response.json();
-      errorMessage = errorData.message || errorData.error || errorMessage;
-    } catch {
-      // Ignore JSON parse error, use default message
+      const errorMessage = errorData.error || errorData.message || `HTTP ${response.status}`;
+      throw new Error(errorMessage);
+    } catch (jsonError) {
+      // If JSON parsing fails, use status text
+      throw new Error(`HTTP ${response.status}`);
     }
-
-    throw new Error(errorMessage);
   }
 
-  return response.json();
+  // For successful responses, parse JSON normally
+  const jsonData = await response.json();
+
+  // Check if it's a success:false response (backend returned 200 but with error)
+  if (jsonData && typeof jsonData === 'object' && 'success' in jsonData && jsonData.success === false) {
+    throw new Error(jsonData.error || 'Operation failed');
+  }
+
+  return jsonData;
 }
 
 export async function deleteCollaborator(personName: string) {

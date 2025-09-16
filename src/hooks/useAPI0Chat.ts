@@ -260,14 +260,19 @@ export function useAPI0Chat() {
 
       // Check if the backend returned a failure response
       if (backendResponse && typeof backendResponse === 'object' &&
-        ('success' in backendResponse && backendResponse.success === false ||
-          'data' in backendResponse && typeof backendResponse.data === 'object' &&
-          backendResponse.data && 'success' in backendResponse.data &&
-          (backendResponse.data as Record<string, unknown>).success === false)) {
+        ('success' in backendResponse && backendResponse.success === false)) {
+
+        // Extract the actual error message and suggestions
+        const errorMessage = (backendResponse.error as string) || 'Operation failed';
+        const suggestions = (backendResponse.suggestions as string[]) || [];
 
         const result: ExecutionResult = {
-          ...backendResponse as Partial<ExecutionResult>,
           success: false,
+          error: errorMessage,
+          suggestions: suggestions,
+          error_code: backendResponse.error_code as string,
+          type: (backendResponse.type as ExecutionResult['type']) || 'data',
+          conversation_id: responseConversationId || state.conversationId || undefined,
         };
 
         setState(prev => ({

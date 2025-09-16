@@ -16,7 +16,12 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Generation failed' }));
+      // Return JSON error instead of trying to create PDF
+      const errorData = await response.json().catch(() => ({
+        success: false,
+        error: 'Generation failed'
+      }));
+
       return NextResponse.json(errorData, { status: response.status });
     }
 
@@ -31,7 +36,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('CV generation error:', error);
     return NextResponse.json(
-      { success: false, message: 'Failed to generate CV' },
+      { success: false, error: 'Failed to generate CV' },
       { status: 500 }
     );
   }
