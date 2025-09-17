@@ -1,5 +1,6 @@
 'use client';
 
+import CVUploadDropZone from './CVUploadDropZone';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   FiFolder,
@@ -16,7 +17,8 @@ import {
   FiCamera,
   FiFileText,
   FiX,
-  FiUser
+  FiUser,
+  FiUpload
 } from 'react-icons/fi';
 import { useTranslations } from 'next-intl';
 
@@ -55,6 +57,7 @@ const FileEditor = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  const [showUploadZone, setShowUploadZone] = useState(false);
   const t = useTranslations('fileEditor');
   const [fileTree, setFileTree] = useState<Record<string, FileTreeItem> | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -343,6 +346,13 @@ const FileEditor = () => {
     }
   };
 
+  const handleUploadSuccess = useCallback(async (personName: string) => {
+    setShowUploadZone(false);
+    await loadFileTree();
+    setSelectedCollaborator(personName);
+    setExpandedFolders(new Set(['data', personName]));
+    showStatus(`CV converted successfully! Collaborator "${personName}" created`);
+  }, [loadFileTree]);
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -547,16 +557,38 @@ const FileEditor = () => {
 
           {/* Tenant Indicator */}
           {isAuthenticated && user && (
-            <div className="mb-3 p-2 bg-primary/10 border border-primary/20 rounded-md">
-              <div className="flex items-center space-x-2">
-                <FiUser className="w-4 h-4 text-primary" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-primary truncate">
-                    {user.displayName || 'User'}
-                  </p>
-                  <p className="text-xs text-primary/70 truncate">
-                    {user.email}
-                  </p>
+            <div className="mb-3 space-y-2">
+              {/* Personalized Greeting */}
+              <div className="p-3 bg-primary/5 border border-primary/10 rounded-md">
+                <h3 className="text-sm font-semibold text-primary mb-1">
+                  Good morning, {user.displayName?.split(' ')[0]}
+                </h3>
+                <p className="text-xs text-primary/70">
+                  Ready to create amazing CVs?
+                </p>
+              </div>
+
+              {/* Upload CV Button */}
+              <button
+                onClick={() => setShowUploadZone(true)}
+                className="w-full flex items-center justify-center space-x-2 p-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+              >
+                <FiUpload className="w-4 h-4" />
+                <span>Upload & Convert CV</span>
+              </button>
+
+              {/* User Info */}
+              <div className="p-2 bg-secondary/30 rounded-md">
+                <div className="flex items-center space-x-2">
+                  <FiUser className="w-4 h-4 text-muted-foreground" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-foreground truncate">
+                      {user.displayName || 'User'}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {user.email}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -649,14 +681,24 @@ const FileEditor = () => {
 
               {/* Conditional Add Collaborator button */}
               {isAuthenticated ? (
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="flex items-center space-x-2 px-3 py-1.5 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-colors"
-                  title={t('createCollaboratorTooltip')}
-                >
-                  <FiPlus className="w-4 h-4" />
-                  <span>{t('addCollaborator')}</span>
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setShowUploadZone(!showUploadZone)}
+                    className="flex items-center space-x-2 px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                    title="Upload and convert CV to create new collaborator"
+                  >
+                    <FiUpload className="w-4 h-4" />
+                    <span>Upload CV</span>
+                  </button>
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="flex items-center space-x-2 px-3 py-1.5 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-colors"
+                    title={t('createCollaboratorTooltip')}
+                  >
+                    <FiPlus className="w-4 h-4" />
+                    <span>{t('addCollaborator')}</span>
+                  </button>
+                </div>
               ) : (
                 <button
                   disabled
@@ -720,6 +762,25 @@ const FileEditor = () => {
           )}
         </div>
       </div>
+
+      {/* Upload Zone - shown when showUploadZone is true */}
+      {showUploadZone && isAuthenticated && (
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-40">
+          <div className="bg-card border border-border rounded-lg p-6 w-full max-w-lg mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Upload & Convert CV</h3>
+              <button
+                onClick={() => setShowUploadZone(false)}
+                className="p-2 hover:bg-secondary rounded-md transition-colors"
+              >
+                <FiX className="w-4 h-4" />
+              </button>
+            </div>
+            <CVUploadDropZone onUploadSuccess={handleUploadSuccess} />
+          </div>
+        </div>
+      )}
+
 
       {/* Modals - only show when authenticated */}
       {isAuthenticated && (

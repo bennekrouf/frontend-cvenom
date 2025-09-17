@@ -273,34 +273,42 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
             return;
           }
 
-          // Handle image upload responses
+          // Extract clean message from backend response
+          let backendMessage = '';
+          if (result.data && typeof result.data === 'object') {
+            const backendData = result.data as Record<string, unknown>;
+
+            // Look for message in the nested data structure
+            if (backendData.data && typeof backendData.data === 'object') {
+              const nestedData = backendData.data as Record<string, unknown>;
+              backendMessage = nestedData.message as string || '';
+            } else {
+              backendMessage = backendData.message as string || '';
+            }
+          }
+
+          // Handle different response types with clean messages
           if (result.type === 'image_upload') {
-            responseContent = `✅ Image processed successfully! ${result.data?.message as string || ''}`;
+            responseContent = `✅ ${backendMessage || 'Image processed successfully!'}`;
             resultData = result as ExecutionResult;
           }
-          // For PDF:
           else if (result.type === 'pdf') {
-            responseContent = '✅ CV generated successfully! Click below to download.';
+            responseContent = `✅ ${backendMessage || 'CV generated successfully! Click below to download.'}`;
             resultData = result as ExecutionResult;
             handlePDFDownload(result);
           }
-          // For edit:
           else if (result.type === 'edit') {
-            responseContent = `✅ Ready to edit: ${result.data?.section as string} section for ${result.data?.person as string}`;
+            responseContent = `✅ ${backendMessage || `Ready to edit: ${result.data?.section as string} section for ${result.data?.person as string}`}`;
             resultData = result as ExecutionResult;
           }
-          // For file content:
           else if (result.type === 'file_content') {
-            responseContent = `✅ File content retrieved: ${result.data?.path as string}`;
+            responseContent = `✅ ${backendMessage || `File content retrieved: ${result.data?.path as string}`}`;
             resultData = result as ExecutionResult;
           }
-          // For other types:
           else {
-            responseContent = '✅ Command executed successfully!';
-            if (result.data) {
-              resultData = result as ExecutionResult;
-              responseContent += `\n\nResult: ${JSON.stringify(result.data, null, 2)}`;
-            }
+            // For other types, use the backend message if available
+            responseContent = backendMessage ? `✅ ${backendMessage}` : '✅ Command executed successfully!';
+            resultData = result as ExecutionResult;
           }
 
           addMessage({

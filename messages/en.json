@@ -149,6 +149,24 @@
     "deleteCollaboratorSuccess": "Collaborator deleted successfully!",
     "deleteCollaboratorFailed": "Failed to delete collaborator",
     "deleting": "Deleting...",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "uploadCV": "Upload CV",
+    "uploadCVTooltip": "Upload and convert PDF or Word CV to create new collaborator",
+    "cvConvertedSuccess": "CV converted successfully! Collaborator \"{name}\" created",
+    "uploadAndConvert": "Upload & Convert CV",
+    "uploadCVTitle": "Upload & Convert CV",
+    "uploadCVDescription": "Ready to convert your CV? Simply drag and drop a PDF or Word document below",
+    "dropCVHere": "Drop your CV here",
+    "convertingCV": "Converting your CV...",
+    "conversionMayTakeTime": "This may take a few moments",
+    "uploadYourCV": "Upload your CV",
+    "dragDropOrClick": "Drag and drop or click to browse",
+    "supportsPDFWord": "Supports PDF and Word documents (max 10MB)",
+    "uploadFailed": "Upload Failed",
+    "uploadSuccess": "Success!",
+    "goodMorning": "Good morning",
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening",
+    "readyToCreateCVs": "Ready to create amazing CVs?"
   }
 }

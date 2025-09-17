@@ -12,9 +12,11 @@ import {
   FiTrash2,
   FiCamera,
   FiFileText,
-  FiUser
+  FiUser,
+  // FiUpload
 } from 'react-icons/fi';
 import { User } from 'firebase/auth';
+import { useTranslations } from 'next-intl';
 
 interface FileTreeItem {
   type: 'file' | 'folder';
@@ -42,6 +44,7 @@ interface FileTreePanelProps {
   onShowUploadModal: () => void;
   onDeleteCollaborator: () => void;
   onShowGenerateModal: () => void;
+  // onShowUploadZone: () => void;
 }
 
 const FileTreePanel: React.FC<FileTreePanelProps> = ({
@@ -64,6 +67,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
   onShowUploadModal,
   onShowGenerateModal,
 }) => {
+  const t = useTranslations('chat');
   // Check if file is editable (.typ or .toml)
   const isEditableFile = (filename: string) => {
     return filename.endsWith('.typ') || filename.endsWith('.toml');
@@ -178,6 +182,17 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
     );
   };
 
+  const getGreeting = (user: User | null, t: (key: string) => string): string => {
+    if (!user?.displayName) return 'Welcome';
+
+    const firstName = user.displayName.split(' ')[0];
+    const hour = new Date().getHours();
+
+    if (hour < 12) return `${t('goodMorning')}, ${firstName}`;
+    if (hour < 17) return `${t('goodAfternoon')}, ${firstName}`;
+    return `${t('goodEvening')}, ${firstName}`;
+  };
+
   return (
     <div className="w-80 border-r border-border bg-card flex flex-col">
       <div className="p-4 border-b border-border">
@@ -223,19 +238,53 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
 
         {/* Tenant Indicator */}
         {isAuthenticated && user && (
-          <div className="mb-3 p-2 bg-primary/10 border border-primary/20 rounded-md">
-            <div className="flex items-center space-x-2">
-              <FiUser className="w-4 h-4 text-primary" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-primary truncate">{user.displayName || 'User'}</p>
-                <p className="text-xs text-primary/70 truncate">{user.email}</p>
+          <div className="mb-3 space-y-2">
+            {/* Personalized Greeting */}
+            <div className="p-3 bg-primary/5 border border-primary/10 rounded-md">
+              <h3 className="text-sm font-semibold text-primary mb-1">
+                {getGreeting(user, t)}
+              </h3>
+              <p className="text-xs text-primary/70">
+                {t('readyToCreateCVs')}
+              </p>
+            </div>
+
+            {/* User Info */}
+            <div className="p-2 bg-secondary/30 rounded-md">
+              <div className="flex items-center space-x-2">
+                <FiUser className="w-4 h-4 text-muted-foreground" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-foreground truncate">
+                    {user.displayName || 'User'}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {user.email}
+                  </p>
+                </div>
               </div>
             </div>
+
+            {/* Upload CV Button */}
+            {/* <button */}
+            {/*   onClick={onShowUploadZone} */}
+            {/*   className="w-full flex items-center justify-center space-x-2 p-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors" */}
+            {/* > */}
+            {/*   <FiUpload className="w-4 h-4" /> */}
+            {/*   <span>{t('uploadAndConvert')}</span> */}
+            {/* </button> */}
           </div>
         )}
 
         <div className="text-xs text-muted-foreground">
-          {isAuthenticated ? 'Editable: .typ, .toml files only' : 'Sign in to view and edit your files'}
+          {isAuthenticated ? (
+            <>
+              <span className="font-medium">Editable:</span> .typ, .toml files
+              <br />
+              <span className="font-medium">Upload:</span> PDF, DOCX → auto-convert
+            </>
+          ) : (
+            'Sign in to view and edit your files'
+          )}
         </div>
       </div>
 

@@ -135,6 +135,24 @@
     "deleteCollaboratorFailed": "Échec de la suppression du collaborateur",
     "deleting": "Suppression...",
     "cancel": "Annuler",
-    "saveFileTooltip": "Sauvegarder les modifications du fichier actuel (Ctrl+S)"
+    "saveFileTooltip": "Sauvegarder les modifications du fichier actuel (Ctrl+S)",
+    "uploadCV": "Télécharger CV",
+    "uploadCVTooltip": "Télécharger et convertir un CV PDF ou Word pour créer un nouveau collaborateur",
+    "cvConvertedSuccess": "CV converti avec succès ! Collaborateur \"{name}\" créé",
+    "uploadAndConvert": "Télécharger et Convertir CV",
+    "uploadCVTitle": "Télécharger et Convertir CV",
+    "uploadCVDescription": "Prêt à convertir votre CV ? Glissez-déposez simplement un document PDF ou Word ci-dessous",
+    "dropCVHere": "Déposez votre CV ici",
+    "convertingCV": "Conversion de votre CV...",
+    "conversionMayTakeTime": "Cela peut prendre quelques instants",
+    "uploadYourCV": "Téléchargez votre CV",
+    "dragDropOrClick": "Glissez-déposez ou cliquez pour parcourir",
+    "supportsPDFWord": "Prend en charge les documents PDF et Word (max 10 Mo)",
+    "uploadFailed": "Échec du téléchargement",
+    "uploadSuccess": "Succès !",
+    "goodMorning": "Bonjour",
+    "goodAfternoon": "Bon après-midi",
+    "goodEvening": "Bonsoir",
+    "readyToCreateCVs": "Prêt à créer des CV incroyables ?"
   }
 }
