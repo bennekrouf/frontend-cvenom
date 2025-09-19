@@ -1,25 +1,18 @@
-// lib/api0.ts - Enhanced with conversation management
+// lib/api0.ts - Updated with adapter integration
 import { getAuth } from 'firebase/auth';
+import {
+  adaptAPI0AnalysisToStandardResponse,
+  adaptAPI0ExecutionToStandardResponse,
+  type API0AnalysisResult,
+  type API0ExecutionResult
+} from './api0ResponseAdapter';
+import { StandardApiResponse } from '@/types/api-responses';
 
 interface Parameter {
   name: string;
   description: string;
   semantic_value?: string;
   value?: string;
-}
-
-interface AnalysisResult {
-  endpoint_id: string;
-  endpoint_name: string;
-  endpoint_description: string;
-  api_group_id: string;
-  api_group_name: string;
-  base: string;
-  path: string;
-  essential_path: string;
-  verb: string;
-  parameters: Parameter[];
-  json_output: string;
 }
 
 interface FileAttachment {
@@ -89,7 +82,7 @@ class API0Service {
     return result.conversation_id;
   }
 
-  async analyzeSentence(sentence: string, attachments: FileAttachment[] = []): Promise<AnalysisResult[]> {
+  async analyzeSentence(sentence: string, attachments: FileAttachment[] = []): Promise<API0AnalysisResult[]> {
     // Ensure we have a conversation ID
     if (!this.conversationId) {
       await this.startConversation();
@@ -138,7 +131,56 @@ class API0Service {
     return response.json();
   }
 
-  async processAndExecute(sentence: string, attachments: FileAttachment[] = []): Promise<Record<string, unknown>> {
+  /**
+   * NEW: Process and execute with standardized response format
+   * This replaces the old processAndExecute method
+   */
+  async processAndExecuteStandard(sentence: string, attachments: FileAttachment[] = []): Promise<{
+    success: boolean;
+    data?: StandardApiResponse;
+    error?: string;
+  }> {
+    try {
+      const analysisResults = await this.analyzeSentence(sentence, attachments);
+
+      if (analysisResults.length === 0) {
+        return {
+          success: false,
+          error: 'I didn\'t understand that command. Try being more specific about what you want to do.'
+        };
+      }
+
+      const bestMatch = analysisResults[0];
+
+      // Handle conversation responses directly (no execution needed)
+      if (bestMatch.api_group_id === 'conversation' && bestMatch.endpoint_id === 'general_conversation') {
+        const standardResponse = adaptAPI0AnalysisToStandardResponse(analysisResults);
+        return {
+          success: true,
+          data: standardResponse
+        };
+      }
+
+      // For action endpoints, execute and then adapt response
+      const executionResult = await this.executeEndpoint(bestMatch, this.extractParameters(bestMatch.parameters));
+      const standardResponse = adaptAPI0ExecutionToStandardResponse(executionResult);
+
+      return {
+        success: true,
+        data: standardResponse
+      };
+
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Command execution failed'
+      };
+    }
+  }
+
+  // Keep the old method for backward compatibility, but mark as deprecated
+  /** @deprecated Use processAndExecuteStandard instead */
+  async processAndExecute(sentence: string, attachments: FileAttachment[] = []): Promise<API0ExecutionResult> {
     const results = await this.analyzeSentence(sentence, attachments);
 
     if (results.length === 0) {
@@ -148,9 +190,27 @@ class API0Service {
     // Get the best match (first result)
     const bestMatch = results[0];
 
+    // Handle conversation responses directly
+    if (bestMatch.api_group_id === 'conversation' && bestMatch.endpoint_id === 'general_conversation') {
+      try {
+        const jsonOutput = JSON.parse(bestMatch.json_output);
+        return {
+          type: 'conversation',
+          content: jsonOutput.response,
+          conversation_id: bestMatch.conversation_id,
+        };
+      } catch (error) {
+        console.error('Failed to parse conversation response:', error);
+        return {
+          type: 'conversation',
+          content: 'I can help you with CV-related questions and commands.',
+          conversation_id: bestMatch.conversation_id,
+        };
+      }
+    }
+
     // Extract parameters from API0 response
     const params = this.extractParameters(bestMatch.parameters);
-
     return this.executeEndpoint(bestMatch, params);
   }
 
@@ -185,7 +245,7 @@ class API0Service {
     return params;
   }
 
-  private async executeEndpoint(endpoint: AnalysisResult, params: Record<string, string>): Promise<Record<string, unknown>> {
+  private async executeEndpoint(endpoint: API0AnalysisResult, params: Record<string, string>): Promise<API0ExecutionResult> {
     // Handle general conversation responses
     if (endpoint.api_group_id === 'conversation' && endpoint.endpoint_id === 'general_conversation') {
       try {
@@ -193,18 +253,14 @@ class API0Service {
         return {
           type: 'conversation',
           content: jsonOutput.response,
-          intent: jsonOutput.intent,
-          endpoint_name: endpoint.endpoint_name,
-          conversation_id: this.conversationId,
+          conversation_id: endpoint.conversation_id,
         };
       } catch (error) {
         console.error('Failed to parse conversation response:', error);
         return {
           type: 'conversation',
           content: 'I can help you with CV-related questions and commands.',
-          intent: 'general_question',
-          endpoint_name: endpoint.endpoint_name,
-          conversation_id: this.conversationId,
+          conversation_id: endpoint.conversation_id,
         };
       }
     }
@@ -234,7 +290,7 @@ class API0Service {
       headers['Content-Type'] = 'application/json';
       const requestParams = {
         ...params,
-        conversation_id: this.conversationId
+        conversation_id: endpoint.conversation_id
       };
       requestBody = JSON.stringify(requestParams);
     }
@@ -264,7 +320,7 @@ class API0Service {
         blob: blob,
         filename: this.generateFilename(endpoint, params),
         endpoint_name: endpoint.endpoint_name,
-        conversation_id: this.conversationId,
+        conversation_id: endpoint.conversation_id,
       };
     } else if (contentType?.includes('application/json')) {
       const jsonData = await response.json();
@@ -273,7 +329,7 @@ class API0Service {
         data: jsonData,
         endpoint_name: endpoint.endpoint_name,
         message: this.generateSuccessMessage(endpoint, params),
-        conversation_id: this.conversationId,
+        conversation_id: endpoint.conversation_id,
       };
     } else {
       const textData = await response.text();
@@ -282,7 +338,7 @@ class API0Service {
         content: textData,
         endpoint_name: endpoint.endpoint_name,
         message: this.generateSuccessMessage(endpoint, params),
-        conversation_id: this.conversationId,
+        conversation_id: endpoint.conversation_id,
       };
     }
   }
@@ -301,7 +357,7 @@ class API0Service {
     return user.getIdToken();
   }
 
-  private generateFilename(endpoint: AnalysisResult, params: Record<string, string>): string {
+  private generateFilename(endpoint: API0AnalysisResult, params: Record<string, string>): string {
     if (endpoint.endpoint_name.toLowerCase().includes('cv') ||
       endpoint.endpoint_name.toLowerCase().includes('resume')) {
       const person = params.person || params.name || 'document';
@@ -311,7 +367,7 @@ class API0Service {
     return 'document.pdf';
   }
 
-  private generateSuccessMessage(endpoint: AnalysisResult, params: Record<string, string>): string {
+  private generateSuccessMessage(endpoint: API0AnalysisResult, params: Record<string, string>): string {
     const action = endpoint.endpoint_name;
     const person = params.person || params.name;
 
@@ -344,4 +400,4 @@ export function getAPI0(): API0Service {
   return api0Service;
 }
 
-export type { AnalysisResult, Parameter, FileAttachment, StartAnalysisResponse, AnalyzeRequest };
+export type { API0AnalysisResult, Parameter, FileAttachment, StartAnalysisResponse, AnalyzeRequest };

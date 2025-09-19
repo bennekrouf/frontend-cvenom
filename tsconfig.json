@@ -37,7 +37,8 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "src/types/**/*.d.ts"
+    "src/types/**/*.d.ts",
+    "../ChatComponent.tsx"
   ],
   "exclude": [
     "node_modules"

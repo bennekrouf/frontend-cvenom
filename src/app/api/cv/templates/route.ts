@@ -8,6 +8,15 @@ export async function GET() {
     const response = await fetch(`${apiUrl}/templates`);
     const data = await response.json();
 
+    // Handle standardized response format
+    if (data.success && data.data) {
+      return NextResponse.json({
+        success: true,
+        templates: data.data
+      });
+    }
+
+    // Fallback for backwards compatibility
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error('Templates fetch error:', error);

@@ -35,25 +35,25 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
   }, [isOpen]);
 
   // Make sure the Template interface is properly used
-const fetchTemplates = async () => {
-  setLoadingTemplates(true);
-  try {
-    const response = await fetch('/api/cv/templates');
-    const data: { success: boolean; templates: Template[] } = await response.json();
-    
-    if (data.success) {
-      setTemplates(data.templates);
-      // Set default template if available
-      if (data.templates.length > 0) {
-        const defaultTemplate = data.templates.find((t: Template) => t.name === 'default') || data.templates[0];
-        setSelectedTemplate(defaultTemplate.name);
+  const fetchTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const response = await fetch('/api/cv/templates');
+      const data = await response.json();
+
+      if (data.success && data.templates) {
+        setTemplates(data.templates);
+        // Set default template if available
+        if (data.templates.length > 0) {
+          const defaultTemplate = data.templates.find((t: Template) => t.name === 'default') || data.templates[0];
+          setSelectedTemplate(defaultTemplate.name);
+        }
       }
+    } catch (error) {
+      console.error('Error fetching templates:', error);
     }
-  } catch (error) {
-    console.error('Error fetching templates:', error);
-  }
-  setLoadingTemplates(false);
-};
+    setLoadingTemplates(false);
+  };
 
   const handleGenerate = async () => {
     await onGenerateCV(selectedLanguage, selectedTemplate);
@@ -88,7 +88,7 @@ const fetchTemplates = async () => {
               <option value="fr">Français</option>
             </select>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
               Template
@@ -102,7 +102,7 @@ const fetchTemplates = async () => {
                 disabled={isGenerating}
                 className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-50"
               >
-                {templates.map((template) => (
+                {templates?.map((template) => (
                   <option key={template.name} value={template.name}>
                     {template.name} - {template.description}
                   </option>
@@ -110,7 +110,7 @@ const fetchTemplates = async () => {
               </select>
             )}
           </div>
-          
+
           <div className="flex justify-end space-x-3">
             <button
               onClick={handleClose}

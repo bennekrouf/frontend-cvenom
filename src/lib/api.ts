@@ -240,10 +240,15 @@ export async function generateCV(
 }
 
 export async function getTemplates() {
-  return apiRequest('/templates', {
+  const response = await apiRequest<{
+    success: boolean;
+    templates: Array<{ name: string; description: string }>;
+  }>('/templates', {
     method: 'GET',
     requireAuth: false
   });
+
+  return response;
 }
 
 export async function getCurrentUser() {
