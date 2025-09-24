@@ -1,5 +1,15 @@
 {
   "chat": {
+    "api_responses": {
+      "document_ready": "Document ready for download",
+      "analysis_complete": "Analysis complete",
+      "data_retrieved": "Data retrieved",
+      "operation_complete": "Operation complete",
+      "operation_failed": "Operation failed",
+      "next_steps": "Next steps:",
+      "suggestions": "Suggestions:",
+      "unknown_format": "Unknown response format received"
+    },
     "suggestions": {
       "generate_cv": "Generate CV for john-doe in English",
       "create_profile": "Create person profile for jane-smith",
@@ -12,7 +22,9 @@
       "delete_collaborator": "Delete collaborator john-doe",
       "upload_picture": "Upload profile picture for john-doe",
       "process_image": "Process uploaded image for CV",
-      "set_profile_picture": "Set profile picture using attached image"
+      "set_profile_picture": "Set profile picture using attached image",
+      "analyze_job_fit": "Analyze job fit for position at company-name",
+      "cv_writing_tips": "Give me 3 tips for writing a good CV"
     },
     "footer_text": "Natural language commands powered by api0.ai • Press Enter to send",
     "footer_text_guest": "Sign in to unlock CV command execution • Press Enter to send",

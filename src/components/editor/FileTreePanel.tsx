@@ -14,7 +14,7 @@ import {
   FiFileText,
 } from 'react-icons/fi';
 import { User } from 'firebase/auth';
-import { useTranslations } from 'next-intl';
+// import { useTranslations } from 'next-intl';
 
 interface FileTreeItem {
   type: 'file' | 'folder';
@@ -53,7 +53,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
   autoSaveEnabled,
   isLoading,
   isAuthenticated,
-  user,
+  // user,
   loading,
   onLoadFileTree,
   onToggleAutoSave,
@@ -65,7 +65,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
   onShowUploadModal,
   onShowGenerateModal,
 }) => {
-  const t = useTranslations('chat');
+  // const t = useTranslations('chat');
   // Check if file is editable (.typ or .toml)
   const isEditableFile = (filename: string) => {
     return filename.endsWith('.typ') || filename.endsWith('.toml');

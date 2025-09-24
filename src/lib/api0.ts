@@ -152,8 +152,9 @@ class API0Service {
 
       const bestMatch = analysisResults[0];
 
-      // Handle conversation responses directly (no execution needed)
-      if (bestMatch.api_group_id === 'conversation' && bestMatch.endpoint_id === 'general_conversation') {
+      // Handle responses that don't need execution based on intent
+      if (bestMatch.intent === 1 || bestMatch.intent === 2 ||
+        (bestMatch.api_group_id === 'conversation' && bestMatch.endpoint_id === 'general_conversation')) {
         const standardResponse = adaptAPI0AnalysisToStandardResponse(analysisResults);
         return {
           success: true,
@@ -161,7 +162,7 @@ class API0Service {
         };
       }
 
-      // For action endpoints, execute and then adapt response
+      // For action endpoints (intent 0), execute and then adapt response
       const executionResult = await this.executeEndpoint(bestMatch, this.extractParameters(bestMatch.parameters));
       const standardResponse = adaptAPI0ExecutionToStandardResponse(executionResult);
 
@@ -176,42 +177,6 @@ class API0Service {
         error: error instanceof Error ? error.message : 'Command execution failed'
       };
     }
-  }
-
-  // Keep the old method for backward compatibility, but mark as deprecated
-  /** @deprecated Use processAndExecuteStandard instead */
-  async processAndExecute(sentence: string, attachments: FileAttachment[] = []): Promise<API0ExecutionResult> {
-    const results = await this.analyzeSentence(sentence, attachments);
-
-    if (results.length === 0) {
-      throw new Error('I didn\'t understand that command. Try being more specific about what you want to do.');
-    }
-
-    // Get the best match (first result)
-    const bestMatch = results[0];
-
-    // Handle conversation responses directly
-    if (bestMatch.api_group_id === 'conversation' && bestMatch.endpoint_id === 'general_conversation') {
-      try {
-        const jsonOutput = JSON.parse(bestMatch.json_output);
-        return {
-          type: 'conversation',
-          content: jsonOutput.response,
-          conversation_id: bestMatch.conversation_id,
-        };
-      } catch (error) {
-        console.error('Failed to parse conversation response:', error);
-        return {
-          type: 'conversation',
-          content: 'I can help you with CV-related questions and commands.',
-          conversation_id: bestMatch.conversation_id,
-        };
-      }
-    }
-
-    // Extract parameters from API0 response
-    const params = this.extractParameters(bestMatch.parameters);
-    return this.executeEndpoint(bestMatch, params);
   }
 
   // Get current conversation ID
@@ -246,8 +211,13 @@ class API0Service {
   }
 
   private async executeEndpoint(endpoint: API0AnalysisResult, params: Record<string, string>): Promise<API0ExecutionResult> {
+    // Process parameters - lowercase person names
+    const processedParams = { ...params };
+    if (processedParams.person) {
+      processedParams.person = processedParams.person.toLowerCase();
+    }
     // Handle general conversation responses
-    if (endpoint.api_group_id === 'conversation' && endpoint.endpoint_id === 'general_conversation') {
+    if (endpoint.endpoint_id.includes('general_conversation')) {
       try {
         const jsonOutput = JSON.parse(endpoint.json_output);
         return {

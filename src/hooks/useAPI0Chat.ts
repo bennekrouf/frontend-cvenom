@@ -157,11 +157,11 @@ export function useAPI0Chat() {
       t('show_file_tree'),
       t('get_file_content'),
       t('delete_collaborator'),
-      'Upload profile picture for john-doe',
-      'Process uploaded image for CV',
-      'Set profile picture using attached image',
-      'Analyze job fit for position at company-name',
-      'Give me 3 tips for writing a good CV'
+      t('upload_picture'),
+      t('process_image'),
+      t('set_profile_picture'),
+      t('analyze_job_fit'),
+      t('cv_writing_tips')
     ];
 
     if (!input.trim()) return suggestions.slice(0, 4);

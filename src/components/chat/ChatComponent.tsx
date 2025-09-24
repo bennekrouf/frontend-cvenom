@@ -6,6 +6,7 @@ import { FaMagic } from "react-icons/fa";
 import { signInWithGoogle } from '@/lib/firebase';
 import { useAPI0Chat } from '@/hooks/useAPI0Chat';
 import { useTranslations } from 'next-intl';
+import { ChatResponseFormatter } from '@/utils/chatResponseFormatter';
 
 // Import our new components
 import ChatMessage from './ChatMessage';
@@ -23,12 +24,12 @@ import {
   type FileAttachment,
   type ExecutionResult as ChatExecutionResult
 } from '@/utils/chatUtils';
-import { StandardApiResponse } from '@/types/api-responses';
+// import { StandardApiResponse } from '@/types/api-responses';
 
 // Extended result type that includes blob for file downloads
-interface ExtendedExecutionResult extends ChatExecutionResult {
-  blob?: Blob;
-}
+// interface ExtendedExecutionResult extends ChatExecutionResult {
+//   blob?: Blob;
+// }
 
 interface ChatComponentProps {
   isVisible: boolean;
@@ -59,9 +60,6 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
     executeCommand,
     getCommandSuggestions,
     handlePDFDownload,
-    conversationId,
-    conversationStarted,
-    resetConversation,
   } = useAPI0Chat();
 
   // Auto-scroll to bottom
@@ -172,67 +170,43 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
         // Handle standardized API responses - now properly typed
         const standardResponse = result.data;
 
-        switch (standardResponse.type) {
-          case 'text':
-            addMessage({
-              role: 'assistant',
-              type: 'text',
-              content: `✅ ${standardResponse.message}`,
-            });
-            break;
+        // Check if it's actually an error response
+        if (standardResponse.type === 'error') {
+          let errorContent = standardResponse.error || 'Operation failed';
+          if (standardResponse.suggestions && standardResponse.suggestions.length > 0) {
+            errorContent += '\n\n' + t('chat.api_responses.suggestions') + '\n' +
+              standardResponse.suggestions.map((s: string) => `• ${s}`).join('\n');
+          }
 
-          case 'file':
-            addMessage({
-              role: 'assistant',
-              type: 'result',
-              content: `✅ ${standardResponse.message}`,
-              executionResult: {
-                success: true,
-                type: 'pdf',
-                filename: standardResponse.filename,
-                // Pass the blob data if available
-                blob: (standardResponse as any).blob_data,
-              } as ChatExecutionResult
-            });
-            break;
-
-          case 'data':
-            const content = `✅ ${standardResponse.message}`;
-            addMessage({
-              role: 'assistant',
-              type: 'result',
-              content,
-              executionResult: {
-                success: true,
-                type: 'data',
-                data: standardResponse.data,
-              } as ChatExecutionResult
-            });
-            break;
-
-          case 'action':
-            let actionContent = `✅ ${standardResponse.message}`;
-            if (standardResponse.next_actions && standardResponse.next_actions.length > 0) {
-              actionContent += '\n\nNext steps:\n' +
-                standardResponse.next_actions.map((action: string) => `• ${action}`).join('\n');
-            }
-            addMessage({
-              role: 'assistant',
-              type: 'result',
-              content: actionContent,
-            });
-            break;
-
-          default:
-            addMessage({
-              role: 'assistant',
-              type: 'result',
-              content: '✅ Command executed successfully!',
-            });
+          addMessage({
+            role: 'assistant',
+            type: 'text',
+            content: errorContent,
+          });
+          return;
         }
+
+        if (result.success && result.data) {
+          // Use the formatter to create a properly formatted message
+          const formatted = ChatResponseFormatter.formatResponse(result.data, t);
+          setMessages(prev => [...prev, formatted.message]);
+        } else {
+          // Handle cases where result.data might contain error info
+          const errorResponse = result.data || {
+            type: 'error' as const,
+            success: false,
+            error: result.error || t('chat.api_responses.operation_failed'),
+            suggestions: []
+          };
+
+          const formatted = ChatResponseFormatter.formatResponse(errorResponse, t);
+          setMessages(prev => [...prev, formatted.message]);
+        }
+
+
       } else {
         // Handle errors - now using standardized error format
-        let errorMessage = result.error || 'Operation failed';
+        let errorMessage = result.error || t('chat.api_responses.operation_failed');
         let suggestions: string[] = [];
 
         // Check if the error response contains suggestions
@@ -241,7 +215,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
           suggestions = result.data.suggestions || [];
         }
 
-        addMessage(messageUtils.createErrorMessage(errorMessage, suggestions));
+        addMessage(messageUtils.createErrorMessage(errorMessage, suggestions, t));
       }
     } catch (error) {
       addMessage(messageUtils.createErrorMessage(
@@ -266,10 +240,10 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
   );
 
   // Reset conversation handler
-  const handleResetConversation = () => {
-    resetConversation();
-    setMessages([messageUtils.createWelcomeMessage(isAuthenticated, t)]);
-  };
+  // const handleResetConversation = () => {
+  //   resetConversation();
+  //   setMessages([messageUtils.createWelcomeMessage(isAuthenticated, t)]);
+  // };
 
   // Get suggestions
   const suggestions = showSuggestions ? getCommandSuggestions(inputValue) : [];
@@ -296,7 +270,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
 
       {/* Messages Area */}
       <div
-        className={`flex-1 overflow-y-auto p-4 space-y-4 ${isDragOver ? 'bg-primary/5 border-2 border-dashed border-primary' : ''
+        className={`flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4 chat-container ${isDragOver ? 'bg-primary/5 border-2 border-dashed border-primary' : ''
           }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}

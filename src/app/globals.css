@@ -257,3 +257,30 @@ code * {
     font-size: 1em;
   }
 }
+
+/* Chat message text wrapping */
+.chat-message {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+/* Prevent horizontal scroll in chat */
+.chat-container {
+  overflow-x: hidden;
+}
+
+/* Long URL handling */
+.chat-message a {
+  word-break: break-all;
+}
+
+/* Code blocks in messages */
+.chat-message pre,
+.chat-message code {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+  max-width: 100%;
+}

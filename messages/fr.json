@@ -1,18 +1,30 @@
 {
   "chat": {
+    "api_responses": {
+      "document_ready": "Document prêt au téléchargement",
+      "analysis_complete": "Analyse terminée",
+      "data_retrieved": "Données récupérées",
+      "operation_complete": "Opération terminée",
+      "operation_failed": "Opération échouée",
+      "next_steps": "Prochaines étapes :",
+      "suggestions": "Suggestions :",
+      "unknown_format": "Format de réponse inconnu reçu"
+    },
     "suggestions": {
-      "generate_cv": "Générer CV pour john-doe en anglais",
+      "generate_cv": "Générer CV pour john-doe en français",
       "create_profile": "Créer profil personne pour jane-smith",
       "get_templates": "Obtenir modèles CV",
       "edit_experience": "Modifier section expérience pour john-doe",
       "show_profile": "Afficher mon profil utilisateur",
       "generate_pdf": "Générer PDF pour john-doe avec modèle keyteo",
-      "delete_collaborator": "Supprimer collaborateur john-doe",
       "show_file_tree": "Afficher arborescence fichiers",
       "get_file_content": "Obtenir contenu fichier pour john-doe/cv_params.toml",
+      "delete_collaborator": "Supprimer collaborateur john-doe",
       "upload_picture": "Télécharger photo de profil pour john-doe",
       "process_image": "Traiter image téléchargée pour CV",
-      "set_profile_picture": "Définir photo de profil avec image jointe"
+      "set_profile_picture": "Définir photo de profil avec image jointe",
+      "analyze_job_fit": "Analyser adéquation poste pour position chez nom-entreprise",
+      "cv_writing_tips": "Donnez-moi 3 conseils pour rédiger un bon CV"
     },
     "input_placeholder_authenticated": "Essaie : 'Générer CV pour john-doe' ou pose des questions...",
     "footer_text": "Commandes en langage naturel alimentées par api0.ai • Appuie sur Entrée pour envoyer",

@@ -184,14 +184,15 @@ export const messageUtils = {
     return messageUtils.createMessage({
       role: 'assistant',
       type: 'result',
-      content: `✅ ${content}`,
+      content: content,
     });
   },
 
-  createErrorMessage: (error: string, suggestions?: string[]): ChatMessage => {
-    let content = `❌ ${error}`;
+  createErrorMessage: (error: string, suggestions?: string[], t?: (key: string) => string): ChatMessage => {
+    let content = error;
     if (suggestions && suggestions.length > 0) {
-      content += '\n\nSuggestions:\n' + suggestions.map(s => `• ${s}`).join('\n');
+      const suggestionsLabel = t?.('chat.api_responses.suggestions') || 'Suggestions:';
+      content += '\n\n' + suggestionsLabel + '\n' + suggestions.map(s => `• ${s}`).join('\n');
     }
 
     return messageUtils.createMessage({

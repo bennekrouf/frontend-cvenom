@@ -29,6 +29,7 @@ export type StandardApiResponse =
     file_type: string;
     filename: string;
     download_url?: string;
+    blob_data?: Blob;
     conversation_id?: string;
   }
   | {
@@ -43,7 +44,7 @@ export type StandardApiResponse =
     type: 'action';
     success: true;
     message: string;
-    action: string;
+    action?: string;
     next_actions?: string[];
     conversation_id?: string;
   }
