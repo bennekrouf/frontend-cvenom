@@ -131,41 +131,113 @@ export class FileDownloadHandler implements MessageHandler {
 }
 
 /**
- * Handler for data analysis results - collapsible view
+ * Handler for error data - shows only suggestions, not the full data analysis
+ */
+export class ErrorDataHandler implements MessageHandler {
+  canHandle(message: ChatMessage): boolean {
+    return message.executionResult?.type === 'data' &&
+      message.executionResult?.data != null &&
+      this.isErrorData(message.executionResult.data);
+  }
+
+  private isErrorData(data: Record<string, unknown>): boolean {
+    return data.type === 'error' &&
+      data.success === false &&
+      Array.isArray(data.suggestions);
+  }
+
+  render(message: ChatMessage): React.ReactNode {
+    const errorData = message.executionResult!.data as {
+      error: string;
+      suggestions: string[];
+      error_code?: string;
+    };
+
+    return (
+      <div className="text-sm">
+        <div className="text-red-600 mb-2">❌ {errorData.error}</div>
+        {errorData.suggestions && errorData.suggestions.length > 0 && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-3 rounded">
+            <div className="text-blue-800 dark:text-blue-200 font-medium text-xs mb-1">
+              💡 Suggestions:
+            </div>
+            <ul className="text-blue-700 dark:text-blue-300 text-xs space-y-1">
+              {errorData.suggestions.map((suggestion, index) => (
+                <li key={index}>• {suggestion}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  }
+}
+
+/**
+ * Handler for data analysis results - direct display only
  */
 export class DataAnalysisHandler implements MessageHandler {
   canHandle(message: ChatMessage): boolean {
     return message.executionResult?.type === 'data' &&
       message.executionResult?.success === true &&
-      message.executionResult?.data != null;
+      message.executionResult?.data != null &&
+      !this.isErrorData(message.executionResult.data);
+  }
+
+  private isErrorData(data: Record<string, unknown>): boolean {
+    return data.type === 'error' && data.success === false;
   }
 
   render(message: ChatMessage): React.ReactNode {
     const result = message.executionResult!;
+    const data = result.data as Record<string, unknown>;
 
+    // Check if this is error data - show only suggestions
+    if (data.type === 'error' && data.success === false) {
+      const errorData = data as {
+        error: string;
+        suggestions?: string[];
+        error_code?: string;
+      };
+
+      return (
+        <div className="text-sm">
+          <div className="text-red-600 mb-2">❌ {errorData.error}</div>
+          {errorData.suggestions && errorData.suggestions.length > 0 && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-3 rounded">
+              <div className="text-blue-800 dark:text-blue-200 font-medium text-xs mb-1">
+                💡 Suggestions:
+              </div>
+              <ul className="text-blue-700 dark:text-blue-300 text-xs space-y-1">
+                {errorData.suggestions.map((suggestion, index) => (
+                  <li key={index}>• {suggestion}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // For data with message field - display directly
+    if (data.message && typeof data.message === 'string') {
+      return (
+        <div className="text-sm">
+          <div className="text-green-600 mb-2">✅ Analysis Complete</div>
+          <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-3 rounded">
+            <div className="text-blue-800 dark:text-blue-200 text-sm whitespace-pre-wrap">
+              {data.message}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Fallback - just show the success message
     return (
       <div className="text-sm">
-        <div className="text-green-600 mb-2">
-          {message.content}
-        </div>
-        <div className="bg-secondary/30 rounded p-3">
-          <details>
-            <summary className="cursor-pointer font-medium text-foreground hover:text-primary">
-              View Analysis Results
-            </summary>
-            <div className="mt-2 space-y-2 text-xs">
-              {Object.entries(result.data as Record<string, unknown>).map(([key, value]) => (
-                <div key={key}>
-                  <span className="font-medium capitalize text-foreground">
-                    {key.replace(/_/g, ' ')}:
-                  </span>
-                  <div className="ml-2 whitespace-pre-wrap text-muted-foreground">
-                    {typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </details>
+        <div className="text-green-600">
+          ✅ {message.content}
         </div>
       </div>
     );
@@ -176,7 +248,7 @@ export class DataAnalysisHandler implements MessageHandler {
  * Default handler for regular text messages
  */
 export class DefaultMessageHandler implements MessageHandler {
-  canHandle(): boolean {
+  canHandle(message: ChatMessage): boolean {
     return true; // Default handler accepts all messages
   }
 

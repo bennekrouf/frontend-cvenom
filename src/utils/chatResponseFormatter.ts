@@ -42,7 +42,7 @@ export class ChatResponseFormatter {
         id: this.generateId(),
         role: 'assistant',
         type: 'text',
-        content: `✅ ${response.message}`,
+        content: `${response.message}`,
         timestamp: new Date(),
       },
       shouldShowExecutionResult: false
@@ -55,7 +55,7 @@ export class ChatResponseFormatter {
         id: this.generateId(),
         role: 'assistant',
         type: 'result',
-        content: `✅ ${response.message}`,
+        content: `${response.message}`,
         timestamp: new Date(),
         executionResult: {
           success: true,
@@ -74,7 +74,7 @@ export class ChatResponseFormatter {
         id: this.generateId(),
         role: 'assistant',
         type: 'result',
-        content: `✅ ${response.message}`,
+        content: `${response.message}`,
         timestamp: new Date(),
         executionResult: {
           success: true,

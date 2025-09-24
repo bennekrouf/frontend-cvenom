@@ -12,6 +12,7 @@ export interface API0AnalysisResult {
   essential_path: string;
   intent: number; // 0 = ACTIONABLE_REQUEST, 1 = GENERAL_QUESTION, 2 = HELP_REQUEST
   json_output: string;
+  user_prompt: string;
   matching_info: {
     completion_percentage: number;
     mapped_optional_fields: number;

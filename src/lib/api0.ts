@@ -162,6 +162,21 @@ class API0Service {
         };
       }
 
+      // NEW: Check if required fields are missing → do NOT execute
+      const { completion_percentage, missing_required_fields } = bestMatch.matching_info;
+      if (completion_percentage < 100 || missing_required_fields.length > 0) {
+        // Return the user_prompt as a text response
+        return {
+          success: true,
+          data: {
+            type: 'text',
+            success: true,
+            message: bestMatch.user_prompt || 'Please provide more information to continue.',
+            conversation_id: bestMatch.conversation_id
+          } satisfies StandardApiResponse
+        };
+      }
+
       // For action endpoints (intent 0), execute and then adapt response
       const executionResult = await this.executeEndpoint(bestMatch, this.extractParameters(bestMatch.parameters));
       const standardResponse = adaptAPI0ExecutionToStandardResponse(executionResult);
