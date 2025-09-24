@@ -186,6 +186,7 @@ export function adaptAPI0ExecutionToStandardResponse(
   if (executionResult.blob || executionResult.type === 'pdf') {
     return {
       type: 'file',
+      blob_data: executionResult.blob,
       success: true,
       message: t?.('chat.api_responses.document_ready') || 'Document ready for download',
       file_type: 'pdf',
