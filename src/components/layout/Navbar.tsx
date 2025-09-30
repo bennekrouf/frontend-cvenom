@@ -20,7 +20,6 @@ const Navbar: React.FC = () => {
 
   // Empty navigation items - add your own
   const navItems: { label: string; path: string; }[] = [
-    // { label: 'Wallet', path: "/wallet" },
   ];
 
   // Language options
