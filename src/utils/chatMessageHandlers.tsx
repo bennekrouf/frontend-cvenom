@@ -248,7 +248,7 @@ export class DataAnalysisHandler implements MessageHandler {
  * Default handler for regular text messages
  */
 export class DefaultMessageHandler implements MessageHandler {
-  canHandle(message: ChatMessage): boolean {
+  canHandle(): boolean {
     return true; // Default handler accepts all messages
   }
 
