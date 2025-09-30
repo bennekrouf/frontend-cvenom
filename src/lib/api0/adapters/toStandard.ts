@@ -1,37 +1,6 @@
 // lib/api0ResponseAdapter.ts - FIXED VERSION
 import type { StandardApiResponse } from '@/lib/api0/adapters/types';
-
-export interface API0AnalysisResult {
-  api_group_id: string;
-  api_group_name: string;
-  base: string;
-  conversation_id: string;
-  endpoint_description: string;
-  endpoint_id: string;
-  endpoint_name: string;
-  essential_path: string;
-  intent: number; // 0 = ACTIONABLE_REQUEST, 1 = GENERAL_QUESTION, 2 = HELP_REQUEST
-  json_output: string;
-  user_prompt: string;
-  matching_info: {
-    completion_percentage: number;
-    mapped_optional_fields: number;
-    mapped_required_fields: number;
-    missing_optional_fields: string[];
-    missing_required_fields: string[];
-    status: number;
-    total_optional_fields: number;
-    total_required_fields: number;
-  };
-  parameters: Array<{
-    name: string;
-    description: string;
-    semantic_value?: string;
-    value?: string;
-  }>;
-  path: string;
-  verb: string;
-}
+import { API0AnalysisResult, API0ExecutionResult } from '../core';
 
 interface JobContent {
   title?: string;
@@ -42,20 +11,6 @@ interface JobContent {
 interface JobAnalysisData {
   job_content?: JobContent;
   fit_analysis?: string;
-  [key: string]: unknown;
-}
-
-export interface API0ExecutionResult {
-  type?: string;
-  content?: string;
-  response?: string;
-  blob?: Blob;
-  filename?: string;
-  action?: string;
-  endpoint_name?: string;
-  message?: string;
-  conversation_id?: string;
-  data?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
