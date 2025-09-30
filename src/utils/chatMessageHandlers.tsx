@@ -223,7 +223,7 @@ export class DataAnalysisHandler implements MessageHandler {
     if (data.message && typeof data.message === 'string') {
       return (
         <div className="text-sm">
-          <div className="text-green-600 mb-2">✅ Analysis Complete</div>
+          {/* <div className="text-green-600 mb-2">✅ Analysis Complete</div> */}
           <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-3 rounded">
             <div className="text-blue-800 dark:text-blue-200 text-sm whitespace-pre-wrap">
               {data.message}
