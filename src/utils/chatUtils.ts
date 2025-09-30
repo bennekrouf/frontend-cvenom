@@ -2,7 +2,6 @@
 import { FILE_SIZE_LIMITS } from '@/utils/fileSizeConstants';
 import { compressImage } from '@/utils/imageCompression';
 
-// import type { StandardApiResponse } from '@/lib/api0/adapters/types';
 export type { ChatMessage, FileAttachment } from '@/types/chat';
 
 import { ChatMessage, FileAttachment } from '@/types/chat';

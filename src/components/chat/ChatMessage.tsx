@@ -5,7 +5,7 @@ import { FaMagic } from "react-icons/fa";
 import { ChatRenderer } from '@/lib/chat-renderer';
 import { ChatAttachmentHandler } from '@/utils/chatAttachmentHandler';
 import { ChatMessage as ChatMessageType } from '@/utils/chatUtils';  // Rename import
-import { StandardApiResponse } from '@/lib/api0/adapters/types';
+import type { StandardApiResponse } from '@/lib/api0';
 
 interface ChatMessageProps {
   message: ChatMessageType;  // Use renamed type

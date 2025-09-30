@@ -1,5 +1,6 @@
 // Single source of truth
-import type { StandardApiResponse } from '@/lib/api0/adapters/types';
+
+import { StandardApiResponse } from "@/lib/api0";
 
 export interface FileAttachment {
   id: string;

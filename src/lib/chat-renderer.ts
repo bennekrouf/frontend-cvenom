@@ -1,12 +1,7 @@
 // src/lib/chat-renderer.tsx  (note: .tsx extension, not .ts)
 import React from 'react';
 import type { ChatMessage } from '@/types/chat';
-import type { StandardApiResponse } from '@/lib/api0/adapters/types';
-
-/**
- * Unified chat rendering system
- * Consolidates chatResponseFormatter, chatMessageHandlers, and chatMessageRenderer
- */
+import { StandardApiResponse } from './api0';
 
 // ============================================================================
 // RESPONSE FORMATTING (from chatResponseFormatter.ts)
@@ -236,7 +231,7 @@ export class ChatRenderer {
           React.createElement(
             'ul',
             { className: 'text-blue-700 dark:text-blue-300 text-xs space-y-1' },
-            errorResponse.suggestions.map((suggestion, index) =>
+            errorResponse.suggestions.map((suggestion: string, index: number) =>
               React.createElement('li', { key: index }, `• ${suggestion}`)
             )
           )
@@ -360,7 +355,9 @@ export class ChatRenderer {
 
     if (response.type !== 'data') return null;
 
-    if (response.data?.message && typeof response.data.message === 'string') {
+    const data = response.data as { message?: string } | undefined;
+
+    if (data?.message && typeof data.message === 'string') {
       return React.createElement(
         'div',
         { className: 'text-sm' },
@@ -370,7 +367,7 @@ export class ChatRenderer {
           React.createElement(
             'div',
             { className: 'text-blue-800 dark:text-blue-200 text-sm whitespace-pre-wrap' },
-            response.data.message
+            data.message
           )
         )
       );

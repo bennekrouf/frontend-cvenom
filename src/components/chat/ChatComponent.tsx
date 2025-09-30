@@ -7,7 +7,6 @@ import { signInWithGoogle } from '@/lib/firebase';
 import { useAPI0Chat } from '@/hooks/useAPI0Chat';
 import { useTranslations } from 'next-intl';
 import { ChatRenderer } from '@/lib/chat-renderer';
-import { StandardApiResponse } from '@/lib/api0/adapters/types';
 
 // Import our new components
 import ChatMessage from './ChatMessage';
@@ -23,6 +22,7 @@ import {
   type ChatMessage as ChatMessageType,
   type FileAttachment,
 } from '@/utils/chatUtils';
+import { StandardApiResponse } from '@/lib/api0';
 
 interface ChatComponentProps {
   isVisible: boolean;
@@ -159,12 +159,18 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
         const formatted = ChatRenderer.formatResponse(result.data, t);
         setMessages(prev => [...prev, formatted.message]);
       } else {
-        const errorResponse: StandardApiResponse = result.data || {
-          type: 'error',
-          success: false,
-          error: result.error || t('chat.api_responses.operation_failed'),
-          suggestions: []
-        };
+        let errorResponse: StandardApiResponse;
+
+        if (result.data) {
+          errorResponse = result.data;
+        } else {
+          errorResponse = {
+            type: 'error',
+            success: false,
+            error: result.error || t('chat.api_responses.operation_failed'),
+            suggestions: []
+          };
+        }
 
         const formatted = ChatRenderer.formatResponse(errorResponse, t);
         setMessages(prev => [...prev, formatted.message]);
