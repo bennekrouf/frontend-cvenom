@@ -1,5 +1,3 @@
-// Move from src/types/api-responses.ts - ONLY the types, not formatChatResponse
-
 export interface AnalysisSection {
   title: string;
   content: string;

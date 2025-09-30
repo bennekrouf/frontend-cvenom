@@ -242,13 +242,13 @@ export async function generateCV(
 export async function getTemplates() {
   const response = await apiRequest<{
     success: boolean;
-    templates: Array<{ name: string; description: string }>;
+    data: Array<{ name: string; description: string }>;
   }>('/templates', {
     method: 'GET',
     requireAuth: false
   });
 
-  return response;
+  return response;  // Return as-is
 }
 
 export async function getCurrentUser() {

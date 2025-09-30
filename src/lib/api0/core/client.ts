@@ -1,9 +1,9 @@
 import { getAuth } from 'firebase/auth';
+import { FileAttachment } from '@/utils/chatUtils';
 import {
   API0AnalysisResult,
   API0ExecutionResult,
   Parameter,
-  FileAttachment,
   StartAnalysisRequest,
   StartAnalysisResponse,
   AnalyzeRequest

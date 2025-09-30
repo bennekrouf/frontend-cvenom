@@ -8,7 +8,6 @@ export type {
   API0AnalysisResult,
   API0ExecutionResult,
   Parameter,
-  FileAttachment,
   StartAnalysisRequest,
   StartAnalysisResponse,
   AnalyzeRequest

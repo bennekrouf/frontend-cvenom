@@ -2,35 +2,18 @@
 import { FILE_SIZE_LIMITS } from '@/utils/fileSizeConstants';
 import { compressImage } from '@/utils/imageCompression';
 
-export interface FileAttachment {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  data: string; // base64 encoded
-  preview?: string; // for images
-}
+// import type { StandardApiResponse } from '@/lib/api0/adapters/types';
+export type { ChatMessage, FileAttachment } from '@/types/chat';
 
-export interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp: Date;
-  executionResult?: ExecutionResult;
-  type?: 'text' | 'command' | 'result';
-  attachments?: FileAttachment[];
-}
+import { ChatMessage, FileAttachment } from '@/types/chat';
 
-export interface ExecutionResult {
-  success: boolean;
-  data?: Record<string, unknown>;
-  error?: string;
-  type?: 'pdf' | 'edit' | 'data' | 'file_content' | 'image_upload' | 'conversation';
-  action?: string;
-  blob?: Blob;
-  filename?: string;
-  message?: string;
-}
+export const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
 
 // File handling utilities
 export const fileUtils = {
@@ -71,14 +54,6 @@ export const fileUtils = {
     });
   },
 
-  formatFileSize: (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  },
-
   processFiles: async (files: FileList): Promise<{
     attachments: FileAttachment[];
     errors: string[];
@@ -100,7 +75,7 @@ export const fileUtils = {
         : FILE_SIZE_LIMITS.OTHER_MAX_INITIAL;
 
       if (file.size > maxSize) {
-        errors.push(`File too large: ${file.name} (${fileUtils.formatFileSize(file.size)})`);
+        errors.push(`File too large: ${file.name} (${formatFileSize(file.size)})`);
         continue;
       }
 

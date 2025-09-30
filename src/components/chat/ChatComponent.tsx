@@ -1,4 +1,4 @@
-// components/chat/ChatComponent.tsx - Refactored
+// src/components/chat/ChatComponent.tsx
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -6,12 +6,12 @@ import { FaMagic } from "react-icons/fa";
 import { signInWithGoogle } from '@/lib/firebase';
 import { useAPI0Chat } from '@/hooks/useAPI0Chat';
 import { useTranslations } from 'next-intl';
-import { ChatResponseFormatter } from '@/utils/chatResponseFormatter';
+import { ChatRenderer } from '@/lib/chat-renderer';
+import { StandardApiResponse } from '@/lib/api0/adapters/types';
 
 // Import our new components
 import ChatMessage from './ChatMessage';
 import ChatInputArea from './ChatInputArea';
-// import ChatStatusBar from './ChatStatusBar';
 import AuthPromptModal from './AuthPromptModal';
 
 // Import utilities
@@ -22,14 +22,7 @@ import {
   authUtils,
   type ChatMessage as ChatMessageType,
   type FileAttachment,
-  type ExecutionResult as ChatExecutionResult
 } from '@/utils/chatUtils';
-// import { StandardApiResponse } from '@/types/api-responses';
-
-// Extended result type that includes blob for file downloads
-// interface ExtendedExecutionResult extends ChatExecutionResult {
-//   blob?: Blob;
-// }
 
 interface ChatComponentProps {
   isVisible: boolean;
@@ -91,10 +84,8 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
     const { attachments: newAttachments, errors } = await fileUtils.processFiles(files);
 
     if (errors.length > 0) {
-      // Show errors as a message
       addMessage({
         role: 'assistant',
-        type: 'text',
         content: `❌ File processing errors:\n${errors.map(e => `• ${e}`).join('\n')}`
       });
     }
@@ -136,7 +127,6 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
   const handleSendMessage = async () => {
     if (!inputValue.trim() && attachments.length === 0) return;
 
-    // For unauthenticated users, show auth prompt for commands
     if (!isAuthenticated) {
       setShowAuthPrompt(true);
       return;
@@ -158,7 +148,6 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
     setShowSuggestions(false);
 
     try {
-      // Enhance command with attachment context
       const enhancedCommand = messageUtils.enhanceSentenceWithAttachments(
         messageContent || "Process the uploaded files",
         messageAttachments
@@ -167,55 +156,18 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
       const result = await executeCommand(enhancedCommand, messageAttachments);
 
       if (result.success && result.data) {
-        // Handle standardized API responses - now properly typed
-        const standardResponse = result.data;
-
-        // Check if it's actually an error response
-        if (standardResponse.type === 'error') {
-          let errorContent = standardResponse.error || 'Operation failed';
-          if (standardResponse.suggestions && standardResponse.suggestions.length > 0) {
-            errorContent += '\n\n' + t('chat.api_responses.suggestions') + '\n' +
-              standardResponse.suggestions.map((s: string) => `• ${s}`).join('\n');
-          }
-
-          addMessage({
-            role: 'assistant',
-            type: 'text',
-            content: errorContent,
-          });
-          return;
-        }
-
-        if (result.success && result.data) {
-          // Use the formatter to create a properly formatted message
-          const formatted = ChatResponseFormatter.formatResponse(result.data, t);
-          setMessages(prev => [...prev, formatted.message]);
-        } else {
-          // Handle cases where result.data might contain error info
-          const errorResponse = result.data || {
-            type: 'error' as const,
-            success: false,
-            error: result.error || t('chat.api_responses.operation_failed'),
-            suggestions: []
-          };
-
-          const formatted = ChatResponseFormatter.formatResponse(errorResponse, t);
-          setMessages(prev => [...prev, formatted.message]);
-        }
-
-
+        const formatted = ChatRenderer.formatResponse(result.data, t);
+        setMessages(prev => [...prev, formatted.message]);
       } else {
-        // Handle errors - now using standardized error format
-        let errorMessage = result.error || t('chat.api_responses.operation_failed');
-        let suggestions: string[] = [];
+        const errorResponse: StandardApiResponse = result.data || {
+          type: 'error',
+          success: false,
+          error: result.error || t('chat.api_responses.operation_failed'),
+          suggestions: []
+        };
 
-        // Check if the error response contains suggestions
-        if (result.data?.type === 'error') {
-          errorMessage = result.data.error;
-          suggestions = result.data.suggestions || [];
-        }
-
-        addMessage(messageUtils.createErrorMessage(errorMessage, suggestions, t));
+        const formatted = ChatRenderer.formatResponse(errorResponse, t);
+        setMessages(prev => [...prev, formatted.message]);
       }
     } catch (error) {
       addMessage(messageUtils.createErrorMessage(
@@ -231,19 +183,12 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
       await signInWithGoogle();
       addMessage({
         role: 'assistant',
-        type: 'text',
         content: '🎉 Welcome! You can now use commands like:\n• "Generate CV for john-doe"\n• "Create person profile for jane-smith"\n• "Upload profile picture" (with image attachment)',
       });
       setIsSigningIn(false);
     },
     () => setShowAuthPrompt(false)
   );
-
-  // Reset conversation handler
-  // const handleResetConversation = () => {
-  //   resetConversation();
-  //   setMessages([messageUtils.createWelcomeMessage(isAuthenticated, t)]);
-  // };
 
   // Get suggestions
   const suggestions = showSuggestions ? getCommandSuggestions(inputValue) : [];
@@ -252,21 +197,12 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Auth Prompt Modal */}
       <AuthPromptModal
         isOpen={showAuthPrompt}
         onClose={handleClose}
         onSignIn={handleSignIn}
         isSigningIn={isSigningIn}
       />
-
-      {/* Conversation Status Bar */}
-      {/* <ChatStatusBar */}
-      {/*   isAuthenticated={isAuthenticated} */}
-      {/*   conversationStarted={conversationStarted} */}
-      {/*   conversationId={conversationId} */}
-      {/*   onResetConversation={handleResetConversation} */}
-      {/* /> */}
 
       {/* Messages Area */}
       <div
@@ -290,7 +226,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
           <ChatMessage
             key={message.id}
             message={message}
-            onPDFDownload={handlePDFDownload as (result: ChatExecutionResult) => void}
+            onPDFDownload={handlePDFDownload}
           />
         ))}
 

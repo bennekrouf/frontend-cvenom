@@ -1,6 +1,8 @@
+// src/components/editor/GenerateCVModal.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { getTemplates } from '@/lib/api'; // Import the function
 
 interface Template {
   name: string;
@@ -27,25 +29,22 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
 
-  // Fetch templates when modal opens
   useEffect(() => {
     if (isOpen) {
       fetchTemplates();
     }
   }, [isOpen]);
 
-  // Make sure the Template interface is properly used
   const fetchTemplates = async () => {
     setLoadingTemplates(true);
     try {
-      const response = await fetch('/api/cv/templates');
-      const data = await response.json();
+      const response = await getTemplates();
 
-      if (data.success && data.templates) {
-        setTemplates(data.templates);
-        // Set default template if available
-        if (data.templates.length > 0) {
-          const defaultTemplate = data.templates.find((t: Template) => t.name === 'default') || data.templates[0];
+      // Backend returns { success: true, data: [...] }
+      if (response.success && response.data) {
+        setTemplates(response.data);  // Changed from response.templates
+        if (response.data.length > 0) {
+          const defaultTemplate = response.data.find((t: Template) => t.name === 'default') || response.data[0];
           setSelectedTemplate(defaultTemplate.name);
         }
       }

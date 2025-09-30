@@ -5,6 +5,7 @@ import React, { useRef } from 'react';
 import Image from 'next/image';
 import { FiSend, FiPaperclip, FiX } from 'react-icons/fi';
 import { useTranslations } from 'next-intl';
+import { formatFileSize } from '@/utils/chatUtils';
 
 interface FileAttachment {
   id: string;
@@ -46,14 +47,6 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
 }) => {
   const t = useTranslations('chat');
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
 
   return (
     <div className="border-t border-border bg-card">

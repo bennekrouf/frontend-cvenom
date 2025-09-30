@@ -1,9 +1,10 @@
 // Application-specific wrapper with CV logic
 import { API0Client } from './core';
-import { API0AnalysisResult, FileAttachment } from './core/types';
+import { API0AnalysisResult } from './core/types';
 import { StandardApiResponse } from './adapters/types';
 import { adaptAPI0AnalysisToStandardResponse, adaptAPI0ExecutionToStandardResponse } from './adapters';
 import { getAuth } from 'firebase/auth';
+import { FileAttachment } from '@/utils/chatUtils';
 
 export class CVenomAPI0Wrapper {
   private client: API0Client;

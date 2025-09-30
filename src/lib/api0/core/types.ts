@@ -48,15 +48,6 @@ export interface Parameter {
   value?: string;
 }
 
-export interface FileAttachment {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  data: string; // base64 encoded
-  preview?: string;
-}
-
 export interface StartAnalysisRequest {
   user_id?: string;
   context?: Record<string, unknown>;

@@ -2,15 +2,8 @@
 import React from 'react';
 import Image from 'next/image';
 import { FiFile } from 'react-icons/fi';
-
-export interface FileAttachment {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  data: string;
-  preview?: string;
-}
+import { FileAttachment } from '@/types/chat';
+import { formatFileSize } from './chatUtils';
 
 export class ChatAttachmentHandler {
   /**
@@ -44,7 +37,7 @@ export class ChatAttachmentHandler {
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium truncate">{attachment.name}</p>
               <p className="text-xs text-muted-foreground">
-                {this.formatFileSize(attachment.size)}
+                {formatFileSize(attachment.size)}
               </p>
             </div>
             <div className="text-xs text-muted-foreground">
@@ -54,17 +47,6 @@ export class ChatAttachmentHandler {
         ))}
       </div>
     );
-  }
-
-  /**
-   * Format file size in human-readable format
-   */
-  static formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
   /**

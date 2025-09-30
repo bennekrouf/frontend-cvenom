@@ -1,32 +1,21 @@
-// src/hooks/useAPI0Chat.ts - Updated to use standardized API0 responses
+// src/hooks/useAPI0Chat.ts
 import { useState, useCallback } from 'react';
 import { getAPI0 } from '@/lib/api0/cvenom-wrapper';
 import type { StandardApiResponse } from '@/lib/api0/adapters/types';
 import { useTranslations } from 'next-intl';
 import { getAuth } from 'firebase/auth';
+import type { FileAttachment } from '@/utils/chatUtils';
 
-interface FileAttachment {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  data: string;
-  preview?: string;
-}
-
-interface ExecutionResult {
+interface API0ChatResult {
   success: boolean;
   data?: StandardApiResponse;
   error?: string;
-  type?: string;
-  message?: string;
-  conversation_id?: string;
 }
 
 interface API0ChatState {
   isAnalyzing: boolean;
   isExecuting: boolean;
-  lastExecution: ExecutionResult | null;
+  lastExecution: API0ChatResult | null;
   conversationId: string | null;
   conversationStarted: boolean;
 }
@@ -79,7 +68,7 @@ export function useAPI0Chat() {
   const executeCommand = useCallback(async (
     sentence: string,
     attachments: FileAttachment[] = []
-  ): Promise<ExecutionResult> => {
+  ): Promise<API0ChatResult> => {
     setState(prev => ({
       ...prev,
       isAnalyzing: true,
@@ -90,7 +79,6 @@ export function useAPI0Chat() {
     try {
       const api0 = getAPI0();
 
-      // Ensure conversation is started for authenticated users
       const auth = getAuth();
       if (auth.currentUser && !state.conversationStarted) {
         await startConversation();
@@ -102,10 +90,8 @@ export function useAPI0Chat() {
         isExecuting: true,
       }));
 
-      // Use the new standardized method
       const backendResponse = await api0.processAndExecuteStandard(sentence, attachments);
 
-      // Update conversation ID if provided
       if (backendResponse.data?.conversation_id && backendResponse.data.conversation_id !== state.conversationId) {
         setState(prev => ({
           ...prev,
@@ -114,12 +100,10 @@ export function useAPI0Chat() {
         }));
       }
 
-      const result: ExecutionResult = {
+      const result: API0ChatResult = {
         success: backendResponse.success,
         data: backendResponse.data,
         error: backendResponse.error,
-        type: backendResponse.data?.type,
-        conversation_id: backendResponse.data?.conversation_id || state.conversationId || undefined,
       };
 
       setState(prev => ({
@@ -130,7 +114,7 @@ export function useAPI0Chat() {
 
       return result;
     } catch (error) {
-      const result: ExecutionResult = {
+      const result: API0ChatResult = {
         success: false,
         error: error instanceof Error ? error.message : 'Command execution failed',
       };
@@ -171,10 +155,17 @@ export function useAPI0Chat() {
     );
   }, [t]);
 
-  const handlePDFDownload = useCallback((result: ExecutionResult) => {
-    if (result.success && result.data?.type === 'file' && result.data.file_type === 'pdf') {
-      console.log('Downloading PDF:', result.data.filename);
-      // PDF download logic handled by the calling component
+  const handlePDFDownload = useCallback((response: StandardApiResponse) => {
+    if (response.type === 'file' && response.success && response.blob_data) {
+      console.log('Downloading PDF:', response.filename);
+      const url = window.URL.createObjectURL(response.blob_data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = response.filename || 'document.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
     }
   }, []);
 
