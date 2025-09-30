@@ -1,5 +1,5 @@
+// lib/api0ResponseAdapter.ts - FIXED VERSION
 import { StandardApiResponse } from '@/types/api-responses';
-export type { StandardApiResponse, AnalysisSection, DisplayFormat } from '@/types/api-responses';
 
 export interface API0AnalysisResult {
   api_group_id: string;

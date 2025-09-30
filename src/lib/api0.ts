@@ -6,7 +6,9 @@ import {
   type API0AnalysisResult,
   type API0ExecutionResult
 } from './api0ResponseAdapter';
-import { StandardApiResponse } from '@/types/api-responses';
+import type {
+  StandardApiResponse
+} from './api0ResponseAdapter';
 
 interface Parameter {
   name: string;

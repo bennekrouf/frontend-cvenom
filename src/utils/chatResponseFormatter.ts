@@ -1,5 +1,5 @@
 // src/utils/chatResponseFormatter.ts
-import { StandardApiResponse } from '@/types/api-responses';
+import { StandardApiResponse } from '@/lib/api0/adapters/types';
 import { ChatMessage, ExecutionResult } from './chatUtils';
 
 export interface FormattedChatResponse {

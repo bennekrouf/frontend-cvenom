@@ -1,9 +1,9 @@
 // src/hooks/useAPI0Chat.ts - Updated to use standardized API0 responses
 import { useState, useCallback } from 'react';
-import { getAPI0 } from '@/lib/api0';
+import { getAPI0 } from '@/lib/api0/cvenom-wrapper';
+import type { StandardApiResponse } from '@/lib/api0/adapters/types';
 import { useTranslations } from 'next-intl';
 import { getAuth } from 'firebase/auth';
-import { StandardApiResponse } from '@/types/api-responses';
 
 interface FileAttachment {
   id: string;
