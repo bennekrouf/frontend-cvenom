@@ -1,63 +1,16 @@
+// Import types so they can be used in this file
+import type {
+  StandardApiResponse,
+  AnalysisSection,
+  DisplayFormat
+} from '@/lib/api0/adapters/types';
 
-// export type { StandardApiResponse, AnalysisSection, DisplayFormat } from '@/lib/api0/adapters/types';
-export interface AnalysisSection {
-  title: string;
-  content: string;
-  score?: string; // "good", "fair", "poor", etc.
-  points?: string[];
-}
-
-export interface DisplayFormat {
-  type: 'key_value' | 'analysis' | 'table' | 'status';
-  sections?: AnalysisSection[];
-  headers?: string[];
-  rows?: string[][];
-  current?: string;
-  total?: string;
-  percentage?: number;
-}
-
-export type StandardApiResponse =
-  | {
-    type: 'text';
-    success: true;
-    message: string;
-    conversation_id?: string;
-  }
-  | {
-    type: 'file';
-    success: true;
-    message: string;
-    file_type: string;
-    filename: string;
-    download_url?: string;
-    blob_data?: Blob;
-    conversation_id?: string;
-  }
-  | {
-    type: 'data';
-    success: true;
-    message: string;
-    data: Record<string, unknown>;
-    display_format?: DisplayFormat;
-    conversation_id?: string;
-  }
-  | {
-    type: 'action';
-    success: true;
-    message: string;
-    action?: string;
-    next_actions?: string[];
-    conversation_id?: string;
-  }
-  | {
-    type: 'error';
-    success: false;
-    error: string;
-    error_code?: string;
-    suggestions?: string[];
-    conversation_id?: string;
-  };
+// Re-export for backward compatibility
+export type {
+  StandardApiResponse,
+  AnalysisSection,
+  DisplayFormat
+};
 
 // Helper function to format API responses in chat
 export function formatChatResponse(response: StandardApiResponse): {
@@ -103,7 +56,7 @@ export function formatChatResponse(response: StandardApiResponse): {
       let actionContent = `✅ ${response.message}`;
 
       if (response.next_actions && response.next_actions.length > 0) {
-        actionContent += '\n\nNext steps:\n' + response.next_actions.map(action => `• ${action}`).join('\n');
+        actionContent += '\n\nNext steps:\n' + response.next_actions.map((action: string) => `• ${action}`).join('\n');
       }
 
       return {
@@ -116,7 +69,7 @@ export function formatChatResponse(response: StandardApiResponse): {
       let errorContent = `❌ ${response.error}`;
 
       if (response.suggestions && response.suggestions.length > 0) {
-        errorContent += '\n\nSuggestions:\n' + response.suggestions.map(suggestion => `• ${suggestion}`).join('\n');
+        errorContent += '\n\nSuggestions:\n' + response.suggestions.map((suggestion: string) => `• ${suggestion}`).join('\n');
       }
 
       return {
@@ -144,7 +97,7 @@ function formatAnalysisDisplay(sections: AnalysisSection[]): string {
     sectionText += `\n${section.content}`;
 
     if (section.points && section.points.length > 0) {
-      sectionText += '\n' + section.points.map(point => `• ${point}`).join('\n');
+      sectionText += '\n' + section.points.map((point: string) => `• ${point}`).join('\n');
     }
 
     return sectionText;
