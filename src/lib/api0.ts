@@ -1,9 +1,30 @@
-// lib/api0.ts
 import { getAuth } from 'firebase/auth';
 import type { FileAttachment } from '@/types/chat';
 
-const API0_BASE = process.env.NEXT_PUBLIC_API0_BASE_URL || 'http://localhost:5009';
-const API0_KEY = process.env.NEXT_PUBLIC_API0_API_KEY!;
+// Validate required environment variables at module load time
+const validateEnvVars = () => {
+  const requiredVars = {
+    NEXT_PUBLIC_API0_BASE_URL: process.env.NEXT_PUBLIC_API0_BASE_URL,
+    NEXT_PUBLIC_API0_API_KEY: process.env.NEXT_PUBLIC_API0_API_KEY
+  };
+
+  const missing = Object.entries(requiredVars)
+    .filter(([, value]) => !value)
+    .map(([key]) => key);
+
+  if (missing.length > 0) {
+    const error = `❌ FATAL: Missing required environment variables: ${missing.join(', ')}`;
+    console.error(error);
+    throw new Error(error);
+  }
+
+  console.log('✅ API0 environment variables validated');
+  return requiredVars;
+};
+
+const envVars = validateEnvVars();
+const API0_BASE = envVars.NEXT_PUBLIC_API0_BASE_URL!;
+const API0_KEY = envVars.NEXT_PUBLIC_API0_API_KEY!;
 
 let conversationId: string | null = null;
 
