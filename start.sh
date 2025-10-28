@@ -1,3 +1,5 @@
 #!/bin/bash
 cd /opt/cvenom/frontend
-NODE_ENV=production PORT=4001 node_modules/.bin/next start
+
+# Pass through all environment variables from PM2
+exec node_modules/.bin/next start
