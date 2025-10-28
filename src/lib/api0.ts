@@ -1,34 +1,37 @@
+// src/lib/api0.ts
 import { getAuth } from 'firebase/auth';
 import type { FileAttachment } from '@/types/chat';
 
-// Validate required environment variables at module load time
-const validateEnvVars = () => {
-  const requiredVars = {
-    NEXT_PUBLIC_API0_BASE_URL: process.env.NEXT_PUBLIC_API0_BASE_URL,
-    NEXT_PUBLIC_API0_API_KEY: process.env.NEXT_PUBLIC_API0_API_KEY
-  };
+// Runtime configuration - fetched from API
+let runtimeConfig: { API0_BASE_URL: string; API0_API_KEY: string } | null = null;
 
-  const missing = Object.entries(requiredVars)
-    .filter(([, value]) => !value)
-    .map(([key]) => key);
+// Fetch runtime configuration from API route
+async function getRuntimeConfig() {
+  if (!runtimeConfig) {
+    try {
+      const response = await fetch('/api/config');
+      if (!response.ok) {
+        throw new Error('Failed to fetch runtime config');
+      }
+      runtimeConfig = await response.json();
 
-  if (missing.length > 0) {
-    const error = `❌ FATAL: Missing required environment variables: ${missing.join(', ')}`;
-    console.error(error);
-    throw new Error(error);
+      // Validate required variables
+      if (!runtimeConfig?.API0_API_KEY || !runtimeConfig?.API0_BASE_URL) {
+        throw new Error('❌ FATAL: Missing required runtime configuration');
+      }
+
+      console.log('✅ Runtime configuration loaded');
+    } catch (error) {
+      console.error('❌ Failed to load runtime config:', error);
+      throw error;
+    }
   }
-
-  console.log('✅ API0 environment variables validated');
-  return requiredVars;
-};
-
-const envVars = validateEnvVars();
-const API0_BASE = envVars.NEXT_PUBLIC_API0_BASE_URL!;
-const API0_KEY = envVars.NEXT_PUBLIC_API0_API_KEY!;
+  return runtimeConfig;
+}
 
 let conversationId: string | null = null;
 
-// Type definitions
+// Type definitions (keep existing ones)
 interface API0Parameter {
   name: string;
   description: string;
@@ -114,12 +117,14 @@ export type StandardApiResponse =
     conversation_id?: string;
   };
 
-// Direct API calls with proper error handling
+// Updated analyze function with runtime config
 async function analyze(sentence: string, attachments: FileAttachment[] = []): Promise<API0AnalysisResult[]> {
+  const config = await getRuntimeConfig();
+
   if (!conversationId) {
-    const startRes = await fetch(`${API0_BASE}/api/analyze/start`, {
+    const startRes = await fetch(`${config.API0_BASE_URL}/api/analyze/start`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${API0_KEY}`, 'Content-Type': 'application/json' },
+      headers: { 'Authorization': `Bearer ${config.API0_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: getAuth().currentUser?.uid })
     });
 
@@ -144,9 +149,9 @@ async function analyze(sentence: string, attachments: FileAttachment[] = []): Pr
     body.has_images = true;
   }
 
-  const res = await fetch(`${API0_BASE}/api/analyze`, {
+  const res = await fetch(`${config.API0_BASE_URL}/api/analyze`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${API0_KEY}`, 'Content-Type': 'application/json' },
+    headers: { 'Authorization': `Bearer ${config.API0_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   });
 
@@ -161,6 +166,7 @@ async function analyze(sentence: string, attachments: FileAttachment[] = []): Pr
   return res.json();
 }
 
+// Keep the rest of your functions unchanged...
 async function execute(endpoint: API0AnalysisResult, params: Record<string, string>): Promise<ExecutionResult> {
   const token = await getAuth().currentUser?.getIdToken();
 
@@ -175,7 +181,6 @@ async function execute(endpoint: API0AnalysisResult, params: Record<string, stri
       : undefined
   });
 
-  // Add error handling for execute function too
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
     if (res.status === 401) {
@@ -195,7 +200,7 @@ async function execute(endpoint: API0AnalysisResult, params: Record<string, stri
   return { type: 'text', content: await res.text(), conversation_id: endpoint.conversation_id };
 }
 
-// Enhanced processCommand with better error handling
+// Enhanced processCommand with runtime config
 export async function processCommand(
   sentence: string,
   attachments: FileAttachment[] = []
@@ -251,72 +256,71 @@ export async function processCommand(
     const params: Record<string, string> = {};
     match.parameters.forEach((p: API0Parameter) => {
       const val = p.semantic_value || p.value;
-      if (val) params[p.name] = p.name === 'person' ? val.toLowerCase() : val;
+      if (val) params[p.name] = val;
     });
 
     const result = await execute(match, params);
 
-    // Format response
-    if (result.type === 'pdf') {
-      const person = params.person || 'document';
-      const template = params.template || 'default';
-      const lang = params.lang || 'en';
-      return {
-        success: true,
-        data: {
-          type: 'file',
-          success: true,
-          message: 'CV ready for download',
-          file_type: 'pdf',
-          filename: `cv-${person}-${lang}-${template}.pdf`,
-          blob_data: result.blob,
-          conversation_id: result.conversation_id
+    switch (result.type) {
+      case 'pdf':
+        if (result.blob) {
+          const url = URL.createObjectURL(result.blob);
+          return {
+            success: true,
+            data: {
+              type: 'file',
+              success: true,
+              message: 'PDF generated successfully',
+              file_type: 'pdf',
+              filename: 'generated.pdf',
+              download_url: url,
+              blob_data: result.blob,
+              conversation_id: result.conversation_id
+            }
+          };
         }
-      };
+        break;
+
+      case 'json':
+        return {
+          success: true,
+          data: {
+            type: 'data',
+            success: true,
+            message: 'Data retrieved successfully',
+            data: result.data,
+            conversation_id: result.conversation_id
+          }
+        };
+
+      case 'text':
+        return {
+          success: true,
+          data: {
+            type: 'text',
+            success: true,
+            message: result.content || 'Operation completed',
+            conversation_id: result.conversation_id
+          }
+        };
     }
 
-    if (result.type === 'json') {
-      return {
-        success: true,
-        data: {
-          type: 'data',
-          success: true,
-          message: 'Data retrieved',
-          data: result.data,
-          conversation_id: result.conversation_id
-        }
-      };
-    }
-
-    return {
-      success: true,
-      data: {
-        type: 'text',
-        success: true,
-        message: result.content || 'Response received',
-        conversation_id: result.conversation_id
-      }
-    };
-
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-
-    // Return a properly formatted error response
     return {
       success: false,
       data: {
         type: 'error',
         success: false,
-        error: errorMessage,
-        suggestions: errorMessage.includes('Authentication failed') ? [
-          'Check if your API0 key is configured correctly',
-          'Verify the API service is running',
-          'Contact support if the issue persists'
-        ] : [
-          'Try again in a moment',
-          'Check your internet connection',
-          'Contact support if the problem continues'
-        ]
+        error: 'Unexpected response format'
+      }
+    };
+  } catch (error) {
+    console.error('Command processing error:', error);
+    return {
+      success: false,
+      data: {
+        type: 'error',
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
       }
     };
   }
