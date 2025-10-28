@@ -89,11 +89,11 @@ export type StandardApiResponse =
     success: false;
     error: string;
     error_code?: string;
-    suggestions?: string[];  // ← Add this property
+    suggestions?: string[];
     conversation_id?: string;
   };
 
-// Direct API calls
+// Direct API calls with proper error handling
 async function analyze(sentence: string, attachments: FileAttachment[] = []): Promise<API0AnalysisResult[]> {
   if (!conversationId) {
     const startRes = await fetch(`${API0_BASE}/api/analyze/start`, {
@@ -101,7 +101,17 @@ async function analyze(sentence: string, attachments: FileAttachment[] = []): Pr
       headers: { 'Authorization': `Bearer ${API0_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: getAuth().currentUser?.uid })
     });
-    conversationId = (await startRes.json()).conversation_id;
+
+    if (!startRes.ok) {
+      const errorData = await startRes.json().catch(() => ({ error: 'Unknown error' }));
+      if (startRes.status === 401) {
+        throw new Error('Authentication failed: Invalid or missing API key');
+      }
+      throw new Error(errorData.error || `Request failed with status ${startRes.status}`);
+    }
+
+    const startData = await startRes.json();
+    conversationId = startData.conversation_id;
   }
 
   const body: Record<string, unknown> = { conversation_id: conversationId, sentence };
@@ -118,6 +128,14 @@ async function analyze(sentence: string, attachments: FileAttachment[] = []): Pr
     headers: { 'Authorization': `Bearer ${API0_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+    if (res.status === 401) {
+      throw new Error('Authentication failed: Invalid or missing API key');
+    }
+    throw new Error(errorData.error || `Request failed with status ${res.status}`);
+  }
 
   return res.json();
 }
@@ -136,6 +154,15 @@ async function execute(endpoint: API0AnalysisResult, params: Record<string, stri
       : undefined
   });
 
+  // Add error handling for execute function too
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+    if (res.status === 401) {
+      throw new Error('Authentication failed: Session expired or invalid token');
+    }
+    throw new Error(errorData.error || `Request failed with status ${res.status}`);
+  }
+
   const contentType = res.headers.get('content-type');
 
   if (contentType?.includes('application/pdf')) {
@@ -147,7 +174,7 @@ async function execute(endpoint: API0AnalysisResult, params: Record<string, stri
   return { type: 'text', content: await res.text(), conversation_id: endpoint.conversation_id };
 }
 
-// Single public function
+// Enhanced processCommand with better error handling
 export async function processCommand(
   sentence: string,
   attachments: FileAttachment[] = []
@@ -155,7 +182,19 @@ export async function processCommand(
   try {
     const results = await analyze(sentence, attachments);
     if (results.length === 0) {
-      return { success: false, error: 'Command not understood' };
+      return {
+        success: false,
+        data: {
+          type: 'error',
+          success: false,
+          error: 'Command not understood',
+          suggestions: [
+            'Try rephrasing your request',
+            'Use specific command keywords like "generate", "create", "show"',
+            'Include person names in lowercase with hyphens (e.g., "john-doe")'
+          ]
+        }
+      };
     }
 
     const match = results[0];
@@ -239,9 +278,25 @@ export async function processCommand(
     };
 
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+
+    // Return a properly formatted error response
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed'
+      data: {
+        type: 'error',
+        success: false,
+        error: errorMessage,
+        suggestions: errorMessage.includes('Authentication failed') ? [
+          'Check if your API0 key is configured correctly',
+          'Verify the API service is running',
+          'Contact support if the issue persists'
+        ] : [
+          'Try again in a moment',
+          'Check your internet connection',
+          'Contact support if the problem continues'
+        ]
+      }
     };
   }
 }
