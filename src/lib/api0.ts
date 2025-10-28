@@ -1,37 +1,13 @@
-// src/lib/api0.ts
+// src/lib/api0.ts - Simple email header fix
 import { getAuth } from 'firebase/auth';
 import type { FileAttachment } from '@/types/chat';
 
-// Runtime configuration - fetched from API
-let runtimeConfig: { API0_BASE_URL: string; API0_API_KEY: string } | null = null;
-
-// Fetch runtime configuration from API route
-async function getRuntimeConfig() {
-  if (!runtimeConfig) {
-    try {
-      const response = await fetch('/api/config');
-      if (!response.ok) {
-        throw new Error('Failed to fetch runtime config');
-      }
-      runtimeConfig = await response.json();
-
-      // Validate required variables
-      if (!runtimeConfig?.API0_API_KEY || !runtimeConfig?.API0_BASE_URL) {
-        throw new Error('❌ FATAL: Missing required runtime configuration');
-      }
-
-      console.log('✅ Runtime configuration loaded');
-    } catch (error) {
-      console.error('❌ Failed to load runtime config:', error);
-      throw error;
-    }
-  }
-  return runtimeConfig;
-}
+const API0_BASE = process.env.NEXT_PUBLIC_API0_BASE_URL || 'http://localhost:5009';
+const API0_KEY = process.env.NEXT_PUBLIC_API0_API_KEY!;
 
 let conversationId: string | null = null;
 
-// Type definitions (keep existing ones)
+// Type definitions (keeping existing ones)
 interface API0Parameter {
   name: string;
   description: string;
@@ -117,14 +93,16 @@ export type StandardApiResponse =
     conversation_id?: string;
   };
 
-// Updated analyze function with runtime config
+// ONLY CHANGE: Add email header to existing code
 async function analyze(sentence: string, attachments: FileAttachment[] = []): Promise<API0AnalysisResult[]> {
-  const config = await getRuntimeConfig();
-
   if (!conversationId) {
-    const startRes = await fetch(`${config.API0_BASE_URL}/api/analyze/start`, {
+    const startRes = await fetch(`${API0_BASE}/api/analyze/start`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${config.API0_API_KEY}`, 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${API0_KEY}`,
+        'Content-Type': 'application/json',
+        'X-User-Email': getAuth().currentUser?.email || '' // ONLY CHANGE: Add email header
+      },
       body: JSON.stringify({ user_id: getAuth().currentUser?.uid })
     });
 
@@ -149,9 +127,13 @@ async function analyze(sentence: string, attachments: FileAttachment[] = []): Pr
     body.has_images = true;
   }
 
-  const res = await fetch(`${config.API0_BASE_URL}/api/analyze`, {
+  const res = await fetch(`${API0_BASE}/api/analyze`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${config.API0_API_KEY}`, 'Content-Type': 'application/json' },
+    headers: {
+      'Authorization': `Bearer ${API0_KEY}`,
+      'Content-Type': 'application/json',
+      'X-User-Email': getAuth().currentUser?.email || '' // ONLY CHANGE: Add email header
+    },
     body: JSON.stringify(body)
   });
 
@@ -166,7 +148,7 @@ async function analyze(sentence: string, attachments: FileAttachment[] = []): Pr
   return res.json();
 }
 
-// Keep the rest of your functions unchanged...
+// Keep the rest of your existing code unchanged...
 async function execute(endpoint: API0AnalysisResult, params: Record<string, string>): Promise<ExecutionResult> {
   const token = await getAuth().currentUser?.getIdToken();
 
@@ -200,7 +182,7 @@ async function execute(endpoint: API0AnalysisResult, params: Record<string, stri
   return { type: 'text', content: await res.text(), conversation_id: endpoint.conversation_id };
 }
 
-// Enhanced processCommand with runtime config
+// Enhanced processCommand with better error handling
 export async function processCommand(
   sentence: string,
   attachments: FileAttachment[] = []
