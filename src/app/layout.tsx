@@ -26,7 +26,7 @@ export default function RootLayout({
   return (
     <html suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <PlausibleProvider domain="studio.cvenom.com" trackOutboundLinks>
+        <PlausibleProvider domain={process.env.NEXT_PUBLIC_DOMAIN || "studio.cvenom.com"} trackOutboundLinks>
           {children}
         </PlausibleProvider>
       </body>

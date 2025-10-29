@@ -6,6 +6,7 @@ import { FiUpload, FiFile, FiX, FiCheck } from 'react-icons/fi';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslations } from 'next-intl';
 import { getAuth } from 'firebase/auth';
+import { getApiUrl } from '@/lib/config';
 
 interface CVUploadDropZoneProps {
   onUploadSuccess: (personName: string) => void;
@@ -68,7 +69,7 @@ const CVUploadDropZone: React.FC<CVUploadDropZoneProps> = ({ onUploadSuccess, cl
     const formData = new FormData();
     formData.append('cv_file', file);
 
-    const response = await fetch('/api/cv/upload', {
+    const response = await fetch(`${getApiUrl()}/cv/upload`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`
