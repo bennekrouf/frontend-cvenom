@@ -17,8 +17,8 @@ auth:
     measurementId: "G-1HXVGY2NFG"
 
 # API Configuration
-api:
-  backend_url: "http://127.0.0.1:4002"
+# api:
+#   backend_url: "http://127.0.0.1:4002"
   # backend_url: "https://api.cvenom.com/"  # production
 
 # Logging preferences (following your Rust preference)
