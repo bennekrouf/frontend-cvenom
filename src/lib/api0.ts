@@ -2,7 +2,7 @@
 import { getAuth } from 'firebase/auth';
 import type { FileAttachment } from '@/types/chat';
 
-const API0_BASE = process.env.NEXT_PUBLIC_API0_BASE_URL || 'http://localhost:5009';
+const API0_BASE = process.env.NEXT_PUBLIC_API0_BASE_URL!;
 const API0_KEY = process.env.NEXT_PUBLIC_API0_API_KEY!;
 
 let conversationId: string | null = null;
