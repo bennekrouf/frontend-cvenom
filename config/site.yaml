@@ -16,11 +16,6 @@ auth:
     appId: "1:566168954365:web:892d52e66a40201cece594"
     measurementId: "G-1HXVGY2NFG"
 
-# API Configuration
-# api:
-#   backend_url: "http://127.0.0.1:4002"
-  # backend_url: "https://api.cvenom.com/"  # production
-
 # Logging preferences (following your Rust preference)
 logging:
   level: "trace"
