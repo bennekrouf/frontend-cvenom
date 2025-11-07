@@ -9,7 +9,9 @@ import {
   FiPlus,
   FiX,
   FiUser,
-  FiUpload
+  FiUpload,
+  FiMenu,
+  FiChevronLeft
 } from 'react-icons/fi';
 import { useTranslations } from 'next-intl';
 
@@ -58,6 +60,8 @@ const FileEditor = () => {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Collaborator and modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -73,6 +77,22 @@ const FileEditor = () => {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      // Auto-close sidebar on mobile
+      if (mobile && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [sidebarOpen]);
 
   const handleDeleteCollaborator = async () => {
     if (!selectedCollaborator || !isAuthenticated) return;
@@ -439,7 +459,7 @@ const FileEditor = () => {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] bg-background">
+    <div className="flex h-[calc(100vh-4rem)] bg-background relative">
       {/* Status Message */}
       {statusMessage && (
         <div className="fixed top-4 right-4 z-50 bg-card border border-border rounded-lg px-4 py-2 shadow-lg">
@@ -449,35 +469,65 @@ const FileEditor = () => {
         </div>
       )}
 
+      {/* Mobile Overlay */}
+      {isMobile && sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar - File Tree Panel */}
-      <FileTreePanel
-        fileTree={fileTree}
-        selectedFile={selectedFile}
-        selectedCollaborator={selectedCollaborator}
-        expandedFolders={expandedFolders}
-        autoSaveEnabled={autoSaveEnabled}
-        isLoading={isLoading}
-        isAuthenticated={isAuthenticated}
-        user={user}
-        loading={loading}
-        onLoadFileTree={loadFileTree}
-        onToggleAutoSave={() => setAutoSaveEnabled(!autoSaveEnabled)}
-        onCreateCollaborator={() => setShowCreateModal(true)}
-        onToggleFolder={toggleFolder}
-        onLoadFile={loadFile}
-        onSelectCollaborator={setSelectedCollaborator}
-        onShowUploadModal={() => setShowUploadModal(true)}
-        onDeleteCollaborator={() => setShowDeleteModal(true)}
-        onShowGenerateModal={() => setShowGenerateModal(true)}
-        onRenameCollaborator={handleRenameCollaborator}
-      />
+      <div className={`
+      ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
+      ${isMobile ? 'fixed left-0 top-0 h-full z-40' : 'relative'}
+      transition-transform duration-300 ease-in-out
+      ${sidebarOpen && !isMobile ? 'w-80' : 'w-0'}
+    `}>
+        {sidebarOpen && (
+          <FileTreePanel
+            fileTree={fileTree}
+            selectedFile={selectedFile}
+            selectedCollaborator={selectedCollaborator}
+            expandedFolders={expandedFolders}
+            autoSaveEnabled={autoSaveEnabled}
+            isLoading={isLoading}
+            isAuthenticated={isAuthenticated}
+            user={user}
+            loading={loading}
+            onLoadFileTree={loadFileTree}
+            onToggleAutoSave={() => setAutoSaveEnabled(!autoSaveEnabled)}
+            onCreateCollaborator={() => setShowCreateModal(true)}
+            onToggleFolder={toggleFolder}
+            onLoadFile={loadFile}
+            onSelectCollaborator={setSelectedCollaborator}
+            onShowUploadModal={() => setShowUploadModal(true)}
+            onDeleteCollaborator={() => setShowDeleteModal(true)}
+            onShowGenerateModal={() => setShowGenerateModal(true)}
+            onRenameCollaborator={handleRenameCollaborator}
+          />
+        )}
+      </div>
 
       {/* Main Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Header with File Actions */}
         <div className="border-b border-border bg-card">
           <div className="h-14 flex items-center justify-between px-4">
             <div className="flex items-center space-x-3">
+              {/* Sidebar Toggle Button */}
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="p-1.5 hover:bg-secondary rounded-md transition-colors text-muted-foreground hover:text-foreground"
+                title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+              >
+                {sidebarOpen ? (
+                  <FiChevronLeft className="w-4 h-4" />
+                ) : (
+                  <FiMenu className="w-4 h-4" />
+                )}
+              </button>
+
               <FiCode className="w-5 h-5 text-muted-foreground" />
               <div>
                 <h1 className="font-semibold text-foreground">
@@ -510,16 +560,17 @@ const FileEditor = () => {
               )}
             </div>
 
+            {/* Right side buttons - make responsive */}
             <div className="flex items-center space-x-3">
               {unsavedChanges && isAuthenticated && (
-                <div className="flex items-center space-x-2 text-sm text-orange-500">
+                <div className="hidden sm:flex items-center space-x-2 text-sm text-orange-500">
                   <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
                   <span>{t('unsavedChanges')}</span>
                 </div>
               )}
 
               {lastSaved && isAuthenticated && (
-                <div className="text-xs text-muted-foreground">
+                <div className="hidden md:block text-xs text-muted-foreground">
                   {t('lastSaved')}: {lastSaved.toLocaleTimeString()}
                 </div>
               )}
@@ -533,7 +584,7 @@ const FileEditor = () => {
                     title="Upload and convert CV to create new collaborator"
                   >
                     <FiUpload className="w-4 h-4" />
-                    <span>Upload CV</span>
+                    <span className="hidden sm:inline">Upload CV</span>
                   </button>
                   <button
                     onClick={() => setShowCreateModal(true)}
@@ -541,7 +592,7 @@ const FileEditor = () => {
                     title={t('createCollaboratorTooltip')}
                   >
                     <FiPlus className="w-4 h-4" />
-                    <span>{t('addCollaborator')}</span>
+                    <span className="hidden sm:inline">{t('addCollaborator')}</span>
                   </button>
                 </div>
               ) : (
@@ -551,8 +602,7 @@ const FileEditor = () => {
                   title={t('authRequiredCollaborators')}
                 >
                   <FiPlus className="w-4 h-4" />
-                  <span>{t('addCollaborator')}</span>
-                  <span className="text-xs opacity-75">({t('signInRequired')})</span>
+                  <span className="hidden sm:inline">{t('addCollaborator')}</span>
                 </button>
               )}
 
@@ -568,8 +618,8 @@ const FileEditor = () => {
                 }
               >
                 <FiSave className="w-4 h-4" />
-                <span>{t('save')}</span>
-                <span className="text-xs opacity-75">Ctrl+S</span>
+                <span className="hidden sm:inline">{t('save')}</span>
+                <span className="hidden md:inline text-xs opacity-75">Ctrl+S</span>
               </button>
             </div>
           </div>
