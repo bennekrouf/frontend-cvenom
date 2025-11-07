@@ -1,21 +1,12 @@
 'use client';
 
 import CVUploadDropZone from './CVUploadDropZone';
+import FileTreePanel from './FileTreePanel';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  FiFolder,
-  FiFile,
-  FiTrash2,
   FiSave,
-  FiToggleRight,
-  FiToggleLeft,
   FiCode,
-  FiRefreshCw,
-  FiChevronRight,
-  FiChevronDown,
   FiPlus,
-  FiCamera,
-  FiFileText,
   FiX,
   FiUser,
   FiUpload
@@ -23,7 +14,7 @@ import {
 import { useTranslations } from 'next-intl';
 
 import DeleteCollaboratorModal from './DeleteCollaboratorModal';
-import { deleteCollaborator } from '@/lib/api';
+import { deleteCollaborator, renameCollaborator } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import CreateCollaboratorModal from './CreateCollaboratorModal';
 import UploadPictureModal from './UploadPictureModal';
@@ -52,7 +43,7 @@ interface FileTreeItem {
 }
 
 const FileEditor = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -261,6 +252,54 @@ const FileEditor = () => {
     setIsGenerating(false);
   };
 
+  // Replace the existing handleRenameCollaborator function with this:
+  const handleRenameCollaborator = async (oldName: string, newName: string) => {
+    if (!isAuthenticated) return;
+
+    setIsLoading(true);
+    try {
+      const response = await renameCollaborator(oldName, newName);
+      const data = response as ApiSuccessResponse;
+
+      if (data.success) {
+        showStatus(`Collaborator renamed from "${oldName}" to "${newName}"`);
+
+        // Update selected collaborator if it was the renamed one
+        if (selectedCollaborator === oldName) {
+          setSelectedCollaborator(newName);
+        }
+
+        // Refresh file tree after rename
+        await loadFileTree();
+      } else {
+        showStatus(data.message || 'Failed to rename collaborator');
+      }
+    } catch (error) {
+      console.error('Error renaming collaborator:', error);
+
+      // Handle specific authentication errors following your existing pattern
+      if (error instanceof Error) {
+        if (error.message.includes('Authentication required')) {
+          showStatus('Sign in required to rename collaborators');
+        } else if (error.message.includes('Session expired')) {
+          showStatus('Session expired - please sign in again');
+        } else if (error.message.includes('already exists')) {
+          showStatus('A collaborator with that name already exists');
+        } else if (error.message.includes('not found')) {
+          showStatus('Collaborator not found');
+        } else if (error.message.includes('Invalid collaborator name')) {
+          showStatus('Invalid name format - use lowercase letters and hyphens only');
+        } else {
+          showStatus(error.message || 'Failed to rename collaborator');
+        }
+      } else {
+        showStatus('Failed to rename collaborator');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Load file tree from API
   const loadFileTree = useCallback(async () => {
     if (!isAuthenticated) {
@@ -353,6 +392,7 @@ const FileEditor = () => {
     setExpandedFolders(new Set(['data', personName]));
     showStatus(`CV converted successfully! Collaborator "${personName}" created`);
   }, [loadFileTree]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -390,116 +430,6 @@ const FileEditor = () => {
     setExpandedFolders(newExpanded);
   };
 
-  // Handle delete button click - FIXED
-  const handleDeleteClick = (collaboratorName: string) => {
-    setSelectedCollaborator(collaboratorName);
-    setShowDeleteModal(true);
-  };
-
-  // Render file tree item
-  const renderFileTreeItem = (name: string, path: string, item: FileTreeItem, level = 0) => {
-    const isFolder = item.type === 'folder';
-    const isExpanded = expandedFolders.has(path);
-    const isSelected = selectedFile === path;
-    const isEditable = !isFolder && isEditableFile(name);
-    const isCollaboratorFolder = (level === 1 && path.startsWith('data/')) || (level === 0 && name !== 'data' && isFolder);
-    const isSelectedCollaborator = isCollaboratorFolder && selectedCollaborator === name;
-
-    return (
-      <div key={path}>
-        <div
-          className={`flex items-center py-1 px-2 hover:bg-secondary/50 cursor-pointer rounded-sm transition-colors group relative ${isSelected ? 'bg-primary/10 text-primary' : ''
-            } ${isSelectedCollaborator ? 'bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-500' : ''} ${!isEditable && !isFolder ? 'opacity-50' : ''}`}
-          style={{ paddingLeft: `${8 + level * 16}px` }}
-          title={
-            isFolder ?
-              (isCollaboratorFolder ?
-                t('collaboratorFolderTooltip', { name }) :
-                t('folderTooltip', { name })
-              ) :
-              (isEditable ?
-                t('editableFileTooltip', { name, language: getFileLanguage(name) }) :
-                t('readonlyFileTooltip', { name })
-              )
-          }
-          onClick={() => {
-            if (isFolder) {
-              toggleFolder(path);
-              if (isCollaboratorFolder) {
-                setSelectedCollaborator(name);
-              }
-            } else if (isEditable && isAuthenticated) {
-              loadFile(path);
-            }
-          }}
-        >
-          {isFolder ? (
-            <>
-              {isExpanded ? (
-                <FiChevronDown className="w-3 h-3 mr-1 text-muted-foreground" />
-              ) : (
-                <FiChevronRight className="w-3 h-3 mr-1 text-muted-foreground" />
-              )}
-              <FiFolder className={`w-4 h-4 mr-2 ${isCollaboratorFolder ? 'text-blue-500' : 'text-gray-500'}`} />
-            </>
-          ) : (
-            <FiFile className={`w-4 h-4 mr-2 ${isEditable ? 'text-green-500' : 'text-muted-foreground'
-              }`} />
-          )}
-          <span className="text-sm font-medium flex-1">{name}</span>
-
-          {/* Collaborator Actions Menu - FIXED */}
-          {isCollaboratorFolder && isSelectedCollaborator && isAuthenticated && (
-            <div className="flex items-center space-x-1 opacity-60 group-hover:opacity-100 transition-opacity ml-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowUploadModal(true);
-                }}
-                className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground"
-                title={t('uploadPictureTooltip', { name })}
-              >
-                <FiCamera className="w-3 h-3" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowGenerateModal(true);
-                }}
-                className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground"
-                title={t('generateCVTooltip', { name })}
-              >
-                <FiFileText className="w-3 h-3" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteClick(name); // FIXED: Call the proper handler
-                }}
-                className="p-1 hover:bg-red-500/20 rounded text-muted-foreground hover:text-red-500"
-                title={`Delete collaborator ${name} and all associated files`}
-              >
-                <FiTrash2 className="w-3 h-3" />
-              </button>
-            </div>
-          )}
-
-          {!isFolder && !isEditable && (
-            <span className="ml-auto text-xs text-muted-foreground">{t('readonly')}</span>
-          )}
-        </div>
-
-        {isFolder && isExpanded && item.children && (
-          <div>
-            {Object.entries(item.children).map(([childName, childItem]) =>
-              renderFileTreeItem(childName, `${path}/${childName}`, childItem, level + 1)
-            )}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   if (!mounted) {
     return (
       <div className="flex h-[calc(100vh-4rem)] bg-background">
@@ -519,74 +449,28 @@ const FileEditor = () => {
         </div>
       )}
 
-      {/* Sidebar - File Tree */}
-      <div className="w-80 border-r border-border bg-card flex flex-col">
-        <div className="p-4 border-b border-border">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-foreground">{t('files')}</h2>
-            <div className="flex gap-2">
-              <button
-                onClick={loadFileTree}
-                disabled={!isAuthenticated}
-                className="p-1.5 hover:bg-secondary rounded-md transition-colors disabled:opacity-50"
-                title={isAuthenticated ?
-                  (isLoading ? t('refreshingFileTree') : t('refreshFileTree')) :
-                  t('signInToRefresh')
-                }
-              >
-                <FiRefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-              </button>
-              <button
-                onClick={() => setAutoSaveEnabled(!autoSaveEnabled)}
-                disabled={!isAuthenticated}
-                className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${autoSaveEnabled && isAuthenticated ? 'text-green-600' : 'text-gray-400 hover:bg-secondary'
-                  }`}
-                title={isAuthenticated ?
-                  `${t('autoSave')}: ${autoSaveEnabled ? t('autoSaveOn') : t('autoSaveOff')}` :
-                  t('signInToEnableAutoSave')
-                }
-              >
-                {autoSaveEnabled && isAuthenticated ? (
-                  <FiToggleRight className="w-4 h-4" />
-                ) : (
-                  <FiToggleLeft className="w-4 h-4" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          <div className="text-xs text-muted-foreground">
-            {isAuthenticated ?
-              t('editableFiles') :
-              t('signInToEdit')
-            }
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-auto p-2">
-          {loading ? (
-            <div className="text-sm text-muted-foreground p-2 text-center">
-              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-              {t('checkingAuth')}
-            </div>
-          ) : !isAuthenticated ? (
-            <div className="text-center p-4">
-              <FiFolder className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm text-muted-foreground mb-3">{t('signInToViewFiles')}</p>
-            </div>
-          ) : fileTree ? (
-            <div className="space-y-1">
-              {Object.entries(fileTree).map(([name, item]) =>
-                renderFileTreeItem(name, name, item)
-              )}
-            </div>
-          ) : (
-            <div className="text-sm text-muted-foreground p-2">
-              {isLoading ? t('loadingFiles') : t('noFilesFound')}
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Sidebar - File Tree Panel */}
+      <FileTreePanel
+        fileTree={fileTree}
+        selectedFile={selectedFile}
+        selectedCollaborator={selectedCollaborator}
+        expandedFolders={expandedFolders}
+        autoSaveEnabled={autoSaveEnabled}
+        isLoading={isLoading}
+        isAuthenticated={isAuthenticated}
+        user={user}
+        loading={loading}
+        onLoadFileTree={loadFileTree}
+        onToggleAutoSave={() => setAutoSaveEnabled(!autoSaveEnabled)}
+        onCreateCollaborator={() => setShowCreateModal(true)}
+        onToggleFolder={toggleFolder}
+        onLoadFile={loadFile}
+        onSelectCollaborator={setSelectedCollaborator}
+        onShowUploadModal={() => setShowUploadModal(true)}
+        onDeleteCollaborator={() => setShowDeleteModal(true)}
+        onShowGenerateModal={() => setShowGenerateModal(true)}
+        onRenameCollaborator={handleRenameCollaborator}
+      />
 
       {/* Main Area */}
       <div className="flex-1 flex flex-col">
@@ -742,7 +626,6 @@ const FileEditor = () => {
         </div>
       )}
 
-
       {/* Modals - only show when authenticated */}
       {isAuthenticated && (
         <>
@@ -769,7 +652,6 @@ const FileEditor = () => {
             isGenerating={isGenerating}
           />
 
-          {/* Delete Modal - FIXED: Pass correct props */}
           <DeleteCollaboratorModal
             isOpen={showDeleteModal}
             onClose={() => setShowDeleteModal(false)}

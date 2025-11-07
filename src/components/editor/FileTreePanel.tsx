@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   FiFolder,
   FiFile,
@@ -12,9 +12,10 @@ import {
   FiTrash2,
   FiCamera,
   FiFileText,
+  FiEdit3,
+  FiCheck,
 } from 'react-icons/fi';
 import { User } from 'firebase/auth';
-// import { useTranslations } from 'next-intl';
 
 interface FileTreeItem {
   type: 'file' | 'folder';
@@ -42,7 +43,7 @@ interface FileTreePanelProps {
   onShowUploadModal: () => void;
   onDeleteCollaborator: () => void;
   onShowGenerateModal: () => void;
-  // onShowUploadZone: () => void;
+  onRenameCollaborator?: (oldName: string, newName: string) => void;
 }
 
 const FileTreePanel: React.FC<FileTreePanelProps> = ({
@@ -53,19 +54,20 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
   autoSaveEnabled,
   isLoading,
   isAuthenticated,
-  // user,
   loading,
   onLoadFileTree,
   onToggleAutoSave,
-  // onCreateCollaborator,
   onDeleteCollaborator,
   onToggleFolder,
   onLoadFile,
   onSelectCollaborator,
   onShowUploadModal,
   onShowGenerateModal,
+  onRenameCollaborator,
 }) => {
-  // const t = useTranslations('chat');
+  const [renamingCollaborator, setRenamingCollaborator] = useState<string | null>(null);
+  const [newCollaboratorName, setNewCollaboratorName] = useState('');
+
   // Check if file is editable (.typ or .toml)
   const isEditableFile = (filename: string) => {
     return filename.endsWith('.typ') || filename.endsWith('.toml');
@@ -78,6 +80,28 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
     return 'text';
   };
 
+  // Handle rename submission
+  const handleRenameSubmit = (oldName: string) => {
+    if (!newCollaboratorName.trim() || newCollaboratorName === oldName) {
+      setRenamingCollaborator(null);
+      setNewCollaboratorName('');
+      return;
+    }
+
+    if (onRenameCollaborator) {
+      onRenameCollaborator(oldName, newCollaboratorName.trim());
+    }
+
+    setRenamingCollaborator(null);
+    setNewCollaboratorName('');
+  };
+
+  // Handle rename cancel
+  const handleRenameCancel = () => {
+    setRenamingCollaborator(null);
+    setNewCollaboratorName('');
+  };
+
   // Render file tree item
   const renderFileTreeItem = (name: string, path: string, item: FileTreeItem, level = 0) => {
     const isFolder = item.type === 'folder';
@@ -86,6 +110,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
     const isEditable = !isFolder && isEditableFile(name);
     const isCollaboratorFolder = (level === 1 && path.startsWith('data/')) || (level === 0 && name !== 'data' && isFolder);
     const isSelectedCollaborator = isCollaboratorFolder && selectedCollaborator === name;
+    const isRenaming = renamingCollaborator === name;
 
     return (
       <div key={path}>
@@ -104,6 +129,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
                 : `Read-only file: ${name} - File type not supported for editing`
           }
           onClick={() => {
+            if (isRenaming) return; // Don't handle clicks while renaming
             if (isFolder) {
               onToggleFolder(path);
               if (isCollaboratorFolder) {
@@ -126,11 +152,58 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
           ) : (
             <FiFile className={`w-4 h-4 mr-2 ${isEditable ? 'text-green-500' : 'text-muted-foreground'}`} />
           )}
-          <span className="text-sm font-medium flex-1">{name}</span>
+
+          {/* Conditional rendering for name or rename input */}
+          {isRenaming ? (
+            <div className="flex items-center flex-1 mr-2">
+              <input
+                type="text"
+                value={newCollaboratorName}
+                onChange={(e) => setNewCollaboratorName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleRenameSubmit(name);
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    handleRenameCancel();
+                  }
+                }}
+                onBlur={handleRenameCancel}
+                className="flex-1 px-1 py-0.5 text-sm bg-background border border-primary rounded focus:outline-none"
+                autoFocus
+                onClick={(e) => e.stopPropagation()}
+              />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRenameSubmit(name);
+                }}
+                className="ml-1 p-0.5 hover:bg-secondary rounded text-green-600 hover:text-green-700"
+                title="Confirm rename"
+              >
+                <FiCheck className="w-3 h-3" />
+              </button>
+            </div>
+          ) : (
+            <span className="text-sm font-medium flex-1">{name}</span>
+          )}
 
           {/* Collaborator Actions Menu */}
-          {isCollaboratorFolder && isSelectedCollaborator && isAuthenticated && (
+          {isCollaboratorFolder && isSelectedCollaborator && isAuthenticated && !isRenaming && (
             <div className="flex items-center space-x-1 opacity-60 group-hover:opacity-100 transition-opacity ml-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setRenamingCollaborator(name);
+                  setNewCollaboratorName(name);
+                }}
+                className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground"
+                title={`Rename collaborator ${name}`}
+              >
+                <FiEdit3 className="w-3 h-3" />
+              </button>
+
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -141,6 +214,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
               >
                 <FiCamera className="w-3 h-3" />
               </button>
+
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -151,6 +225,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
               >
                 <FiFileText className="w-3 h-3" />
               </button>
+
               <button
                 onClick={(e) => {
                   e.stopPropagation();

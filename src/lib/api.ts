@@ -1,4 +1,5 @@
 // src/lib/config.ts
+import { getAuth } from 'firebase/auth';
 import { getApiUrl } from './config';
 interface ApiConfig {
   baseUrl: string;
@@ -263,4 +264,45 @@ export async function healthCheck() {
     method: 'GET',
     requireAuth: false
   });
+}
+
+export async function renameCollaborator(oldName: string, newName: string): Promise<unknown> {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error('Authentication required');
+  }
+
+  const token = await user.getIdToken();
+
+  const response = await fetch(`${getApiUrl()}/collaborators/${encodeURIComponent(oldName)}/rename`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      conversation_id: null, // or omit if optional
+      new_name: newName
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+
+    if (response.status === 401) {
+      throw new Error('Authentication failed: Session expired or invalid token');
+    } else if (response.status === 409) {
+      throw new Error('Collaborator name already exists');
+    } else if (response.status === 404) {
+      throw new Error('Collaborator not found');
+    } else if (response.status === 400) {
+      throw new Error(errorData.error || 'Invalid collaborator name format');
+    }
+
+    throw new Error(errorData.error || `Request failed with status ${response.status}`);
+  }
+
+  return response.json();
 }

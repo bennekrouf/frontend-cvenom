@@ -9,7 +9,7 @@ import { getAuth } from 'firebase/auth';
 import { getApiUrl } from '@/lib/config';
 
 interface CVUploadDropZoneProps {
-  onUploadSuccess: (personName: string) => void;
+  onUploadSuccess?: (personName: string) => void;
   className?: string;
 }
 
@@ -97,7 +97,7 @@ const CVUploadDropZone: React.FC<CVUploadDropZoneProps> = ({ onUploadSuccess, cl
 
       if (result.success) {
         setSuccess(result.message || `CV converted! Person "${result.person_name}" created`);
-        if (result.person_name) {
+        if (result.person_name && onUploadSuccess) {
           onUploadSuccess(result.person_name);
         }
       } else {
