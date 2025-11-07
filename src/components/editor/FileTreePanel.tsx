@@ -4,15 +4,15 @@ import React, { useState } from 'react';
 import {
   FiFolder,
   FiFile,
-  FiRefreshCw,
-  FiToggleRight,
-  FiToggleLeft,
   FiChevronRight,
   FiChevronDown,
-  FiTrash2,
+  FiRefreshCw,
+  FiToggleLeft,
+  FiToggleRight,
+  FiEdit3,
   FiCamera,
   FiFileText,
-  FiEdit3,
+  FiTrash2,
   FiCheck,
 } from 'react-icons/fi';
 import { User } from 'firebase/auth';
@@ -68,19 +68,16 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
   const [renamingCollaborator, setRenamingCollaborator] = useState<string | null>(null);
   const [newCollaboratorName, setNewCollaboratorName] = useState('');
 
-  // Check if file is editable (.typ or .toml)
   const isEditableFile = (filename: string) => {
     return filename.endsWith('.typ') || filename.endsWith('.toml');
   };
 
-  // Get file language for syntax highlighting
   const getFileLanguage = (filename: string) => {
     if (filename.endsWith('.typ')) return 'typst';
     if (filename.endsWith('.toml')) return 'toml';
     return 'text';
   };
 
-  // Handle rename submission
   const handleRenameSubmit = (oldName: string) => {
     if (!newCollaboratorName.trim() || newCollaboratorName === oldName) {
       setRenamingCollaborator(null);
@@ -96,13 +93,11 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
     setNewCollaboratorName('');
   };
 
-  // Handle rename cancel
   const handleRenameCancel = () => {
     setRenamingCollaborator(null);
     setNewCollaboratorName('');
   };
 
-  // Render file tree item
   const renderFileTreeItem = (name: string, path: string, item: FileTreeItem, level = 0) => {
     const isFolder = item.type === 'folder';
     const isExpanded = expandedFolders.has(path);
@@ -129,7 +124,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
                 : `Read-only file: ${name} - File type not supported for editing`
           }
           onClick={() => {
-            if (isRenaming) return; // Don't handle clicks while renaming
+            if (isRenaming) return;
             if (isFolder) {
               onToggleFolder(path);
               if (isCollaboratorFolder) {
@@ -153,7 +148,6 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
             <FiFile className={`w-4 h-4 mr-2 ${isEditable ? 'text-green-500' : 'text-muted-foreground'}`} />
           )}
 
-          {/* Conditional rendering for name or rename input */}
           {isRenaming ? (
             <div className="flex items-center flex-1 mr-2">
               <input
@@ -189,7 +183,6 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
             <span className="text-sm font-medium flex-1">{name}</span>
           )}
 
-          {/* Collaborator Actions Menu */}
           {isCollaboratorFolder && isSelectedCollaborator && isAuthenticated && !isRenaming && (
             <div className="flex items-center space-x-1 opacity-60 group-hover:opacity-100 transition-opacity ml-2">
               <button
@@ -256,8 +249,9 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
   };
 
   return (
-    <div className="w-80 border-r border-border bg-card flex flex-col">
-      <div className="p-4 border-b border-border">
+    <div className="h-full flex flex-col w-80">
+      {/* Header - starts from top with space for toggle button */}
+      <div className="p-4 border-b border-border pt-12 pr-16">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold text-foreground">Files</h2>
           <div className="flex gap-2">
@@ -311,6 +305,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
         </div>
       </div>
 
+      {/* File Tree Content */}
       <div className="flex-1 overflow-auto p-2">
         {loading ? (
           <div className="text-sm text-muted-foreground p-2 text-center">
@@ -320,15 +315,30 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
         ) : !isAuthenticated ? (
           <div className="text-center p-4">
             <FiFolder className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm text-muted-foreground mb-3">Sign in to view your CV files</p>
+            <p className="text-sm text-muted-foreground">
+              Sign in to view your files
+            </p>
           </div>
-        ) : fileTree ? (
-          <div className="space-y-1">
-            {Object.entries(fileTree).map(([name, item]) => renderFileTreeItem(name, name, item))}
+        ) : isLoading ? (
+          <div className="text-center p-4">
+            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">Loading files...</p>
+          </div>
+        ) : !fileTree ? (
+          <div className="text-center p-4">
+            <FiFolder className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm text-muted-foreground mb-2">
+              No files found
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Create a collaborator to get started
+            </p>
           </div>
         ) : (
-          <div className="text-sm text-muted-foreground p-2">
-            {isLoading ? 'Loading files...' : 'No files found'}
+          <div className="space-y-1">
+            {Object.entries(fileTree).map(([name, item]) =>
+              renderFileTreeItem(name, name, item)
+            )}
           </div>
         )}
       </div>

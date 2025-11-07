@@ -94,6 +94,7 @@ const FileEditor = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, [sidebarOpen]);
 
+  // All handler functions remain the same...
   const handleDeleteCollaborator = async () => {
     if (!selectedCollaborator || !isAuthenticated) return;
 
@@ -108,7 +109,7 @@ const FileEditor = () => {
         setSelectedCollaborator(null);
         setSelectedFile(null);
         setFileContent('');
-        await loadFileTree(); // Refresh file tree
+        await loadFileTree();
       } else {
         showStatus(data.message || t('deleteCollaboratorFailed'));
       }
@@ -119,13 +120,11 @@ const FileEditor = () => {
     setIsDeleting(false);
   };
 
-  // Show status message temporarily
   const showStatus = (message: string) => {
     setStatusMessage(message);
     setTimeout(() => setStatusMessage(''), 3000);
   };
 
-  // Save file content
   const saveFile = useCallback(async () => {
     if (!selectedFile || !isAuthenticated) return;
 
@@ -162,7 +161,6 @@ const FileEditor = () => {
     setLastSaved(null);
   };
 
-  // Modal handlers with authentication
   const handleCreateCollaborator = async (personName: string) => {
     if (!isAuthenticated) return;
 
@@ -174,16 +172,15 @@ const FileEditor = () => {
       if (data.success) {
         showStatus(t('collaboratorCreatedSuccess'));
         setShowCreateModal(false);
-        await loadFileTree(); // Refresh file tree
-        setSelectedCollaborator(personName); // Auto-select the new person
-        setExpandedFolders(new Set(['data', personName])); // Auto-expand their folder
+        await loadFileTree();
+        setSelectedCollaborator(personName);
+        setExpandedFolders(new Set(['data', personName]));
       } else {
         showStatus(data.message || t('createCollaboratorFailed'));
       }
     } catch (error) {
       console.error('Error creating person:', error);
 
-      // Handle specific authentication errors
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
           showStatus(t('signInToCreateCollaborators'));
@@ -216,7 +213,6 @@ const FileEditor = () => {
     } catch (error) {
       console.error('Error uploading picture:', error);
 
-      // Handle specific authentication errors
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
           showStatus(t('signInToUploadPictures'));
@@ -239,7 +235,6 @@ const FileEditor = () => {
     try {
       const blob = await generateCV(selectedCollaborator, language, template);
 
-      // Create download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -262,7 +257,6 @@ const FileEditor = () => {
         } else if (error.message.includes('token expired')) {
           errorMessage = t('sessionExpired');
         } else {
-          // Use the actual error message from the backend
           errorMessage = error.message;
         }
       }
@@ -272,7 +266,6 @@ const FileEditor = () => {
     setIsGenerating(false);
   };
 
-  // Replace the existing handleRenameCollaborator function with this:
   const handleRenameCollaborator = async (oldName: string, newName: string) => {
     if (!isAuthenticated) return;
 
@@ -284,12 +277,10 @@ const FileEditor = () => {
       if (data.success) {
         showStatus(`Collaborator renamed from "${oldName}" to "${newName}"`);
 
-        // Update selected collaborator if it was the renamed one
         if (selectedCollaborator === oldName) {
           setSelectedCollaborator(newName);
         }
 
-        // Refresh file tree after rename
         await loadFileTree();
       } else {
         showStatus(data.message || 'Failed to rename collaborator');
@@ -297,7 +288,6 @@ const FileEditor = () => {
     } catch (error) {
       console.error('Error renaming collaborator:', error);
 
-      // Handle specific authentication errors following your existing pattern
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
           showStatus('Sign in required to rename collaborators');
@@ -320,7 +310,6 @@ const FileEditor = () => {
     }
   };
 
-  // Load file tree from API
   const loadFileTree = useCallback(async () => {
     if (!isAuthenticated) {
       setFileTree(null);
@@ -347,19 +336,16 @@ const FileEditor = () => {
     setIsLoading(false);
   }, [isAuthenticated, t]);
 
-  // Check if file is editable (.typ or .toml)
   const isEditableFile = (filename: string) => {
     return filename.endsWith('.typ') || filename.endsWith('.toml');
   };
 
-  // Get file language for syntax highlighting
   const getFileLanguage = (filename: string) => {
     if (filename.endsWith('.typ')) return 'typst';
     if (filename.endsWith('.toml')) return 'toml';
     return 'text';
   };
 
-  // Load file content
   const loadFile = async (filePath: string) => {
     if (!isEditableFile(filePath) || !isAuthenticated) return;
 
@@ -387,14 +373,12 @@ const FileEditor = () => {
     }
   };
 
-  // Handle content change
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (!isAuthenticated) return;
 
     setFileContent(e.target.value);
     setUnsavedChanges(true);
 
-    // Auto-save after 2 seconds of inactivity
     if (autoSaveEnabled) {
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
@@ -413,7 +397,6 @@ const FileEditor = () => {
     showStatus(`CV converted successfully! Collaborator "${personName}" created`);
   }, [loadFileTree]);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.key === 's') {
@@ -426,12 +409,10 @@ const FileEditor = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [saveFile]);
 
-  // Load files when authentication status changes
   useEffect(() => {
     if (isAuthenticated) {
       loadFileTree();
     } else {
-      // Clear data when not authenticated
       setFileTree(null);
       setSelectedFile(null);
       setFileContent('');
@@ -439,7 +420,6 @@ const FileEditor = () => {
     }
   }, [isAuthenticated, loadFileTree]);
 
-  // Toggle folder expansion
   const toggleFolder = (folderPath: string) => {
     const newExpanded = new Set(expandedFolders);
     if (newExpanded.has(folderPath)) {
@@ -453,7 +433,7 @@ const FileEditor = () => {
   if (!mounted) {
     return (
       <div className="flex h-[calc(100vh-4rem)] bg-background">
-        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mt-8" />
       </div>
     );
   }
@@ -462,7 +442,7 @@ const FileEditor = () => {
     <div className="flex h-[calc(100vh-4rem)] bg-background relative">
       {/* Status Message */}
       {statusMessage && (
-        <div className="fixed top-4 right-4 z-50 bg-card border border-border rounded-lg px-4 py-2 shadow-lg">
+        <div className="fixed top-20 right-4 z-50 bg-card border border-border rounded-lg px-4 py-2 shadow-lg">
           <p className={`text-sm ${statusMessage.includes('Failed') || statusMessage.includes('required') ? 'text-red-500' : 'text-green-500'}`}>
             {statusMessage}
           </p>
@@ -472,18 +452,41 @@ const FileEditor = () => {
       {/* Mobile Overlay */}
       {isMobile && sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-30"
+          className="fixed inset-0 bg-black/50 z-30 top-16"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar - File Tree Panel */}
+      {/* Toggle Button for Closed Sidebar */}
+      {!sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="fixed top-20 left-4 z-40 p-2 bg-card border border-border rounded-md shadow-md hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+          title="Open sidebar"
+        >
+          <FiMenu className="w-4 h-4" />
+        </button>
+      )}
+
+      {/* Left Sidebar - Full Height starting from navbar bottom */}
       <div className={`
-      ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
-      ${isMobile ? 'fixed left-0 top-0 h-full z-40' : 'relative'}
-      transition-transform duration-300 ease-in-out
-      ${sidebarOpen && !isMobile ? 'w-80' : 'w-0'}
-    `}>
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
+        ${isMobile ? 'fixed left-0 top-16 h-[calc(100vh-4rem)] z-40' : 'relative h-full'}
+        transition-transform duration-300 ease-in-out
+        ${sidebarOpen && !isMobile ? 'w-80' : 'w-0'}
+        bg-card border-r border-border flex flex-col
+      `}>
+        {/* Toggle Button inside Sidebar */}
+        {sidebarOpen && (
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="absolute top-4 right-4 z-10 p-2 bg-background border border-border rounded-md shadow-sm hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+            title="Close sidebar"
+          >
+            <FiChevronLeft className="w-4 h-4" />
+          </button>
+        )}
+
         {sidebarOpen && (
           <FileTreePanel
             fileTree={fileTree}
@@ -509,25 +512,12 @@ const FileEditor = () => {
         )}
       </div>
 
-      {/* Main Area */}
+      {/* Right Side - Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header with File Actions */}
+        {/* Top Header Bar */}
         <div className="border-b border-border bg-card">
           <div className="h-14 flex items-center justify-between px-4">
             <div className="flex items-center space-x-3">
-              {/* Sidebar Toggle Button */}
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-1.5 hover:bg-secondary rounded-md transition-colors text-muted-foreground hover:text-foreground"
-                title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
-              >
-                {sidebarOpen ? (
-                  <FiChevronLeft className="w-4 h-4" />
-                ) : (
-                  <FiMenu className="w-4 h-4" />
-                )}
-              </button>
-
               <FiCode className="w-5 h-5 text-muted-foreground" />
               <div>
                 <h1 className="font-semibold text-foreground">
@@ -548,7 +538,6 @@ const FileEditor = () => {
                 )}
               </div>
 
-              {/* Close File Button */}
               {selectedFile && (
                 <button
                   onClick={closeFile}
@@ -560,7 +549,6 @@ const FileEditor = () => {
               )}
             </div>
 
-            {/* Right side buttons - make responsive */}
             <div className="flex items-center space-x-3">
               {unsavedChanges && isAuthenticated && (
                 <div className="hidden sm:flex items-center space-x-2 text-sm text-orange-500">
@@ -575,7 +563,6 @@ const FileEditor = () => {
                 </div>
               )}
 
-              {/* Conditional Add Collaborator button */}
               {isAuthenticated ? (
                 <div className="flex items-center space-x-2">
                   <button
@@ -625,7 +612,7 @@ const FileEditor = () => {
           </div>
         </div>
 
-        {/* Editor */}
+        {/* Main Content Area */}
         <div className="flex-1 overflow-hidden">
           {!isAuthenticated ? (
             <div className="h-full flex items-center justify-center p-4">
@@ -649,7 +636,6 @@ const FileEditor = () => {
               />
             </div>
           ) : (
-            /* Chat Component - shown when no file is selected */
             <ChatComponent
               isVisible={!selectedFile}
               isAuthenticated={isAuthenticated}
@@ -658,7 +644,7 @@ const FileEditor = () => {
         </div>
       </div>
 
-      {/* Upload Zone - shown when showUploadZone is true */}
+      {/* Upload Zone */}
       {showUploadZone && isAuthenticated && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-40">
           <div className="bg-card border border-border rounded-lg p-6 w-full max-w-lg mx-4">
@@ -676,7 +662,7 @@ const FileEditor = () => {
         </div>
       )}
 
-      {/* Modals - only show when authenticated */}
+      {/* Modals */}
       {isAuthenticated && (
         <>
           <CreateCollaboratorModal
