@@ -6,5 +6,6 @@ const getDefaultApiUrl = (): string => {
 };
 
 export const getApiUrl = (): string => {
+  console.log("api url", getDefaultApiUrl());
   return getDefaultApiUrl();
 };
