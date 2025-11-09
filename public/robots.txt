@@ -1,0 +1,23 @@
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://your-domain.com/sitemap.xml
+
+# Crawl delay
+Crawl-delay: 1
+
+# Specific rules for different sections
+Allow: /blog/
+Allow: /api/
+
+# Block admin and private areas
+Disallow: /admin/
+Disallow: /api/auth/
+Disallow: /_next/
+Disallow: /private/
+
+# Block specific file types
+Disallow: *.json$
+Disallow: *.pdf$
+Disallow: /uploads/

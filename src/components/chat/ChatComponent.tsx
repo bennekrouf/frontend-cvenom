@@ -45,7 +45,6 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   // Custom hook for API0 chat functionality
   const {
@@ -65,10 +64,25 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
   }, [messages]);
 
   useEffect(() => {
-    if (isVisible && inputRef.current) {
-      inputRef.current.focus();
+    if (isVisible) {
+      setTimeout(() => {
+        const textarea = document.querySelector('textarea');
+        if (textarea) {
+          textarea.focus();
+        }
+      }, 100);
     }
   }, [isVisible]);
+
+  useEffect(() => {
+    // Focus on initial mount
+    setTimeout(() => {
+      const textarea = document.querySelector('textarea');
+      if (textarea) {
+        textarea.focus();
+      }
+    }, 200);
+  }, []);
 
   // Message management
   const addMessage = (message: Omit<ChatMessageType, 'id' | 'timestamp'>) => {
@@ -110,17 +124,13 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
     setShowSuggestions(value.length > 2 && isAuthenticated);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
+  const handleKeyPress = () => {
+    // No longer needed - handled in ChatInputArea
   };
 
   const handleSuggestionClick = (suggestion: string) => {
     setInputValue(suggestion);
     setShowSuggestions(false);
-    inputRef.current?.focus();
   };
 
   // Message sending
@@ -179,6 +189,14 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
       addMessage(messageUtils.createErrorMessage(
         error instanceof Error ? error.message : 'Command failed'
       ));
+    } finally {
+      // Focus back to textarea after response
+      setTimeout(() => {
+        const textarea = document.querySelector('textarea');
+        if (textarea) {
+          textarea.focus();
+        }
+      }, 100);
     }
   };
 

@@ -47,6 +47,25 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
 }) => {
   const t = useTranslations('chat');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if ((inputValue.trim() || attachments.length > 0) && !isLoading) {
+        onSendMessage();
+      }
+      return;
+    }
+    onKeyPress(e);
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    onSuggestionClick(suggestion);
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 50);
+  };
 
   return (
     <div className="border-t border-border bg-card">
@@ -98,7 +117,7 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
             {suggestions.slice(0, 3).map((suggestion, index) => (
               <button
                 key={index}
-                onClick={() => onSuggestionClick(suggestion)}
+                onClick={() => handleSuggestionClick(suggestion)}
                 className="block w-full text-left px-3 py-2 text-sm bg-secondary hover:bg-secondary/80 rounded transition-colors"
               >
                 {suggestion}
@@ -111,11 +130,11 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
       {/* Input Area */}
       <div className="px-4 py-3">
         <div className="relative">
-          <input
-            type="text"
+          <textarea
+            ref={textareaRef}
             value={inputValue}
             onChange={(e) => onInputChange(e.target.value)}
-            onKeyDown={onKeyPress}
+            onKeyDown={handleKeyDown}
             placeholder={
               isAuthenticated
                 ? attachments.length > 0
@@ -125,6 +144,8 @@ const ChatInputArea: React.FC<ChatInputAreaProps> = ({
             }
             className="w-full pl-4 pr-20 py-3 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
             disabled={isLoading}
+            rows={1}
+            style={{ minHeight: '24px', maxHeight: '200px' }}
           />
 
           {/* File Input */}
