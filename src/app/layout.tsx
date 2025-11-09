@@ -3,6 +3,11 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import PlausibleProvider from 'next-plausible';
 
+if (!process.env.NEXT_PUBLIC_CVENOM_API_URL) {
+  console.error('FATAL: NEXT_PUBLIC_CVENOM_API_URL environment variable is required');
+  process.exit(1);
+}
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
