@@ -52,6 +52,7 @@ interface ExecutionResult {
   data?: unknown;
   content?: string;
   conversation_id: string;
+  filename?: string;
 }
 
 export type StandardApiResponse =
@@ -176,12 +177,20 @@ async function execute(endpoint: API0AnalysisResult, params: Record<string, stri
   const contentType = res.headers.get('content-type');
 
   if (contentType?.includes('application/pdf')) {
-    return { type: 'pdf', blob: await res.blob(), conversation_id: endpoint.conversation_id };
+    return { type: 'pdf', blob: await res.blob(), conversation_id: endpoint.conversation_id, filename: getFilenameFromResponse(res) || undefined };
   }
   if (contentType?.includes('application/json')) {
     return { type: 'json', data: await res.json(), conversation_id: endpoint.conversation_id };
   }
   return { type: 'text', content: await res.text(), conversation_id: endpoint.conversation_id };
+}
+
+function getFilenameFromResponse(response: Response): string | null {
+  const disposition = response.headers.get('content-disposition');
+  if (!disposition) return null;
+
+  const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+  return match ? match[1].replace(/['"]/g, '') : null;
 }
 
 // Enhanced processCommand with better error handling
@@ -256,7 +265,7 @@ export async function processCommand(
               success: true,
               message: 'PDF generated successfully',
               file_type: 'pdf',
-              filename: 'generated.pdf',
+              filename: result.filename || 'generated.pdf',
               download_url: url,
               blob_data: result.blob,
               conversation_id: result.conversation_id
