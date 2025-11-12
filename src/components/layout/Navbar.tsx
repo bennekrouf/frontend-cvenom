@@ -68,7 +68,7 @@ const Navbar: React.FC = () => {
       <div className="container flex h-16 items-center justify-between">
 
         <div className="flex items-center">
-          <span className="text-sm text-muted-foreground italic">
+          <span className="text-sm text-muted-foreground italic" suppressHydrationWarning>
             {getMotivationalMessage()}
           </span>
         </div>
