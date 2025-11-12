@@ -1,6 +1,7 @@
 // src/lib/api0.ts - Simple email header fix
 import { getAuth } from 'firebase/auth';
 import type { FileAttachment } from '@/types/chat';
+import { getApiUrl } from './config';
 
 const API0_BASE = process.env.NEXT_PUBLIC_API0_BASE_URL || 'https://gateway.api0.ai';
 const API0_KEY = process.env.NEXT_PUBLIC_API0_API_KEY || (() => {
@@ -151,11 +152,15 @@ async function analyze(sentence: string, attachments: FileAttachment[] = []): Pr
   return res.json();
 }
 
-// Keep the rest of your existing code unchanged...
 async function execute(endpoint: API0AnalysisResult, params: Record<string, string>): Promise<ExecutionResult> {
   const token = await getAuth().currentUser?.getIdToken();
 
-  const res = await fetch(`${endpoint.base}${endpoint.path}`, {
+  // Override the base URL from API0 response with  actual backend URL
+  const apiUrl = getApiUrl(); // This gets cvenom backend URL
+  const fullUrl = `${apiUrl}${endpoint.path}`; // Use domain + API0's path
+
+
+  const res = await fetch(fullUrl, { // Use fullUrl instead of endpoint.base + endpoint.path
     method: endpoint.verb,
     headers: {
       'Authorization': token ? `Bearer ${token}` : '',

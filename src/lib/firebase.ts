@@ -1,25 +1,17 @@
 // src/lib/firebase.ts
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
+import {
+  getAuth,
+  GoogleAuthProvider,
   signInWithPopup,
   signOut,
   onAuthStateChanged,
-  User 
+  User
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getFirebaseConfig } from './config';
 
-// Load config from YAML - you can move these to your config/site.yaml
-const firebaseConfig = {
-  apiKey: "AIzaSyATOqzoOFlejYgtKsxPhRHXHCFnR5kc8RA",
-  authDomain: "semantic-27923.firebaseapp.com",
-  projectId: "semantic-27923",
-  storageBucket: "semantic-27923.firebasestorage.app",
-  messagingSenderId: "566168954365",
-  appId: "1:566168954365:web:892d52e66a40201cece594",
-  measurementId: "G-1HXVGY2NFG"
-};
+const firebaseConfig = getFirebaseConfig();
 
 // Initialize Firebase - avoid duplicate initialization
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();

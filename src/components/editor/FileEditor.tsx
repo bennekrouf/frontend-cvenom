@@ -30,6 +30,7 @@ import {
   generateCV,
 } from '@/lib/api';
 import ChatComponent from '../chat/ChatComponent';
+import { signInWithGoogle } from '@/lib/firebase';
 
 interface ApiSuccessResponse {
   success: boolean;
@@ -322,16 +323,21 @@ const FileEditor = () => {
       setFileTree(tree);
     } catch (error) {
       console.error('Error loading file tree:', error);
-      setFileTree(null);
+
+      // Only show error status for actual errors, not empty states
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
           showStatus(t('signInToViewFiles'));
         } else if (error.message.includes('token expired')) {
           showStatus(t('sessionExpired'));
-        } else {
+        } else if (!error.message.includes('No files found') && !error.message.includes('empty')) {
+          // Only show error for genuine failures, not empty states
           showStatus(t('loadFilesFailed'));
         }
       }
+
+      // Set empty tree instead of null for empty states
+      setFileTree({});
     }
     setIsLoading(false);
   }, [isAuthenticated, t]);
@@ -616,12 +622,20 @@ const FileEditor = () => {
         <div className="flex-1 overflow-hidden">
           {!isAuthenticated ? (
             <div className="h-full flex items-center justify-center p-4">
-              <div className="text-center text-muted-foreground">
+              <div className="text-center text-muted-foreground max-w-md">
                 <FiUser className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p className="text-lg font-medium mb-2">{t('authenticationRequired')}</p>
-                <p className="text-sm">
+                <p className="text-sm mb-6">
                   {t('signInGoogle')}
                 </p>
+                {/* Add the sign-in button here */}
+                <button
+                  onClick={() => signInWithGoogle()}
+                  className="flex items-center space-x-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors mx-auto"
+                >
+                  <FiUser className="w-5 h-5" />
+                  <span>Sign In with Google</span>
+                </button>
               </div>
             </div>
           ) : selectedFile ? (
@@ -634,6 +648,16 @@ const FileEditor = () => {
                 placeholder={t('startEditingPlaceholder')}
                 spellCheck={false}
               />
+            </div>
+          ) : !fileTree || Object.keys(fileTree).length === 0 ? (
+            // No files - force CV upload
+            <div className="h-full flex items-center justify-center p-4">
+              <div className="text-center max-w-md">
+                <CVUploadDropZone onUploadSuccess={handleUploadSuccess} />
+                <p className="text-xs text-muted-foreground mt-4">
+                  Supported format: .docx files only
+                </p>
+              </div>
             </div>
           ) : (
             <ChatComponent

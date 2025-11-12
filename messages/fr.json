@@ -33,7 +33,7 @@
     "image_upload_success": "Image téléchargée avec succès !",
     "image_upload_error": "Échec du traitement de l'image",
     "file_too_large": "Fichier trop volumineux. Taille maximale 10 Mo.",
-    "unsupported_file_type": "Type de fichier non pris en charge. Supportés : images, PDF, fichiers texte.",
+    "unsupported_file_type": "Nous supportons les documents words. Nous travaillons sur d'autres formats.",
     "drop_files_here": "Déposer les fichiers ici",
     "attach_files": "Joindre fichiers (images, PDF, texte)",
     "attachments": "Pièces jointes",
