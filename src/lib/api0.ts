@@ -157,7 +157,7 @@ async function execute(endpoint: API0AnalysisResult, params: Record<string, stri
 
   // Override the base URL from API0 response with  actual backend URL
   const apiUrl = getApiUrl(); // This gets cvenom backend URL
-  const fullUrl = `${apiUrl}${endpoint.path}`; // Use domain + API0's path
+  const fullUrl = `${apiUrl.replace(/\/$/, '')}${endpoint.path}`;
 
 
   const res = await fetch(fullUrl, { // Use fullUrl instead of endpoint.base + endpoint.path
