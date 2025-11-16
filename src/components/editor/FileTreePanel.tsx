@@ -192,7 +192,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
                   setNewCollaboratorName(name);
                 }}
                 className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground"
-                title={`Rename collaborator ${name}`}
+                title={`Rename profile ${name}`}
               >
                 <FiEdit3 className="w-3 h-3" />
               </button>
@@ -225,7 +225,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
                   onDeleteCollaborator();
                 }}
                 className="p-1 hover:bg-red-500/20 rounded text-muted-foreground hover:text-red-500"
-                title={`Delete collaborator ${name} and all associated files`}
+                title={`Delete profile ${name} and all associated files`}
               >
                 <FiTrash2 className="w-3 h-3" />
               </button>
@@ -331,7 +331,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
               No files found
             </p>
             <p className="text-xs text-muted-foreground">
-              Create a collaborator to get started
+              Create a profile to get started
             </p>
           </div>
         ) : (

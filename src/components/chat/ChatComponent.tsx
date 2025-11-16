@@ -207,7 +207,7 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
       await signInWithGoogle();
       addMessage({
         role: 'assistant',
-        content: '🎉 Welcome! You can now use commands like:\n• "Generate CV for john-doe"\n• "Create person profile for jane-smith"\n• "Upload profile picture" (with image attachment)',
+        content: '🎉 Welcome! You can now use commands like:\n• "Generate CV for john-doe"\n• "Create profile profile for jane-smith"\n• "Upload profile picture" (with image attachment)',
       });
       setIsSigningIn(false);
     },

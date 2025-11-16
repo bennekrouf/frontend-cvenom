@@ -115,7 +115,7 @@ const FileEditor = () => {
         showStatus(data.message || t('deleteCollaboratorFailed'));
       }
     } catch (error) {
-      console.error('Error deleting collaborator:', error);
+      console.error('Error deleting profile:', error);
       showStatus(t('deleteCollaboratorFailed'));
     }
     setIsDeleting(false);
@@ -180,7 +180,7 @@ const FileEditor = () => {
         showStatus(data.message || t('createCollaboratorFailed'));
       }
     } catch (error) {
-      console.error('Error creating person:', error);
+      console.error('Error creating profile:', error);
 
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
@@ -284,10 +284,10 @@ const FileEditor = () => {
 
         await loadFileTree();
       } else {
-        showStatus(data.message || 'Failed to rename collaborator');
+        showStatus(data.message || 'Failed to rename profile');
       }
     } catch (error) {
-      console.error('Error renaming collaborator:', error);
+      console.error('Error renaming profile:', error);
 
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
@@ -295,16 +295,16 @@ const FileEditor = () => {
         } else if (error.message.includes('Session expired')) {
           showStatus('Session expired - please sign in again');
         } else if (error.message.includes('already exists')) {
-          showStatus('A collaborator with that name already exists');
+          showStatus('A profile with that name already exists');
         } else if (error.message.includes('not found')) {
           showStatus('Collaborator not found');
-        } else if (error.message.includes('Invalid collaborator name')) {
+        } else if (error.message.includes('Invalid profile name')) {
           showStatus('Invalid name format - use lowercase letters and hyphens only');
         } else {
-          showStatus(error.message || 'Failed to rename collaborator');
+          showStatus(error.message || 'Failed to rename profile');
         }
       } else {
-        showStatus('Failed to rename collaborator');
+        showStatus('Failed to rename profile');
       }
     } finally {
       setIsLoading(false);
@@ -574,7 +574,7 @@ const FileEditor = () => {
                   <button
                     onClick={() => setShowUploadZone(!showUploadZone)}
                     className="flex items-center space-x-2 px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
-                    title="Upload and convert CV to create new collaborator"
+                    title="Upload and convert CV to create new profile"
                   >
                     <FiUpload className="w-4 h-4" />
                     <span className="hidden sm:inline">Upload CV</span>

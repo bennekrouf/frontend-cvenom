@@ -155,10 +155,9 @@ async function analyze(sentence: string, attachments: FileAttachment[] = []): Pr
 async function execute(endpoint: API0AnalysisResult, params: Record<string, string>): Promise<ExecutionResult> {
   const token = await getAuth().currentUser?.getIdToken();
 
-  // Override the base URL from API0 response with  actual backend URL
+  // Override the base URL from API0 response with actual backend URL
   const apiUrl = getApiUrl(); // This gets cvenom backend URL
   const fullUrl = `${apiUrl.replace(/\/$/, '')}${endpoint.path}`;
-
 
   const res = await fetch(fullUrl, { // Use fullUrl instead of endpoint.base + endpoint.path
     method: endpoint.verb,
@@ -185,7 +184,8 @@ async function execute(endpoint: API0AnalysisResult, params: Record<string, stri
     return { type: 'pdf', blob: await res.blob(), conversation_id: endpoint.conversation_id, filename: getFilenameFromResponse(res) || undefined };
   }
   if (contentType?.includes('application/json')) {
-    return { type: 'json', data: await res.json(), conversation_id: endpoint.conversation_id };
+    const jsonData = await res.json();
+    return { type: 'json', data: jsonData, conversation_id: endpoint.conversation_id };
   }
   return { type: 'text', content: await res.text(), conversation_id: endpoint.conversation_id };
 }
@@ -215,7 +215,7 @@ export async function processCommand(
           suggestions: [
             'Try rephrasing your request',
             'Use specific command keywords like "generate", "create", "show"',
-            'Include person names in lowercase with hyphens (e.g., "john-doe")'
+            'Include profile names in lowercase with hyphens (e.g., "john-doe")'
           ]
         }
       };
@@ -280,13 +280,23 @@ export async function processCommand(
         break;
 
       case 'json':
+        // Check if the JSON response is an error from your backend
+        const jsonData = result.data;
+        if (jsonData && typeof jsonData === 'object' && 'type' in jsonData && jsonData.type === 'error') {
+          return {
+            success: true,
+            data: jsonData as StandardApiResponse
+          };
+        }
+
+        // For non-error JSON responses, show the data without generic message
         return {
           success: true,
           data: {
             type: 'data',
             success: true,
-            message: 'Data retrieved successfully',
-            data: result.data,
+            message: JSON.stringify(jsonData, null, 2), // Show actual data instead of generic message
+            data: jsonData,
             conversation_id: result.conversation_id
           }
         };

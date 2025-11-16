@@ -189,12 +189,12 @@ export class ChatRenderer {
 
   private static isErrorMessage(message: ChatMessage): boolean {
     return message.response?.type === 'error' ||
-      (message.role === 'assistant' && message.content.startsWith('❌'));
+      (message.role === 'assistant' && message.content?.startsWith('❌'));
   }
 
   private static isHelpMessage(message: ChatMessage): boolean {
     return message.role === 'assistant' &&
-      message.content.includes('Available Capabilities');
+      message.content?.includes('Available Capabilities');
   }
 
   private static isFileDownload(message: ChatMessage): boolean {
@@ -381,6 +381,24 @@ export class ChatRenderer {
   }
 
   private static renderDefaultMessage(message: ChatMessage): React.ReactNode {
+    // Import ReactMarkdown dynamically
+    const ReactMarkdown = require('react-markdown').default;
+
+    // Check if content contains markdown syntax
+    const hasMarkdownSyntax = message.content.includes('#') ||
+      message.content.includes('**') ||
+      message.content.includes('###') ||
+      message.content.includes('####') ||
+      message.content.includes('- ');
+
+    if (hasMarkdownSyntax) {
+      return React.createElement(
+        'div',
+        { className: 'prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-ul:text-foreground prose-li:text-foreground' },
+        React.createElement(ReactMarkdown, {}, message.content)
+      );
+    }
+
     return React.createElement(
       'div',
       { className: 'text-sm leading-relaxed whitespace-pre-wrap selectable break-words overflow-wrap-anywhere' },

@@ -157,9 +157,9 @@ export async function apiRequest<T = unknown>(
 }
 
 export async function deleteCollaborator(personName: string) {
-  return apiRequest('/delete-person', {
+  return apiRequest('/delete-profile', {
     method: 'POST',
-    body: { person: personName },
+    body: { profile: personName },
     requireAuth: true
   });
 }
@@ -190,7 +190,7 @@ export async function saveTenantFileContent(filePath: string, content: string) {
 export async function createCollaborator(personName: string) {
   return apiRequest('/create', {
     method: 'POST',
-    body: { person: personName },
+    body: { profile: personName },
     requireAuth: true
   });
 }
@@ -202,7 +202,7 @@ export async function uploadPicture(personName: string, file: File) {
   }
 
   const formData = new FormData();
-  formData.append('person', personName);
+  formData.append('profile', personName);
   formData.append('file', file);
 
   const apiUrl = getApiUrl();
@@ -232,7 +232,7 @@ export async function generateCV(
   return apiRequest('/generate', {
     method: 'POST',
     body: {
-      person: personName,
+      profile: personName,
       lang: language,
       template: template
     },
@@ -298,7 +298,7 @@ export async function renameCollaborator(oldName: string, newName: string): Prom
     } else if (response.status === 404) {
       throw new Error('Collaborator not found');
     } else if (response.status === 400) {
-      throw new Error(errorData.error || 'Invalid collaborator name format');
+      throw new Error(errorData.error || 'Invalid profile name format');
     }
 
     throw new Error(errorData.error || `Request failed with status ${response.status}`);

@@ -96,7 +96,7 @@ const CVUploadDropZone: React.FC<CVUploadDropZoneProps> = ({ onUploadSuccess, cl
       const result = await uploadCV(file);
 
       if (result.success) {
-        setSuccess(result.message || `CV converted! Person "${result.person_name}" created`);
+        setSuccess(result.message || `CV converted! Profile "${result.person_name}" created`);
         if (result.person_name && onUploadSuccess) {
           onUploadSuccess(result.person_name);
         }
