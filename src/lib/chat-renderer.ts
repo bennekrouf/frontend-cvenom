@@ -381,9 +381,6 @@ export class ChatRenderer {
   }
 
   private static renderDefaultMessage(message: ChatMessage): React.ReactNode {
-    // Import ReactMarkdown dynamically
-    const ReactMarkdown = require('react-markdown').default;
-
     // Check if content contains markdown syntax
     const hasMarkdownSyntax = message.content.includes('#') ||
       message.content.includes('**') ||
@@ -392,10 +389,17 @@ export class ChatRenderer {
       message.content.includes('- ');
 
     if (hasMarkdownSyntax) {
+      // Dynamic import for ReactMarkdown
+      const ReactMarkdown = React.lazy(() => import('react-markdown'));
+
       return React.createElement(
         'div',
         { className: 'prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-ul:text-foreground prose-li:text-foreground' },
-        React.createElement(ReactMarkdown, {}, message.content)
+        React.createElement(
+          React.Suspense,
+          { fallback: React.createElement('div', { className: 'text-sm' }, 'Loading...') },
+          React.createElement(ReactMarkdown, {}, message.content)
+        )
       );
     }
 
