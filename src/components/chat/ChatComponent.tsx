@@ -23,6 +23,7 @@ import {
   type FileAttachment,
 } from '@/utils/chatUtils';
 import { StandardApiResponse } from '@/lib/api0';
+import { useChatPersistence } from '@/hooks/useChatPersistence';
 
 interface ChatComponentProps {
   isVisible: boolean;
@@ -31,11 +32,10 @@ interface ChatComponentProps {
 
 const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticated }) => {
   const t = useTranslations('chat');
+  const { saveChat, loadChat } = useChatPersistence();
 
   // State management
-  const [messages, setMessages] = useState<ChatMessageType[]>([
-    messageUtils.createWelcomeMessage(isAuthenticated, t)
-  ]);
+  const [messages, setMessages] = useState<ChatMessageType[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
@@ -61,6 +61,25 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
 
   useEffect(() => {
     scrollToBottom();
+  }, [messages]);
+
+  // Update the load effect
+  useEffect(() => {
+    console.log('🔄 Load effect running...');
+    const savedMessages = loadChat();
+    console.log('📥 Got saved messages:', savedMessages.length);
+    if (savedMessages.length > 0) {
+      console.log('✅ Setting saved messages');
+      setMessages(savedMessages);
+    } else {
+      console.log('👋 Setting welcome message');
+      setMessages([messageUtils.createWelcomeMessage(isAuthenticated, t)]);
+    }
+  }, []);
+
+  // Save on messages change
+  useEffect(() => {
+    saveChat(messages);
   }, [messages]);
 
   useEffect(() => {

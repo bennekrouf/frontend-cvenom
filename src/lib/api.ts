@@ -266,6 +266,87 @@ export async function healthCheck() {
   });
 }
 
+// ── ATS Optimization ──────────────────────────────────────────────────────────
+
+export interface KeywordAnalysis {
+  job_title: string;
+  company: string;
+  required_skills: string[];
+  preferred_skills: string[];
+  keywords: string[];
+  experience_level: string;
+  key_responsibilities: string[];
+  matched_keywords: string[];
+  missing_keywords: string[];
+}
+
+export interface OptimizeResponse {
+  optimized_typst: string;
+  job_title: string;
+  company_name: string;
+  optimizations: string[] | null;
+  keyword_analysis: KeywordAnalysis | null;
+  saved: boolean;
+  status: string;
+}
+
+export interface OptimizeApiResponse {
+  type: string;
+  success: boolean;
+  message: string;
+  data: OptimizeResponse;
+}
+
+/**
+ * Optimize CV for ATS and return structured analysis + Typst content.
+ * Saves optimized files to disk but does NOT generate PDF.
+ * If cvJson is omitted, the server loads CV data from the profile directory.
+ */
+export async function optimizeCV(
+  profile: string,
+  jobUrl: string,
+  language: string = 'en',
+  template: string = 'default',
+  cvJson?: string
+): Promise<OptimizeApiResponse> {
+  return apiRequest('/optimize', {
+    method: 'POST',
+    body: {
+      profile,
+      job_url: jobUrl,
+      lang: language,
+      template,
+      ...(cvJson !== undefined ? { cv_json: cvJson } : {}),
+    },
+    requireAuth: true,
+  });
+}
+
+/**
+ * Optimize CV for ATS **and** immediately compile + download the PDF.
+ * Returns a Blob (PDF binary).
+ * If cvJson is omitted, the server loads CV data from the profile directory.
+ */
+export async function optimizeAndGenerate(
+  profile: string,
+  jobUrl: string,
+  language: string = 'en',
+  template: string = 'default',
+  cvJson?: string
+): Promise<Blob> {
+  return apiRequest('/optimize-and-generate', {
+    method: 'POST',
+    body: {
+      profile,
+      job_url: jobUrl,
+      lang: language,
+      template,
+      ...(cvJson !== undefined ? { cv_json: cvJson } : {}),
+    },
+    requireAuth: true,
+  });
+}
+
 export async function renameCollaborator(oldName: string, newName: string): Promise<unknown> {
   const auth = getAuth();
   const user = auth.currentUser;

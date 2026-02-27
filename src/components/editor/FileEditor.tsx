@@ -11,7 +11,8 @@ import {
   FiUser,
   FiUpload,
   FiMenu,
-  FiChevronLeft
+  FiChevronLeft,
+  FiTarget,
 } from 'react-icons/fi';
 import { useTranslations } from 'next-intl';
 
@@ -19,6 +20,7 @@ import DeleteCollaboratorModal from './DeleteCollaboratorModal';
 import { deleteCollaborator, renameCollaborator } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import CreateCollaboratorModal from './CreateCollaboratorModal';
+import OptimizeModal from './OptimizeModal';
 import UploadPictureModal from './UploadPictureModal';
 import GenerateCVModal from './GenerateCVModal';
 import {
@@ -68,6 +70,7 @@ const FileEditor = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [showOptimizeModal, setShowOptimizeModal] = useState(false);
   const [selectedCollaborator, setSelectedCollaborator] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
@@ -580,6 +583,15 @@ const FileEditor = () => {
                     <span className="hidden sm:inline">Upload CV</span>
                   </button>
                   <button
+                    onClick={() => setShowOptimizeModal(true)}
+                    disabled={!selectedCollaborator}
+                    className="flex items-center space-x-2 px-3 py-1.5 bg-orange-500 text-white rounded-md text-sm font-medium hover:bg-orange-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    title={selectedCollaborator ? 'Optimize CV for ATS with a job posting URL' : 'Select a collaborator first'}
+                  >
+                    <FiTarget className="w-4 h-4" />
+                    <span className="hidden sm:inline">Optimize for ATS</span>
+                  </button>
+                  <button
                     onClick={() => setShowCreateModal(true)}
                     className="flex items-center space-x-2 px-3 py-1.5 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-colors"
                     title={t('createCollaboratorTooltip')}
@@ -689,6 +701,12 @@ const FileEditor = () => {
       {/* Modals */}
       {isAuthenticated && (
         <>
+          <OptimizeModal
+            isOpen={showOptimizeModal}
+            onClose={() => setShowOptimizeModal(false)}
+            collaboratorName={selectedCollaborator}
+          />
+
           <CreateCollaboratorModal
             isOpen={showCreateModal}
             onClose={() => setShowCreateModal(false)}
