@@ -8,6 +8,7 @@ import { FiMenu, FiX, FiMoon, FiSun, FiGlobe } from 'react-icons/fi';
 import { useTheme } from 'next-themes';
 import { useTranslations, useLocale } from 'next-intl';
 import LoginButton from '@/components/auth/LoginButton';
+import CreditsButton from '@/components/payment/CreditsButton';
 
 const Navbar: React.FC = () => {
   const [mounted, setMounted] = useState(false);
@@ -106,6 +107,9 @@ const Navbar: React.FC = () => {
               )}
             </button>
 
+            {/* Credits Button */}
+            <CreditsButton />
+
             {/* Login Button */}
             <LoginButton />
           </div>
@@ -113,6 +117,9 @@ const Navbar: React.FC = () => {
 
         {/* Mobile Navigation Toggle */}
         <div className="flex md:hidden items-center space-x-2">
+          {/* Mobile Credits Button */}
+          <CreditsButton />
+
           {/* Mobile Login Button */}
           <LoginButton />
 

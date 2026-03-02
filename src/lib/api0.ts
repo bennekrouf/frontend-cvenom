@@ -1,4 +1,4 @@
-// src/lib/api0.ts - Simple email header fix
+// src/lib/api0.ts
 import { getAuth } from 'firebase/auth';
 import type { FileAttachment } from '@/types/chat';
 import { getApiUrl } from './config';
@@ -9,6 +9,76 @@ const API0_KEY = process.env.NEXT_PUBLIC_API0_API_KEY || (() => {
 })();
 
 let conversationId: string | null = null;
+
+// ── Endpoint manifest (pre-loaded once per session) ──────────────────────────
+
+interface EndpointSuggestion {
+  /** The semantic label api0 matches against — e.g. "Generate CV" */
+  text: string;
+  /** Human-readable explanation — e.g. "Generate a PDF CV from a profile" */
+  description: string;
+  /** The api_group this endpoint belongs to — e.g. "CV Service" */
+  group: string;
+}
+
+let endpointManifest: EndpointSuggestion[] | null = null;
+
+/**
+ * Fetches the endpoint manifest from api0 (GET /api/endpoints).
+ * Called automatically on the first analyze() — callers never need to invoke this directly.
+ * The API key auth on the gateway resolves the user's email server-side,
+ * so no email parameter is required here.
+ */
+async function loadEndpointManifest(): Promise<void> {
+  try {
+    const res = await fetch(`${API0_BASE}/api/endpoints`, {
+      headers: {
+        'Authorization': `Bearer ${API0_KEY}`,
+        'X-User-Email': getAuth().currentUser?.email || '',
+      },
+    });
+
+    if (!res.ok) return; // fail silently — suggestions degrade gracefully to empty
+
+    const data = await res.json();
+
+    // data.api_groups is the same structure the Semantic service uses internally
+    endpointManifest = (data.api_groups ?? []).flatMap((group: {
+      name: string;
+      endpoints: { text: string; description: string }[];
+    }) =>
+      (group.endpoints ?? []).map(ep => ({
+        text: ep.text,
+        description: ep.description ?? '',
+        group: group.name,
+      }))
+    );
+  } catch {
+    // Network/parse errors: manifest stays null, suggestions will be empty
+  }
+}
+
+/**
+ * Returns endpoint text labels that match the user's partial input.
+ * Falls back to an empty array if the manifest hasn't loaded yet.
+ * Used by useAPI0Chat to power the chat suggestion list.
+ */
+export function getEndpointSuggestions(input: string, limit = 6): string[] {
+  if (!endpointManifest) return [];
+  const q = input.trim().toLowerCase();
+  return endpointManifest
+    .filter(ep =>
+      ep.text.toLowerCase().includes(q) ||
+      ep.description.toLowerCase().includes(q)
+    )
+    .map(ep => ep.text)
+    .slice(0, limit);
+}
+
+/** Resets both conversation state and the cached manifest (e.g. on sign-out). */
+export function resetManifest(): void {
+  endpointManifest = null;
+}
 
 // Type definitions (keeping existing ones)
 interface API0Parameter {
@@ -97,18 +167,28 @@ export type StandardApiResponse =
     conversation_id?: string;
   };
 
-// ONLY CHANGE: Add email header to existing code
 async function analyze(sentence: string, attachments: FileAttachment[] = []): Promise<API0AnalysisResult[]> {
+  const currentUser = getAuth().currentUser;
+  const userEmail = currentUser?.email || '';
+  // Firebase UID is the opaque consumer_id — cvenom's end users are never exposed to api0 by name.
+  // api0 stores this verbatim for usage attribution; credit deduction hits cvenom's tenant balance (Option B).
+  const consumerId = currentUser?.uid || '';
+
   if (!conversationId) {
-    const startRes = await fetch(`${API0_BASE}/api/analyze/start`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${API0_KEY}`,
-        'Content-Type': 'application/json',
-        'X-User-Email': getAuth().currentUser?.email || '' // ONLY CHANGE: Add email header
-      },
-      body: JSON.stringify({ user_id: getAuth().currentUser?.uid })
-    });
+    // Initialise conversation + pre-load endpoint manifest in parallel
+    const [startRes] = await Promise.all([
+      fetch(`${API0_BASE}/api/analyze/start`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${API0_KEY}`,
+          'Content-Type': 'application/json',
+          'X-User-Email': userEmail,
+          'X-Consumer-Id': consumerId,
+        },
+        body: JSON.stringify({ user_id: currentUser?.uid }),
+      }),
+      loadEndpointManifest(), // fire-and-forget alongside conversation start
+    ]);
 
     if (!startRes.ok) {
       const errorData = await startRes.json().catch(() => ({ error: 'Unknown error' }));
@@ -136,9 +216,10 @@ async function analyze(sentence: string, attachments: FileAttachment[] = []): Pr
     headers: {
       'Authorization': `Bearer ${API0_KEY}`,
       'Content-Type': 'application/json',
-      'X-User-Email': getAuth().currentUser?.email || '' // ONLY CHANGE: Add email header
+      'X-User-Email': userEmail,
+      'X-Consumer-Id': consumerId,
     },
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
@@ -336,6 +417,7 @@ export async function processCommand(
 
 export function resetConversation() {
   conversationId = null;
+  endpointManifest = null; // force re-fetch on next session (user may have changed endpoints)
 }
 
 export function getConversationId() {
