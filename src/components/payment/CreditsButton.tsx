@@ -1,48 +1,69 @@
 'use client';
 // src/components/payment/CreditsButton.tsx
 //
-// A small button shown in the Navbar when the user is authenticated.
-// Clicking it opens a modal overlay containing the StripePaymentForm.
+// Always-visible Credits button in the Navbar.
+// - Authenticated   → opens the Stripe payment modal directly.
+// - Unauthenticated → opens a lightweight "sign in first" prompt;
+//                     after sign-in the payment modal opens automatically.
 
 import React, { useState, useEffect, useRef } from 'react';
-import { FiZap } from 'react-icons/fi';
+import { FiZap, FiUser } from 'react-icons/fi';
 import { useAuth } from '@/contexts/AuthContext';
+import { signInWithGoogle } from '@/lib/firebase';
 import StripePaymentForm from './StripePaymentForm';
 
 const CreditsButton: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const promptRef = useRef<HTMLDivElement>(null);
 
   // Close on Escape
   useEffect(() => {
-    if (!open) return;
+    if (!open && !showLoginPrompt) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') { setOpen(false); setShowLoginPrompt(false); }
     };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [open]);
+  }, [open, showLoginPrompt]);
 
-  // Prevent body scroll when modal open
+  // Prevent body scroll when any modal is open
   useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : '';
+    document.body.style.overflow = (open || showLoginPrompt) ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [open]);
+  }, [open, showLoginPrompt]);
 
-  if (!isAuthenticated) return null;
+  const handleButtonClick = () => {
+    if (isAuthenticated) {
+      setOpen(true);
+    } else {
+      setShowLoginPrompt(true);
+    }
+  };
+
+  const handleSignIn = async () => {
+    setIsSigningIn(true);
+    const result = await signInWithGoogle();
+    setIsSigningIn(false);
+    setShowLoginPrompt(false);
+    if (!result.error) {
+      // Signed in — open the payment modal immediately.
+      setOpen(true);
+    }
+  };
 
   const handleSuccess = (creditsAdded: number, _newBalance: number) => {
-    // The success step inside StripePaymentForm handles the UI.
-    // We could show a toast here if a toast library were available.
     console.info(`[cvenom] ${creditsAdded} credits added to account`);
   };
 
   return (
     <>
-      {/* Trigger button in Navbar */}
+      {/* Trigger button — always visible in Navbar */}
       <button
-        onClick={() => setOpen(true)}
+        onClick={handleButtonClick}
         className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-secondary"
         aria-label="Add credits"
       >
@@ -50,15 +71,59 @@ const CreditsButton: React.FC = () => {
         <span className="hidden sm:inline">Credits</span>
       </button>
 
-      {/* Modal overlay */}
+      {/* Sign-in prompt (shown when user is not authenticated) */}
+      {showLoginPrompt && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowLoginPrompt(false); }}
+        >
+          <div
+            ref={promptRef}
+            className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg"
+          >
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-full bg-primary/10 p-2.5">
+                <FiZap className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">Buy Credits</h3>
+                <p className="text-xs text-muted-foreground">$1 = 100 credits · secure via Stripe</p>
+              </div>
+            </div>
+            <p className="mb-6 text-sm text-muted-foreground">
+              Credits power AI features: CV generation, job matching, translation, and optimisation.
+              Sign in with Google to continue.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowLoginPrompt(false)}
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSignIn}
+                disabled={isSigningIn}
+                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+              >
+                {isSigningIn ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                ) : (
+                  <FiUser className="h-4 w-4" />
+                )}
+                {isSigningIn ? 'Signing in…' : 'Sign In with Google'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment modal overlay (shown when authenticated) */}
       {open && (
         <div
           ref={overlayRef}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-          onClick={(e) => {
-            // Close if click is on the backdrop (not inside the card)
-            if (e.target === overlayRef.current) setOpen(false);
-          }}
+          onClick={(e) => { if (e.target === overlayRef.current) setOpen(false); }}
         >
           <StripePaymentForm
             onSuccess={handleSuccess}
