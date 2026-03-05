@@ -19,6 +19,7 @@ const CreditsButton: React.FC = () => {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const promptRef = useRef<HTMLDivElement>(null);
+  const paymentCardRef = useRef<HTMLDivElement>(null);
 
   // Close on Escape
   useEffect(() => {
@@ -74,45 +75,50 @@ const CreditsButton: React.FC = () => {
       {/* Sign-in prompt (shown when user is not authenticated) */}
       {showLoginPrompt && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-          onClick={(e) => { if (e.target === e.currentTarget) setShowLoginPrompt(false); }}
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm"
+          onClick={(e) => {
+            // Close when clicking the backdrop (outside the card)
+            if (!promptRef.current?.contains(e.target as Node)) setShowLoginPrompt(false);
+          }}
         >
-          <div
-            ref={promptRef}
-            className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg"
-          >
-            <div className="mb-4 flex items-center gap-3">
-              <div className="rounded-full bg-primary/10 p-2.5">
-                <FiZap className="h-5 w-5 text-primary" />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div
+              ref={promptRef}
+              className="w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg"
+            >
+              <div className="mb-4 flex items-center gap-3">
+                <div className="rounded-full bg-primary/10 p-2.5">
+                  <FiZap className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">Buy Credits</h3>
+                  <p className="text-xs text-muted-foreground">$1 = 100 credits · secure via Stripe</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-foreground">Buy Credits</h3>
-                <p className="text-xs text-muted-foreground">$1 = 100 credits · secure via Stripe</p>
+              <p className="mb-6 text-sm text-muted-foreground">
+                Credits power AI features: CV generation, job matching, translation, and optimisation.
+                Sign in with Google to continue.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowLoginPrompt(false)}
+                  className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSignIn}
+                  disabled={isSigningIn}
+                  className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {isSigningIn ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  ) : (
+                    <FiUser className="h-4 w-4" />
+                  )}
+                  {isSigningIn ? 'Signing in…' : 'Sign In with Google'}
+                </button>
               </div>
-            </div>
-            <p className="mb-6 text-sm text-muted-foreground">
-              Credits power AI features: CV generation, job matching, translation, and optimisation.
-              Sign in with Google to continue.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowLoginPrompt(false)}
-                className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSignIn}
-                disabled={isSigningIn}
-                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-              >
-                {isSigningIn ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                ) : (
-                  <FiUser className="h-4 w-4" />
-                )}
-                {isSigningIn ? 'Signing in…' : 'Sign In with Google'}
-              </button>
             </div>
           </div>
         </div>
@@ -122,13 +128,20 @@ const CreditsButton: React.FC = () => {
       {open && (
         <div
           ref={overlayRef}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-          onClick={(e) => { if (e.target === overlayRef.current) setOpen(false); }}
+          className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm"
+          onClick={(e) => {
+            // Close when clicking the backdrop (outside the payment card)
+            if (!paymentCardRef.current?.contains(e.target as Node)) setOpen(false);
+          }}
         >
-          <StripePaymentForm
-            onSuccess={handleSuccess}
-            onClose={() => setOpen(false)}
-          />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div ref={paymentCardRef}>
+              <StripePaymentForm
+                onSuccess={handleSuccess}
+                onClose={() => setOpen(false)}
+              />
+            </div>
+          </div>
         </div>
       )}
     </>
