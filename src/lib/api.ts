@@ -357,7 +357,7 @@ export async function renameCollaborator(oldName: string, newName: string): Prom
 
   const token = await user.getIdToken();
 
-  const response = await fetch(`${getApiUrl()}/collaborators/${encodeURIComponent(oldName)}/rename`, {
+  const response = await fetch(`${getApiUrl()}/profiles/${encodeURIComponent(oldName)}/rename`, {
     method: 'PUT',
     headers: {
       'Authorization': `Bearer ${token}`,
