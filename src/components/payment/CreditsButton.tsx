@@ -5,8 +5,13 @@
 // - Authenticated   → opens the Stripe payment modal directly.
 // - Unauthenticated → opens a lightweight "sign in first" prompt;
 //                     after sign-in the payment modal opens automatically.
+//
+// Both modals are rendered via React Portal (attached to document.body)
+// so they escape the Navbar's sticky/z-index stacking context and always
+// paint above all page content.
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { FiZap, FiUser } from 'react-icons/fi';
 import { useAuth } from '@/contexts/AuthContext';
 import { signInWithGoogle } from '@/lib/firebase';
@@ -17,9 +22,12 @@ const CreditsButton: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
-  const overlayRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
   const promptRef = useRef<HTMLDivElement>(null);
   const paymentCardRef = useRef<HTMLDivElement>(null);
+
+  // Portal target is only available in the browser
+  useEffect(() => { setMounted(true); }, []);
 
   // Close on Escape
   useEffect(() => {
@@ -72,12 +80,11 @@ const CreditsButton: React.FC = () => {
         <span className="hidden sm:inline">Credits</span>
       </button>
 
-      {/* Sign-in prompt (shown when user is not authenticated) */}
-      {showLoginPrompt && (
+      {/* ── Portals: rendered on document.body, above all stacking contexts ── */}
+      {mounted && showLoginPrompt && createPortal(
         <div
-          className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-[9999] overflow-y-auto bg-black/50 backdrop-blur-sm"
           onClick={(e) => {
-            // Close when clicking the backdrop (outside the card)
             if (!promptRef.current?.contains(e.target as Node)) setShowLoginPrompt(false);
           }}
         >
@@ -121,16 +128,14 @@ const CreditsButton: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Payment modal overlay (shown when authenticated) */}
-      {open && (
+      {mounted && open && createPortal(
         <div
-          ref={overlayRef}
-          className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-[9999] overflow-y-auto bg-black/50 backdrop-blur-sm"
           onClick={(e) => {
-            // Close when clicking the backdrop (outside the payment card)
             if (!paymentCardRef.current?.contains(e.target as Node)) setOpen(false);
           }}
         >
@@ -142,7 +147,8 @@ const CreditsButton: React.FC = () => {
               />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
