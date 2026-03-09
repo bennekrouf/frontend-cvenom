@@ -6,6 +6,7 @@
 // Backend routes:
 //   POST /payment/intent  → create Stripe PaymentIntent
 //   POST /payment/confirm → verify payment & top-up api0 credits
+//   GET  /payment/balance → return current user's credit balance
 
 import { auth } from './firebase';
 
@@ -22,6 +23,11 @@ export interface ConfirmPaymentResult {
   message: string;
   credits_added: number;
   new_balance: number;
+}
+
+export interface BalanceResult {
+  success: boolean;
+  balance: number;
 }
 
 // ── Helper ────────────────────────────────────────────────────────────────────
@@ -93,4 +99,23 @@ export async function confirmPayment(
   }
 
   return json as ConfirmPaymentResult;
+}
+
+/**
+ * Fetch the authenticated user's current credit balance.
+ */
+export async function getBalance(): Promise<number> {
+  const token = await getAuthToken();
+
+  const res = await fetch(`${getApiBase()}/payment/balance`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  const json = await res.json();
+
+  if (!res.ok || !json.success) {
+    throw new Error(json.error || `Balance fetch failed (${res.status})`);
+  }
+
+  return (json as BalanceResult).balance;
 }

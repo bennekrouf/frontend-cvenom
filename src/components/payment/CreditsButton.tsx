@@ -10,12 +10,13 @@
 // so they escape the Navbar's sticky/z-index stacking context and always
 // paint above all page content.
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { FiZap, FiUser } from 'react-icons/fi';
 import { useAuth } from '@/contexts/AuthContext';
 import { signInWithGoogle } from '@/lib/firebase';
 import StripePaymentForm from './StripePaymentForm';
+import { getBalance } from '@/lib/paymentService';
 
 const CreditsButton: React.FC = () => {
   const { isAuthenticated } = useAuth();
@@ -23,11 +24,27 @@ const CreditsButton: React.FC = () => {
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [balance, setBalance] = useState<number | null>(null);
   const promptRef = useRef<HTMLDivElement>(null);
   const paymentCardRef = useRef<HTMLDivElement>(null);
 
+  const fetchBalance = useCallback(async () => {
+    try {
+      const b = await getBalance();
+      setBalance(b);
+    } catch {
+      // silently ignore — user may not be signed in yet
+    }
+  }, []);
+
   // Portal target is only available in the browser
   useEffect(() => { setMounted(true); }, []);
+
+  // Fetch balance when authenticated
+  useEffect(() => {
+    if (isAuthenticated) fetchBalance();
+    else setBalance(null);
+  }, [isAuthenticated, fetchBalance]);
 
   // Close on Escape
   useEffect(() => {
@@ -64,8 +81,9 @@ const CreditsButton: React.FC = () => {
     }
   };
 
-  const handleSuccess = (creditsAdded: number, _newBalance: number) => {
+  const handleSuccess = (creditsAdded: number, newBalance: number) => {
     console.info(`[cvenom] ${creditsAdded} credits added to account`);
+    setBalance(newBalance);
   };
 
   return (
@@ -77,7 +95,13 @@ const CreditsButton: React.FC = () => {
         aria-label="Add credits"
       >
         <FiZap className="h-3.5 w-3.5 text-primary" />
-        <span className="hidden sm:inline">Credits</span>
+        {isAuthenticated && balance !== null ? (
+          <span className="text-sm font-semibold tabular-nums">
+            {balance.toLocaleString()}
+          </span>
+        ) : (
+          <span className="hidden sm:inline">Credits</span>
+        )}
       </button>
 
       {/* ── Portals: rendered on document.body, above all stacking contexts ── */}
