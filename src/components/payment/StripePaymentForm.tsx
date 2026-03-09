@@ -16,7 +16,7 @@ import {
   useStripe,
   useElements,
 } from '@stripe/react-stripe-js';
-import { FiArrowLeft, FiLoader, FiCreditCard, FiDollarSign, FiCheckCircle, FiAlertTriangle } from 'react-icons/fi';
+import { FiArrowLeft, FiLoader, FiCreditCard, FiDollarSign, FiCheckCircle, FiAlertTriangle, FiFileText, FiGlobe, FiZap } from 'react-icons/fi';
 import { createPaymentIntent, confirmPayment } from '@/lib/paymentService';
 
 // Stripe promise is created lazily once we have the publishable key.
@@ -29,13 +29,21 @@ function getStripePromise(publishableKey: string): Promise<Stripe | null> {
   return stripePromise;
 }
 
+// ── Credit actions reference ──────────────────────────────────────────────────
+
+const CREDIT_ACTIONS = [
+  { icon: FiFileText, label: 'Export PDF', cost: 1 },
+  { icon: FiGlobe,    label: 'Translate',  cost: 1 },
+  { icon: FiZap,      label: 'Optimize',   cost: 2 },
+] as const;
+
 // ── Quick-select amounts ──────────────────────────────────────────────────────
 
 const QUICK_AMOUNTS = [
-  { label: '$5', value: 5, sub: '500 credits' },
-  { label: '$10', value: 10, sub: '1 000 credits' },
-  { label: '$25', value: 25, sub: '2 500 credits' },
-  { label: '$50', value: 50, sub: '5 000 credits' },
+  { label: '$5',  value: 5,  credits: 500,  badge: null,          sub: '250 optimizations' },
+  { label: '$10', value: 10, credits: 1000, badge: 'Popular',     sub: '500 optimizations' },
+  { label: '$25', value: 25, credits: 2500, badge: 'Best value',  sub: '1,250 optimizations' },
+  { label: '$50', value: 50, credits: 5000, badge: 'Power user',  sub: '2,500 optimizations' },
 ];
 
 // ── Inner form (rendered inside <Elements>) ───────────────────────────────────
@@ -298,6 +306,21 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
         {/* ── Step 1: Amount selection ── */}
         {step === 'amount' && (
           <div className="space-y-5">
+            {/* Credit actions explainer */}
+            <div className="rounded-lg bg-muted/50 p-3">
+              <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">What credits unlock</p>
+              <div className="grid grid-cols-3 gap-2">
+                {CREDIT_ACTIONS.map(({ icon: Icon, label, cost }) => (
+                  <div key={label} className="flex flex-col items-center gap-1 rounded-md bg-background border border-border p-2">
+                    <Icon className="h-4 w-4 text-primary" />
+                    <span className="text-xs font-medium text-foreground">{label}</span>
+                    <span className="text-xs text-muted-foreground">{cost} credit{cost > 1 ? 's' : ''}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick-select amounts */}
             <div className="grid grid-cols-2 gap-3">
               {QUICK_AMOUNTS.map((item) => {
                 const selected = amount === item.value && !useCustom;
@@ -305,14 +328,20 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
                   <button
                     key={item.value}
                     onClick={() => handleAmountSelect(item.value)}
-                    className={`flex flex-col items-center rounded-lg border-2 p-4 transition-all ${
+                    className={`relative flex flex-col items-center rounded-lg border-2 p-3 transition-all ${
                       selected
                         ? 'border-primary bg-primary/5 text-primary'
                         : 'border-border hover:border-primary/40'
                     }`}
                   >
+                    {item.badge && (
+                      <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                        {item.badge}
+                      </span>
+                    )}
                     <span className="text-lg font-bold">{item.label}</span>
-                    <span className="text-xs text-muted-foreground">{item.sub}</span>
+                    <span className="text-xs font-medium text-muted-foreground">{item.credits.toLocaleString()} credits</span>
+                    <span className="text-[11px] text-muted-foreground/80">{item.sub}</span>
                   </button>
                 );
               })}
@@ -335,6 +364,11 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
                   className="w-full rounded-lg border border-border bg-background py-2.5 pl-7 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
               </div>
+              {useCustom && finalAmount() >= 1 && (
+                <p className="text-xs text-muted-foreground">
+                  = {Math.round(finalAmount() * 100).toLocaleString()} credits · {Math.floor(finalAmount() * 50).toLocaleString()} optimizations
+                </p>
+              )}
             </div>
 
             {intentError && (

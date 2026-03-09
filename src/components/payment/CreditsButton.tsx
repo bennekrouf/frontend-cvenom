@@ -12,7 +12,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { FiZap, FiUser } from 'react-icons/fi';
+import { FiZap, FiUser, FiFileText, FiGlobe, FiGift } from 'react-icons/fi';
 import { useAuth } from '@/contexts/AuthContext';
 import { signInWithGoogle } from '@/lib/firebase';
 import StripePaymentForm from './StripePaymentForm';
@@ -122,14 +122,34 @@ const CreditsButton: React.FC = () => {
                   <FiZap className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground">Buy Credits</h3>
+                  <h3 className="font-semibold text-foreground">Power up your CV</h3>
                   <p className="text-xs text-muted-foreground">$1 = 100 credits · secure via Stripe</p>
                 </div>
               </div>
-              <p className="mb-6 text-sm text-muted-foreground">
-                Credits power AI features: CV generation, job matching, translation, and optimisation.
-                Sign in with Google to continue.
-              </p>
+
+              {/* Welcome bonus */}
+              <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-3 py-2">
+                <FiGift className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                <p className="text-xs text-green-700 dark:text-green-300 font-medium">
+                  New accounts get <span className="font-bold">30 free credits</span> — no card needed to get started
+                </p>
+              </div>
+
+              {/* What credits do */}
+              <div className="mb-5 grid grid-cols-3 gap-2">
+                {[
+                  { icon: FiFileText, label: 'Export PDF', cost: '1 credit' },
+                  { icon: FiGlobe,    label: 'Translate',  cost: '1 credit' },
+                  { icon: FiZap,      label: 'Optimize',   cost: '2 credits' },
+                ].map(({ icon: Icon, label, cost }) => (
+                  <div key={label} className="flex flex-col items-center gap-1 rounded-md border border-border bg-muted/40 p-2 text-center">
+                    <Icon className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-[11px] font-medium text-foreground">{label}</span>
+                    <span className="text-[10px] text-muted-foreground">{cost}</span>
+                  </div>
+                ))}
+              </div>
+
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setShowLoginPrompt(false)}
