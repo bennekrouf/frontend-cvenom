@@ -1,7 +1,8 @@
 'use client';
 import React, { useState } from 'react';
 import { FiBriefcase, FiChevronDown, FiChevronUp, FiPlus, FiTrash2, FiArrowUp, FiArrowDown } from 'react-icons/fi';
-import { SectionCard, Field, TextInput, TextArea } from './SectionCard';
+import { SectionCard, Field } from './SectionCard';
+import { InlineField } from './InlineField';
 import { TagInput } from './TagInput';
 import type { WorkExperienceEntry } from '@/types/cvFormData';
 
@@ -28,9 +29,8 @@ const ExperienceCard: React.FC<{
   onMove: (dir: -1 | 1) => void;
 }> = ({ entry, index, total, onChange, onRemove, onMove }) => {
   const [open, setOpen] = useState(index === 0);
-  const set = <K extends keyof WorkExperienceEntry>(field: K) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => onChange({ ...entry, [field]: e.target.value });
+  const set = (field: keyof WorkExperienceEntry) => (v: string) =>
+    onChange({ ...entry, [field]: v });
 
   const header = entry.company
     ? `${entry.company}${entry.title ? ` · ${entry.title}` : ''}${entry.date ? ` · ${entry.date}` : ''}`
@@ -45,7 +45,9 @@ const ExperienceCard: React.FC<{
           onClick={() => setOpen((o) => !o)}
           className="flex flex-1 items-center gap-2 text-left"
         >
-          {open ? <FiChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" /> : <FiChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
+          {open
+            ? <FiChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            : <FiChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
           <span className="text-sm font-medium text-foreground truncate">{header}</span>
         </button>
         <div className="flex items-center gap-1 flex-shrink-0">
@@ -65,21 +67,12 @@ const ExperienceCard: React.FC<{
       {open && (
         <div className="border-t border-border px-4 pb-4 pt-3 space-y-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Company" htmlFor={`exp-company-${index}`}>
-              <TextInput id={`exp-company-${index}`} value={entry.company} onChange={set('company')} placeholder="Acme Corp" />
-            </Field>
-            <Field label="Job Title" htmlFor={`exp-title-${index}`}>
-              <TextInput id={`exp-title-${index}`} value={entry.title} onChange={set('title')} placeholder="Senior Engineer" />
-            </Field>
+            <InlineField label="Company"      value={entry.company}     placeholder="Acme Corp"           onChange={set('company')} />
+            <InlineField label="Job Title"    value={entry.title}       placeholder="Senior Engineer"     onChange={set('title')} />
           </div>
-
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Date Range" htmlFor={`exp-date-${index}`}>
-              <TextInput id={`exp-date-${index}`} value={entry.date} onChange={set('date')} placeholder="Jan 2020 – Present" />
-            </Field>
-            <Field label="Company Description" htmlFor={`exp-desc-${index}`}>
-              <TextInput id={`exp-desc-${index}`} value={entry.description} onChange={set('description')} placeholder="Leading tech company…" />
-            </Field>
+            <InlineField label="Date Range"   value={entry.date}        placeholder="Jan 2020 – Present"  onChange={set('date')} />
+            <InlineField label="Company Desc" value={entry.description} placeholder="Leading tech company…" onChange={set('description')} />
           </div>
 
           <Field label="Responsibilities & Achievements">

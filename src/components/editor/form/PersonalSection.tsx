@@ -1,7 +1,8 @@
 'use client';
 import React from 'react';
 import { FiUser } from 'react-icons/fi';
-import { SectionCard, Field, TextInput, TextArea } from './SectionCard';
+import { SectionCard } from './SectionCard';
+import { InlineField } from './InlineField';
 import type { PersonalData } from '@/types/cvFormData';
 
 interface Props {
@@ -10,68 +11,54 @@ interface Props {
 }
 
 export const PersonalSection: React.FC<Props> = ({ data, onChange }) => {
-  const set = (field: keyof PersonalData) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => onChange({ ...data, [field]: e.target.value });
+  const set = (field: keyof PersonalData) => (v: string) =>
+    onChange({ ...data, [field]: v });
 
   return (
     <SectionCard icon={<FiUser className="h-4 w-4" />} title="Personal Information">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="Full Name" htmlFor="personal-name">
-          <TextInput
-            id="personal-name"
-            value={data.name}
-            onChange={set('name')}
-            placeholder="Jane Smith"
-          />
-        </Field>
-
-        <Field label="Professional Title" htmlFor="personal-title">
-          <TextInput
-            id="personal-title"
-            value={data.title}
-            onChange={set('title')}
-            placeholder="Senior Software Engineer"
-          />
-        </Field>
-
-        <Field label="Email" htmlFor="personal-email">
-          <TextInput
-            id="personal-email"
-            type="email"
-            value={data.email}
-            onChange={set('email')}
-            placeholder="jane@example.com"
-          />
-        </Field>
-
-        <Field label="Phone" htmlFor="personal-phone">
-          <TextInput
-            id="personal-phone"
-            value={data.phone}
-            onChange={set('phone')}
-            placeholder="+41 76 123 45 67"
-          />
-        </Field>
-
-        <Field label="Address" htmlFor="personal-address" className="sm:col-span-2">
-          <TextInput
-            id="personal-address"
-            value={data.address}
-            onChange={set('address')}
-            placeholder="Zurich, Switzerland"
-          />
-        </Field>
-
-        <Field label="Professional Summary" htmlFor="personal-summary" className="sm:col-span-2">
-          <TextArea
-            id="personal-summary"
-            value={data.summary}
-            onChange={set('summary')}
-            rows={4}
-            placeholder="Brief overview of your expertise, experience and key strengths…"
-          />
-        </Field>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <InlineField
+          label="Full Name"
+          value={data.name}
+          placeholder="Jane Smith"
+          onChange={set('name')}
+        />
+        <InlineField
+          label="Professional Title"
+          value={data.title}
+          placeholder="Senior Software Engineer"
+          onChange={set('title')}
+        />
+        <InlineField
+          label="Email"
+          value={data.email}
+          placeholder="jane@example.com"
+          type="email"
+          onChange={set('email')}
+        />
+        <InlineField
+          label="Phone"
+          value={data.phone}
+          placeholder="+41 76 123 45 67"
+          type="tel"
+          onChange={set('phone')}
+        />
+        <InlineField
+          label="Address"
+          value={data.address}
+          placeholder="Zurich, Switzerland"
+          onChange={set('address')}
+          className="sm:col-span-2"
+        />
+        <InlineField
+          label="Professional Summary"
+          value={data.summary}
+          placeholder="Brief overview of your expertise, experience and key strengths…"
+          onChange={set('summary')}
+          multiline
+          rows={4}
+          className="sm:col-span-2"
+        />
       </div>
     </SectionCard>
   );

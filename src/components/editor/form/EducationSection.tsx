@@ -1,7 +1,8 @@
 'use client';
 import React from 'react';
 import { FiBookOpen, FiPlus, FiTrash2 } from 'react-icons/fi';
-import { SectionCard, Field, TextInput } from './SectionCard';
+import { SectionCard } from './SectionCard';
+import { InlineField } from './InlineField';
 import type { EducationEntry } from '@/types/cvFormData';
 
 interface Props {
@@ -12,15 +13,11 @@ interface Props {
 const emptyEntry = (): EducationEntry => ({ title: '', date: '', location: '' });
 
 export const EducationSection: React.FC<Props> = ({ data, onChange }) => {
-  const update = (i: number, entry: EducationEntry) => {
+  const update = (i: number, field: keyof EducationEntry) => (v: string) => {
     const next = [...data];
-    next[i] = entry;
+    next[i] = { ...data[i], [field]: v };
     onChange(next);
   };
-
-  const set = (i: number, field: keyof EducationEntry) => (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => update(i, { ...data[i], [field]: e.target.value });
 
   return (
     <SectionCard
@@ -44,38 +41,34 @@ export const EducationSection: React.FC<Props> = ({ data, onChange }) => {
           </p>
         )}
         {data.map((entry, i) => (
-          <div key={i} className="rounded-lg border border-border bg-background p-4">
+          <div key={i} className="group/card rounded-lg border border-border bg-background p-4">
             <div className="flex items-start gap-2">
               <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-3">
-                <Field label="Degree / Diploma" htmlFor={`edu-title-${i}`} className="sm:col-span-3">
-                  <TextInput
-                    id={`edu-title-${i}`}
-                    value={entry.title}
-                    onChange={set(i, 'title')}
-                    placeholder="B.Sc. Computer Science — MIT"
-                  />
-                </Field>
-                <Field label="Date" htmlFor={`edu-date-${i}`}>
-                  <TextInput
-                    id={`edu-date-${i}`}
-                    value={entry.date}
-                    onChange={set(i, 'date')}
-                    placeholder="2015 – 2019"
-                  />
-                </Field>
-                <Field label="Location" htmlFor={`edu-loc-${i}`} className="sm:col-span-2">
-                  <TextInput
-                    id={`edu-loc-${i}`}
-                    value={entry.location}
-                    onChange={set(i, 'location')}
-                    placeholder="Cambridge, MA"
-                  />
-                </Field>
+                <InlineField
+                  label="Degree / Diploma"
+                  value={entry.title}
+                  placeholder="B.Sc. Computer Science — MIT"
+                  onChange={update(i, 'title')}
+                  className="sm:col-span-3"
+                />
+                <InlineField
+                  label="Date"
+                  value={entry.date}
+                  placeholder="2015 – 2019"
+                  onChange={update(i, 'date')}
+                />
+                <InlineField
+                  label="Location"
+                  value={entry.location}
+                  placeholder="Cambridge, MA"
+                  onChange={update(i, 'location')}
+                  className="sm:col-span-2"
+                />
               </div>
               <button
                 type="button"
                 onClick={() => onChange(data.filter((_, idx) => idx !== i))}
-                className="mt-6 rounded p-1 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0"
+                className="mt-5 rounded p-1 text-muted-foreground opacity-0 group-hover/card:opacity-100 hover:text-destructive transition-all flex-shrink-0"
                 aria-label="Remove"
               >
                 <FiTrash2 className="h-4 w-4" />
