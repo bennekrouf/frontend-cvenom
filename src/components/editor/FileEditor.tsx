@@ -550,152 +550,132 @@ const FileEditor = () => {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header Bar */}
         <div className="border-b border-border bg-card">
-          <div className="h-14 flex items-center justify-between px-4">
-            <div className="flex items-center space-x-3">
+          <div className="h-14 flex items-center gap-2 px-4">
+
+            {/* ── Left zone: icon + name + subtitle (shrinks gracefully) ── */}
+            <div className="flex min-w-0 flex-1 items-center gap-2">
               {viewMode === 'form' && selectedCollaborator
-                ? <FiList className="w-5 h-5 text-muted-foreground" />
-                : <FiCode className="w-5 h-5 text-muted-foreground" />
+                ? <FiList className="h-4 w-4 shrink-0 text-muted-foreground" />
+                : <FiCode className="h-4 w-4 shrink-0 text-muted-foreground" />
               }
-              <div>
-                <h1 className="font-semibold text-foreground">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-foreground leading-tight">
                   {selectedFile
                     ? selectedFile.split('/').pop()
+                    : selectedCollaborator ?? 'CV Assistant'}
+                </p>
+                <p className="truncate text-xs text-muted-foreground leading-tight">
+                  {selectedCollaborator && viewMode === 'form'
+                    ? 'Form editor · auto-saves'
+                    : selectedFile
+                    ? `${selectedFile} · ${getFileLanguage(selectedFile)}`
                     : selectedCollaborator
-                    ? selectedCollaborator
-                    : 'CV Assistant'}
-                </h1>
-                {selectedCollaborator && viewMode === 'form' ? (
-                  <p className="text-xs text-muted-foreground">
-                    Form editor • auto-saves on change
-                  </p>
-                ) : selectedFile ? (
-                  <p className="text-xs text-muted-foreground">
-                    {selectedFile} • {getFileLanguage(selectedFile)}
-                  </p>
-                ) : selectedCollaborator ? (
-                  <p className="text-xs text-muted-foreground">
-                    Code view • select a file to edit
-                  </p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    {isAuthenticated ? t('cvAssistantEnabled') : t('cvAssistantSignIn')}
-                  </p>
-                )}
+                    ? 'Code view · select a file'
+                    : isAuthenticated ? t('cvAssistantEnabled') : t('cvAssistantSignIn')}
+                </p>
               </div>
-
               {selectedFile && viewMode === 'code' && (
                 <button
                   onClick={closeFile}
-                  className="ml-2 p-1.5 hover:bg-secondary rounded-md transition-colors text-muted-foreground hover:text-foreground"
+                  className="ml-1 shrink-0 rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
                   title={t('closeFileTooltip')}
                 >
-                  <FiX className="w-4 h-4" />
+                  <FiX className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
 
-            <div className="flex items-center space-x-3">
-              {/* Form / Code toggle — only show when a profile is selected */}
+            {/* ── Right zone: fixed-width toolbar, never reflows ── */}
+            <div className="flex shrink-0 items-center gap-1.5">
+
+              {/* Form / Code segmented toggle — only when a profile is active */}
               {selectedCollaborator && isAuthenticated && (
-                <div className="hidden sm:flex items-center rounded-md border border-border overflow-hidden text-sm font-medium">
-                  <button
-                    onClick={() => setViewMode('form')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${
-                      viewMode === 'form'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
-                    }`}
-                    title="Switch to Form editor"
-                  >
-                    <FiList className="w-3.5 h-3.5" />
-                    <span>Form</span>
-                  </button>
-                  <button
-                    onClick={switchToCode}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors border-l border-border ${
-                      viewMode === 'code'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
-                    }`}
-                    title="Switch to Code editor (raw TOML / Typst)"
-                  >
-                    <FiCode className="w-3.5 h-3.5" />
-                    <span>Code</span>
-                  </button>
-                </div>
+                <>
+                  <div className="flex overflow-hidden rounded-md border border-border text-xs font-medium">
+                    <button
+                      onClick={() => setViewMode('form')}
+                      className={`flex items-center gap-1 px-2.5 py-1.5 transition-colors ${
+                        viewMode === 'form'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
+                      }`}
+                      title="Switch to Form editor"
+                    >
+                      <FiList className="h-3 w-3" />
+                      <span className="hidden sm:inline">Form</span>
+                    </button>
+                    <button
+                      onClick={switchToCode}
+                      className={`flex items-center gap-1 border-l border-border px-2.5 py-1.5 transition-colors ${
+                        viewMode === 'code'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
+                      }`}
+                      title="Switch to Code editor"
+                    >
+                      <FiCode className="h-3 w-3" />
+                      <span className="hidden sm:inline">Code</span>
+                    </button>
+                  </div>
+                  <div className="h-5 w-px bg-border" />
+                </>
               )}
 
-              {unsavedChanges && isAuthenticated && (
-                <div className="hidden sm:flex items-center space-x-2 text-sm text-orange-500">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
-                  <span>{t('unsavedChanges')}</span>
-                </div>
-              )}
-
-              {lastSaved && isAuthenticated && (
-                <div className="hidden md:block text-xs text-muted-foreground">
-                  {t('lastSaved')}: {lastSaved.toLocaleTimeString()}
-                </div>
-              )}
-
-              {isAuthenticated ? (
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setShowUploadZone(!showUploadZone)}
-                    className="flex items-center space-x-2 px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
-                    title="Upload and convert CV to create new profile"
-                  >
-                    <FiUpload className="w-4 h-4" />
-                    <span className="hidden sm:inline">Upload CV</span>
-                  </button>
-                  <button
-                    onClick={() => setShowOptimizeModal(true)}
-                    disabled={!selectedCollaborator}
-                    className="flex items-center space-x-2 px-3 py-1.5 bg-orange-500 text-white rounded-md text-sm font-medium hover:bg-orange-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    title={selectedCollaborator ? 'Optimize CV for ATS with a job posting URL' : 'Select a collaborator first'}
-                  >
-                    <FiTarget className="w-4 h-4" />
-                    <span className="hidden sm:inline">Optimize for ATS</span>
-                  </button>
-                  <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="flex items-center space-x-2 px-3 py-1.5 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-colors"
-                    title={t('createCollaboratorTooltip')}
-                  >
-                    <FiPlus className="w-4 h-4" />
-                    <span className="hidden sm:inline">{t('addCollaborator')}</span>
-                  </button>
-                </div>
-              ) : (
+              {/* Upload CV */}
+              {isAuthenticated && (
                 <button
-                  disabled
-                  className="flex items-center space-x-2 px-3 py-1.5 bg-gray-400 text-gray-600 rounded-md text-sm font-medium cursor-not-allowed opacity-50"
-                  title={t('authRequiredCollaborators')}
+                  onClick={() => setShowUploadZone(!showUploadZone)}
+                  className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                  title="Upload and convert a CV to create a new profile"
                 >
-                  <FiPlus className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t('addCollaborator')}</span>
+                  <FiUpload className="h-3.5 w-3.5 shrink-0" />
+                  <span className="hidden lg:inline">Upload CV</span>
                 </button>
               )}
 
-              {/* Save button — only shown in Code mode (Form mode has auto-save) */}
-              {viewMode === 'code' && (
+              {/* Optimize for ATS */}
+              {isAuthenticated && (
                 <button
-                  onClick={saveFile}
-                  disabled={!selectedFile || !unsavedChanges || !isAuthenticated}
-                  className="flex items-center space-x-2 px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
-                  title={
-                    !isAuthenticated ? t('signInToSaveFiles') :
-                      !selectedFile ? t('selectFileToSave') :
-                        !unsavedChanges ? t('noUnsavedChanges') :
-                          t('saveFileTooltip')
-                  }
+                  onClick={() => setShowOptimizeModal(true)}
+                  disabled={!selectedCollaborator}
+                  className="flex items-center gap-1.5 rounded-md bg-orange-500 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  title={selectedCollaborator ? 'Optimize CV for a job posting URL' : 'Select a profile first'}
                 >
-                  <FiSave className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t('save')}</span>
-                  <span className="hidden md:inline text-xs opacity-75">Ctrl+S</span>
+                  <FiTarget className="h-3.5 w-3.5 shrink-0" />
+                  <span className="hidden lg:inline">Optimize</span>
                 </button>
               )}
+
+              {/* New profile */}
+              <button
+                onClick={isAuthenticated ? () => setShowCreateModal(true) : undefined}
+                disabled={!isAuthenticated}
+                className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                title={isAuthenticated ? t('createCollaboratorTooltip') : t('authRequiredCollaborators')}
+              >
+                <FiPlus className="h-3.5 w-3.5 shrink-0" />
+                <span className="hidden md:inline">{t('addCollaborator')}</span>
+              </button>
+
+              {/* Save — always rendered to keep width stable; invisible in form mode */}
+              <button
+                onClick={saveFile}
+                disabled={viewMode === 'form' || !selectedFile || !unsavedChanges || !isAuthenticated}
+                className={`flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 ${
+                  viewMode === 'form' ? 'invisible' : ''
+                }`}
+                title={
+                  !isAuthenticated ? t('signInToSaveFiles') :
+                  !selectedFile    ? t('selectFileToSave') :
+                  !unsavedChanges  ? t('noUnsavedChanges') :
+                                     t('saveFileTooltip')
+                }
+              >
+                <FiSave className="h-3.5 w-3.5 shrink-0" />
+                <span className="hidden sm:inline">{t('save')}</span>
+              </button>
             </div>
+
           </div>
         </div>
 
