@@ -42,6 +42,8 @@ export interface WorkExperienceEntry {
 export interface StylingData {
   primary_color: string;
   secondary_color: string;
+  /** Whether the uploaded profile photo should appear on the CV */
+  show_photo: boolean;
 }
 
 export interface CvFormData {
@@ -68,5 +70,5 @@ export const emptyCvFormData = (): CvFormData => ({
   education:       [],
   languages:       { native: [], fluent: [], intermediate: [], basic: [] },
   work_experience: [],
-  styling:         { primary_color: '#14A4E6', secondary_color: '#757575' },
+  styling:         { primary_color: '#14A4E6', secondary_color: '#757575', show_photo: false },
 });
