@@ -13,8 +13,10 @@ import {
   FiMenu,
   FiChevronLeft,
   FiTarget,
+  FiList,
 } from 'react-icons/fi';
 import { useTranslations } from 'next-intl';
+import CVFormEditor, { type CVFormEditorHandle } from './CVFormEditor';
 
 import DeleteCollaboratorModal from './DeleteCollaboratorModal';
 import { deleteCollaborator, renameCollaborator } from '@/lib/api';
@@ -74,6 +76,10 @@ const FileEditor = () => {
   const [selectedCollaborator, setSelectedCollaborator] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
+
+  // Form / Code view toggle
+  const [viewMode, setViewMode] = useState<'form' | 'code'>('form');
+  const cvFormEditorRef = useRef<CVFormEditorHandle>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -314,6 +320,14 @@ const FileEditor = () => {
     }
   };
 
+  /** Switch to Code view – flush any pending form auto-save first */
+  const switchToCode = useCallback(async () => {
+    if (viewMode === 'form' && cvFormEditorRef.current) {
+      await cvFormEditorRef.current.saveNow();
+    }
+    setViewMode('code');
+  }, [viewMode]);
+
   const loadFileTree = useCallback(async () => {
     if (!isAuthenticated) {
       setFileTree(null);
@@ -439,6 +453,17 @@ const FileEditor = () => {
     setExpandedFolders(newExpanded);
   };
 
+  // When the selected collaborator changes, default back to form view
+  useEffect(() => {
+    if (selectedCollaborator) {
+      setViewMode('form');
+      // Close any open file so the form view takes over
+      setSelectedFile(null);
+      setFileContent('');
+      setUnsavedChanges(false);
+    }
+  }, [selectedCollaborator]);
+
   if (!mounted) {
     return (
       <div className="flex h-[calc(100vh-4rem)] bg-background">
@@ -527,18 +552,29 @@ const FileEditor = () => {
         <div className="border-b border-border bg-card">
           <div className="h-14 flex items-center justify-between px-4">
             <div className="flex items-center space-x-3">
-              <FiCode className="w-5 h-5 text-muted-foreground" />
+              {viewMode === 'form' && selectedCollaborator
+                ? <FiList className="w-5 h-5 text-muted-foreground" />
+                : <FiCode className="w-5 h-5 text-muted-foreground" />
+              }
               <div>
                 <h1 className="font-semibold text-foreground">
-                  {selectedFile ? selectedFile.split('/').pop() : selectedCollaborator ? selectedCollaborator : 'CV Assistant'}
+                  {selectedFile
+                    ? selectedFile.split('/').pop()
+                    : selectedCollaborator
+                    ? selectedCollaborator
+                    : 'CV Assistant'}
                 </h1>
-                {selectedFile ? (
+                {selectedCollaborator && viewMode === 'form' ? (
+                  <p className="text-xs text-muted-foreground">
+                    Form editor • auto-saves on change
+                  </p>
+                ) : selectedFile ? (
                   <p className="text-xs text-muted-foreground">
                     {selectedFile} • {getFileLanguage(selectedFile)}
                   </p>
                 ) : selectedCollaborator ? (
                   <p className="text-xs text-muted-foreground">
-                    Collaborator selected • Use chat for commands
+                    Code view • select a file to edit
                   </p>
                 ) : (
                   <p className="text-xs text-muted-foreground">
@@ -547,7 +583,7 @@ const FileEditor = () => {
                 )}
               </div>
 
-              {selectedFile && (
+              {selectedFile && viewMode === 'code' && (
                 <button
                   onClick={closeFile}
                   className="ml-2 p-1.5 hover:bg-secondary rounded-md transition-colors text-muted-foreground hover:text-foreground"
@@ -559,6 +595,36 @@ const FileEditor = () => {
             </div>
 
             <div className="flex items-center space-x-3">
+              {/* Form / Code toggle — only show when a profile is selected */}
+              {selectedCollaborator && isAuthenticated && (
+                <div className="hidden sm:flex items-center rounded-md border border-border overflow-hidden text-sm font-medium">
+                  <button
+                    onClick={() => setViewMode('form')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${
+                      viewMode === 'form'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
+                    }`}
+                    title="Switch to Form editor"
+                  >
+                    <FiList className="w-3.5 h-3.5" />
+                    <span>Form</span>
+                  </button>
+                  <button
+                    onClick={switchToCode}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors border-l border-border ${
+                      viewMode === 'code'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
+                    }`}
+                    title="Switch to Code editor (raw TOML / Typst)"
+                  >
+                    <FiCode className="w-3.5 h-3.5" />
+                    <span>Code</span>
+                  </button>
+                </div>
+              )}
+
               {unsavedChanges && isAuthenticated && (
                 <div className="hidden sm:flex items-center space-x-2 text-sm text-orange-500">
                   <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
@@ -611,21 +677,24 @@ const FileEditor = () => {
                 </button>
               )}
 
-              <button
-                onClick={saveFile}
-                disabled={!selectedFile || !unsavedChanges || !isAuthenticated}
-                className="flex items-center space-x-2 px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
-                title={
-                  !isAuthenticated ? t('signInToSaveFiles') :
-                    !selectedFile ? t('selectFileToSave') :
-                      !unsavedChanges ? t('noUnsavedChanges') :
-                        t('saveFileTooltip')
-                }
-              >
-                <FiSave className="w-4 h-4" />
-                <span className="hidden sm:inline">{t('save')}</span>
-                <span className="hidden md:inline text-xs opacity-75">Ctrl+S</span>
-              </button>
+              {/* Save button — only shown in Code mode (Form mode has auto-save) */}
+              {viewMode === 'code' && (
+                <button
+                  onClick={saveFile}
+                  disabled={!selectedFile || !unsavedChanges || !isAuthenticated}
+                  className="flex items-center space-x-2 px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
+                  title={
+                    !isAuthenticated ? t('signInToSaveFiles') :
+                      !selectedFile ? t('selectFileToSave') :
+                        !unsavedChanges ? t('noUnsavedChanges') :
+                          t('saveFileTooltip')
+                  }
+                >
+                  <FiSave className="w-4 h-4" />
+                  <span className="hidden sm:inline">{t('save')}</span>
+                  <span className="hidden md:inline text-xs opacity-75">Ctrl+S</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -640,7 +709,6 @@ const FileEditor = () => {
                 <p className="text-sm mb-6">
                   {t('signInGoogle')}
                 </p>
-                {/* Add the sign-in button here */}
                 <button
                   onClick={() => signInWithGoogle()}
                   className="flex items-center space-x-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors mx-auto"
@@ -650,7 +718,14 @@ const FileEditor = () => {
                 </button>
               </div>
             </div>
+          ) : selectedCollaborator && viewMode === 'form' ? (
+            /* ── Form editor (modern inline editor) ── */
+            <CVFormEditor
+              ref={cvFormEditorRef}
+              profileName={selectedCollaborator}
+            />
           ) : selectedFile ? (
+            /* ── Code editor (raw TOML / Typst textarea) ── */
             <div className="h-full p-4">
               <textarea
                 ref={textareaRef}
@@ -662,7 +737,7 @@ const FileEditor = () => {
               />
             </div>
           ) : !fileTree || Object.keys(fileTree).length === 0 ? (
-            // No files - force CV upload
+            /* ── No profiles yet — prompt to upload ── */
             <div className="h-full flex items-center justify-center p-4">
               <div className="text-center max-w-md">
                 <CVUploadDropZone onUploadSuccess={handleUploadSuccess} />
@@ -672,6 +747,7 @@ const FileEditor = () => {
               </div>
             </div>
           ) : (
+            /* ── Chat assistant (no file open, code mode, no profile) ── */
             <ChatComponent
               isVisible={!selectedFile}
               isAuthenticated={isAuthenticated}

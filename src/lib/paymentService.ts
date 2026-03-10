@@ -50,9 +50,13 @@ function getApiBase(): string {
 /**
  * Create a Stripe PaymentIntent on the cvenom backend.
  * Returns the client_secret needed by Stripe.js and the publishable key.
+ *
+ * @param amountUnits  Whole-number amount in the chosen currency (e.g. 10 for CHF 10).
+ * @param currency     ISO 4217 lowercase code (default: 'usd').
  */
 export async function createPaymentIntent(
-  amountDollars: number
+  amountUnits: number,
+  currency = 'usd'
 ): Promise<CreateIntentResult> {
   const token = await getAuthToken();
 
@@ -62,7 +66,7 @@ export async function createPaymentIntent(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ amount_dollars: amountDollars }),
+    body: JSON.stringify({ amount_dollars: amountUnits, currency }),
   });
 
   const json = await res.json();

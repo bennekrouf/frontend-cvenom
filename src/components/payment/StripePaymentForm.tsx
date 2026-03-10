@@ -2,13 +2,16 @@
 // src/components/payment/StripePaymentForm.tsx
 //
 // Two-step Stripe payment form for cvenom.
-//   Step 1 – amount selection (quick buttons + custom input)
+//   Step 1 – amount + currency selection (quick buttons + custom input)
 //   Step 2 – Stripe Elements payment form
 //
-// On success, the cvenom backend tops up api0 credit balance:
-//   $1 = 100 api0 credits
+// Currency is auto-detected from the browser timezone (e.g. Europe/Zurich → CHF).
+// The user can override it with the currency picker.
+//
+// Credit rate: 1 whole unit of any supported currency = 100 credits.
+//   CHF 10 = $10 = €10 = £10 = 1 000 credits.
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { loadStripe, Stripe } from '@stripe/stripe-js';
 import {
   Elements,
@@ -16,8 +19,25 @@ import {
   useStripe,
   useElements,
 } from '@stripe/react-stripe-js';
-import { FiArrowLeft, FiLoader, FiCreditCard, FiDollarSign, FiCheckCircle, FiAlertTriangle, FiFileText, FiGlobe, FiZap } from 'react-icons/fi';
+import {
+  FiArrowLeft,
+  FiLoader,
+  FiCreditCard,
+  FiDollarSign,
+  FiCheckCircle,
+  FiAlertTriangle,
+  FiFileText,
+  FiGlobe,
+  FiZap,
+  FiChevronDown,
+} from 'react-icons/fi';
 import { createPaymentIntent, confirmPayment } from '@/lib/paymentService';
+import {
+  detectCurrency,
+  formatAmount,
+  SUPPORTED_CURRENCIES,
+  type Currency,
+} from '@/lib/currencyUtils';
 
 // Stripe promise is created lazily once we have the publishable key.
 let stripePromise: Promise<Stripe | null> | null = null;
@@ -37,25 +57,70 @@ const CREDIT_ACTIONS = [
   { icon: FiZap,      label: 'Optimize',   cost: 2 },
 ] as const;
 
-// ── Quick-select amounts ──────────────────────────────────────────────────────
+// ── Quick-select amounts (currency-agnostic whole units) ──────────────────────
 
 const QUICK_AMOUNTS = [
-  { label: '$5',  value: 5,  credits: 500,  badge: null,          sub: '250 optimizations' },
-  { label: '$10', value: 10, credits: 1000, badge: 'Popular',     sub: '500 optimizations' },
-  { label: '$25', value: 25, credits: 2500, badge: 'Best value',  sub: '1,250 optimizations' },
-  { label: '$50', value: 50, credits: 5000, badge: 'Power user',  sub: '2,500 optimizations' },
+  { value: 5,  credits: 500,  badge: null,         sub: '250 optimizations' },
+  { value: 10, credits: 1000, badge: 'Popular',    sub: '500 optimizations' },
+  { value: 25, credits: 2500, badge: 'Best value', sub: '1,250 optimizations' },
+  { value: 50, credits: 5000, badge: 'Power user', sub: '2,500 optimizations' },
 ];
+
+// ── Currency picker ───────────────────────────────────────────────────────────
+
+interface CurrencyPickerProps {
+  value: Currency;
+  onChange: (c: Currency) => void;
+}
+
+const CurrencyPicker: React.FC<CurrencyPickerProps> = ({ value, onChange }) => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
+      >
+        <span>{value.flag}</span>
+        <span>{value.label}</span>
+        <FiChevronDown className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full z-20 mt-1 min-w-[120px] rounded-lg border border-border bg-card shadow-lg">
+          {SUPPORTED_CURRENCIES.map((c) => (
+            <button
+              key={c.code}
+              type="button"
+              onClick={() => { onChange(c); setOpen(false); }}
+              className={`flex w-full items-center gap-2 px-3 py-2 text-xs transition-colors hover:bg-muted ${
+                c.code === value.code ? 'bg-primary/5 font-semibold text-primary' : 'text-foreground'
+              }`}
+            >
+              <span>{c.flag}</span>
+              <span>{c.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ── Inner form (rendered inside <Elements>) ───────────────────────────────────
 
 interface PaymentFormContentProps {
   amount: number;
+  currency: Currency;
   onBack: () => void;
   onSuccess: (creditsAdded: number, newBalance: number) => void;
 }
 
 const PaymentFormContent: React.FC<PaymentFormContentProps> = ({
   amount,
+  currency,
   onBack,
   onSuccess,
 }) => {
@@ -76,7 +141,6 @@ const PaymentFormContent: React.FC<PaymentFormContentProps> = ({
       const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          // We handle everything in-page (no redirect needed for cards)
           return_url: window.location.href,
         },
         redirect: 'if_required',
@@ -111,7 +175,7 @@ const PaymentFormContent: React.FC<PaymentFormContentProps> = ({
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Amount to pay</p>
-            <p className="text-xl font-bold">${amount.toFixed(2)}</p>
+            <p className="text-xl font-bold">{formatAmount(amount, currency)}</p>
           </div>
         </div>
         <button
@@ -160,7 +224,7 @@ const PaymentFormContent: React.FC<PaymentFormContentProps> = ({
           ) : (
             <>
               <FiCreditCard className="h-4 w-4" />
-              Pay ${amount.toFixed(2)}
+              Pay {formatAmount(amount, currency)}
             </>
           )}
         </button>
@@ -189,12 +253,20 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
   const [customAmount, setCustomAmount] = useState('');
   const [useCustom, setUseCustom] = useState(false);
 
+  // Auto-detect currency from timezone; user can override.
+  const [currency, setCurrency] = useState<Currency>(() => detectCurrency());
+
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [publishableKey, setPublishableKey] = useState<string | null>(null);
   const [loadingIntent, setLoadingIntent] = useState(false);
   const [intentError, setIntentError] = useState<string | null>(null);
 
   const [successInfo, setSuccessInfo] = useState<{ creditsAdded: number; newBalance: number } | null>(null);
+
+  // Re-detect on mount (SSR-safe: runs only on client)
+  useEffect(() => {
+    setCurrency(detectCurrency());
+  }, []);
 
   // ── Derived ────────────────────────────────────────────────────────────────
 
@@ -231,13 +303,13 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
   const handleContinue = async () => {
     const fa = finalAmount();
     if (fa < 1) {
-      setIntentError('Minimum amount is $1.00');
+      setIntentError('Minimum amount is 1');
       return;
     }
     setIntentError(null);
     setLoadingIntent(true);
     try {
-      const result = await createPaymentIntent(Math.round(fa));
+      const result = await createPaymentIntent(Math.round(fa), currency.code);
       setClientSecret(result.client_secret);
       setPublishableKey(result.publishable_key);
       // Reset the stripe promise so it uses the (potentially new) publishable key
@@ -286,20 +358,26 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
             {step === 'success' && 'Payment Successful'}
           </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {step === 'amount' && '1 dollar = 100 credits'}
+            {step === 'amount' && `1 ${currency.label} = 100 credits`}
             {step === 'payment' && 'Complete your purchase securely via Stripe'}
             {step === 'success' && 'Your credits have been added'}
           </p>
         </div>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Currency picker — only visible on step 1 */}
+          {step === 'amount' && (
+            <CurrencyPicker value={currency} onChange={setCurrency} />
+          )}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="p-6">
@@ -308,13 +386,20 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
           <div className="space-y-5">
             {/* Credit actions explainer */}
             <div className="rounded-lg bg-muted/50 p-3">
-              <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">What credits unlock</p>
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                What credits unlock
+              </p>
               <div className="grid grid-cols-3 gap-2">
                 {CREDIT_ACTIONS.map(({ icon: Icon, label, cost }) => (
-                  <div key={label} className="flex flex-col items-center gap-1 rounded-md bg-background border border-border p-2">
+                  <div
+                    key={label}
+                    className="flex flex-col items-center gap-1 rounded-md border border-border bg-background p-2"
+                  >
                     <Icon className="h-4 w-4 text-primary" />
                     <span className="text-xs font-medium text-foreground">{label}</span>
-                    <span className="text-xs text-muted-foreground">{cost} credit{cost > 1 ? 's' : ''}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {cost} credit{cost > 1 ? 's' : ''}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -339,8 +424,12 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
                         {item.badge}
                       </span>
                     )}
-                    <span className="text-lg font-bold">{item.label}</span>
-                    <span className="text-xs font-medium text-muted-foreground">{item.credits.toLocaleString()} credits</span>
+                    <span className="text-lg font-bold">
+                      {formatAmount(item.value, currency)}
+                    </span>
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {item.credits.toLocaleString()} credits
+                    </span>
                     <span className="text-[11px] text-muted-foreground/80">{item.sub}</span>
                   </button>
                 );
@@ -353,20 +442,23 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
                 Custom amount
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
+                  {currency.label}
+                </span>
                 <input
                   id="custom-amount"
                   type="text"
                   inputMode="decimal"
                   value={customAmount}
                   onChange={(e) => handleCustomChange(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full rounded-lg border border-border bg-background py-2.5 pl-7 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  placeholder="0"
+                  className="w-full rounded-lg border border-border bg-background py-2.5 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
               </div>
               {useCustom && finalAmount() >= 1 && (
                 <p className="text-xs text-muted-foreground">
-                  = {Math.round(finalAmount() * 100).toLocaleString()} credits · {Math.floor(finalAmount() * 50).toLocaleString()} optimizations
+                  = {Math.round(finalAmount() * 100).toLocaleString()} credits ·{' '}
+                  {Math.floor(finalAmount() * 50).toLocaleString()} optimizations
                 </p>
               )}
             </div>
@@ -389,7 +481,10 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
                   Setting up…
                 </>
               ) : (
-                `Continue · Pay $${finalAmount() >= 1 ? finalAmount().toFixed(2) : '—'}`
+                <>
+                  Continue · Pay{' '}
+                  {finalAmount() >= 1 ? formatAmount(finalAmount(), currency) : '—'}
+                </>
               )}
             </button>
           </div>
@@ -409,6 +504,7 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
           >
             <PaymentFormContent
               amount={finalAmount()}
+              currency={currency}
               onBack={handleBack}
               onSuccess={handlePaymentSuccess}
             />
@@ -424,7 +520,9 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
             <div className="space-y-1">
               <p className="text-lg font-semibold text-foreground">Credits Added!</p>
               <p className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">{successInfo.creditsAdded.toLocaleString()} credits</span>{' '}
+                <span className="font-medium text-foreground">
+                  {successInfo.creditsAdded.toLocaleString()} credits
+                </span>{' '}
                 have been added to your account.
               </p>
               <p className="text-xs text-muted-foreground">
@@ -434,7 +532,7 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
                 </span>
               </p>
             </div>
-            <div className="flex gap-3 w-full">
+            <div className="flex w-full gap-3">
               <button
                 onClick={handleReset}
                 className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium transition-colors hover:bg-muted"
