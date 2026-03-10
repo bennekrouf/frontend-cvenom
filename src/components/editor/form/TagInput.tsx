@@ -1,8 +1,10 @@
 'use client';
-// Reusable tag-chip input: type text → Enter or comma to add → click × to remove.
+// TagInput — shows existing tags as chips at rest.
+// A faint "+ Add" ghost button appears on hover; clicking it reveals a compact
+// inline input. Blur or Escape commits any typed text and returns to view mode.
 
-import React, { useState, useRef, KeyboardEvent } from 'react';
-import { FiX } from 'react-icons/fi';
+import React, { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import { FiX, FiPlus } from 'react-icons/fi';
 
 interface TagInputProps {
   tags: string[];
@@ -11,9 +13,20 @@ interface TagInputProps {
   className?: string;
 }
 
-export const TagInput: React.FC<TagInputProps> = ({ tags, onChange, placeholder = 'Type and press Enter…', className = '' }) => {
+export const TagInput: React.FC<TagInputProps> = ({
+  tags,
+  onChange,
+  placeholder = 'Add…',
+  className = '',
+}) => {
+  const [isAdding, setIsAdding] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus the input as soon as we enter add mode
+  useEffect(() => {
+    if (isAdding) inputRef.current?.focus();
+  }, [isAdding]);
 
   const addTag = (value: string) => {
     const trimmed = value.trim();
@@ -33,18 +46,20 @@ export const TagInput: React.FC<TagInputProps> = ({ tags, onChange, placeholder 
       addTag(inputValue);
     } else if (e.key === 'Backspace' && inputValue === '' && tags.length > 0) {
       removeTag(tags.length - 1);
+    } else if (e.key === 'Escape') {
+      addTag(inputValue); // commit whatever is in the field before closing
+      setIsAdding(false);
     }
   };
 
   const handleBlur = () => {
-    if (inputValue.trim()) addTag(inputValue);
+    addTag(inputValue); // commit on blur too
+    setIsAdding(false);
   };
 
   return (
-    <div
-      className={`flex min-h-[42px] flex-wrap gap-1.5 rounded-lg border border-border bg-background px-2.5 py-2 focus-within:ring-2 focus-within:ring-primary/30 cursor-text ${className}`}
-      onClick={() => inputRef.current?.focus()}
-    >
+    <div className={`group/tag flex flex-wrap items-center gap-1.5 py-0.5 ${className}`}>
+      {/* Existing tag chips */}
       {tags.map((tag, i) => (
         <span
           key={i}
@@ -53,24 +68,48 @@ export const TagInput: React.FC<TagInputProps> = ({ tags, onChange, placeholder 
           {tag}
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); removeTag(i); }}
-            className="rounded-sm hover:text-destructive transition-colors"
+            onClick={() => removeTag(i)}
+            className="rounded-sm text-primary/60 transition-colors hover:text-destructive"
             aria-label={`Remove ${tag}`}
           >
             <FiX className="h-3 w-3" />
           </button>
         </span>
       ))}
-      <input
-        ref={inputRef}
-        type="text"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onBlur={handleBlur}
-        placeholder={tags.length === 0 ? placeholder : ''}
-        className="min-w-[120px] flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-      />
+
+      {/* Inline input (only in add mode) */}
+      {isAdding ? (
+        <input
+          ref={inputRef}
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+          placeholder={placeholder}
+          className={
+            'h-[22px] min-w-[100px] rounded-md border border-primary/40 bg-background ' +
+            'px-2 text-xs text-foreground placeholder:text-muted-foreground/50 ' +
+            'outline-none focus:ring-1 focus:ring-primary/30'
+          }
+        />
+      ) : (
+        /* Ghost "+ Add" button — fades in on hover of the parent row */
+        <button
+          type="button"
+          onClick={() => setIsAdding(true)}
+          className={
+            'flex items-center gap-0.5 rounded-md px-2 py-0.5 text-xs ' +
+            'text-muted-foreground/50 transition-all ' +
+            'opacity-0 group-hover/tag:opacity-100 ' +
+            'hover:bg-muted/60 hover:text-muted-foreground'
+          }
+          aria-label="Add tag"
+        >
+          <FiPlus className="h-3 w-3" />
+          Add
+        </button>
+      )}
     </div>
   );
 };

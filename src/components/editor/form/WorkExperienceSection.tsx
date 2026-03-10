@@ -79,9 +79,8 @@ const ExperienceCard: React.FC<{
             <TagInput
               tags={entry.responsibilities}
               onChange={(tags) => onChange({ ...entry, responsibilities: tags })}
-              placeholder="Add a responsibility and press Enter…"
+              placeholder="Add responsibility…"
             />
-            <p className="mt-1 text-xs text-muted-foreground">Press Enter or comma to add each item</p>
           </Field>
 
           <Field label="Technologies Used">
