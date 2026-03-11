@@ -162,13 +162,12 @@ const CVFormEditor = forwardRef<CVFormEditorHandle, Props>(({ profileName }, ref
 
   return (
     <div className="h-full overflow-y-auto">
-      {/* Sticky save-status bar */}
-      <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-2 bg-background/80 backdrop-blur border-b border-border">
-        <p className="text-sm font-medium text-muted-foreground">
-          Editing <span className="text-foreground font-semibold">{profileName}</span>
-        </p>
-        <SavePill status={saveStatus} />
-      </div>
+      {/* Save-status pill — only renders when there's something to show */}
+      {saveStatus !== 'idle' && (
+        <div className="sticky top-0 z-10 flex items-center justify-end px-6 py-2 bg-background/80 backdrop-blur border-b border-border">
+          <SavePill status={saveStatus} />
+        </div>
+      )}
 
       {/* Form sections */}
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">

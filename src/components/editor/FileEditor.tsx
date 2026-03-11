@@ -713,8 +713,8 @@ const FileEditor = () => {
                 </button>
               </div>
             </div>
-          ) : selectedCollaborator && viewMode === 'form' ? (
-            /* ── Form editor (modern inline editor) ── */
+          ) : selectedCollaborator && (viewMode === 'form' || !selectedFile) ? (
+            /* ── Form editor — default when collaborator selected and no file open ── */
             <CVFormEditor
               ref={cvFormEditorRef}
               profileName={selectedCollaborator}
