@@ -328,6 +328,15 @@ const FileEditor = () => {
     setViewMode('code');
   }, [viewMode]);
 
+  /** Select a collaborator and switch to Form view (works even when re-clicking the same profile) */
+  const handleSelectCollaborator = useCallback((name: string) => {
+    setSelectedCollaborator(name);
+    setViewMode('form');
+    setSelectedFile(null);
+    setFileContent('');
+    setUnsavedChanges(false);
+  }, []);
+
   const loadFileTree = useCallback(async () => {
     if (!isAuthenticated) {
       setFileTree(null);
@@ -371,6 +380,12 @@ const FileEditor = () => {
 
   const loadFile = async (filePath: string) => {
     if (!isEditableFile(filePath) || !isAuthenticated) return;
+
+    // Flush any pending form auto-save then switch to code view
+    if (viewMode === 'form' && cvFormEditorRef.current) {
+      await cvFormEditorRef.current.saveNow();
+    }
+    setViewMode('code');
 
     try {
       const content = await getTenantFileContent(filePath);
@@ -537,7 +552,7 @@ const FileEditor = () => {
             onCreateCollaborator={() => setShowCreateModal(true)}
             onToggleFolder={toggleFolder}
             onLoadFile={loadFile}
-            onSelectCollaborator={setSelectedCollaborator}
+            onSelectCollaborator={handleSelectCollaborator}
             onShowUploadModal={() => setShowUploadModal(true)}
             onDeleteCollaborator={() => setShowDeleteModal(true)}
             onShowGenerateModal={() => setShowGenerateModal(true)}
