@@ -1,9 +1,9 @@
 // src/components/chat/ChatComponent.tsx
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { FaMagic } from "react-icons/fa";
-import { FiTrash2 } from 'react-icons/fi';
+import { FiTrash2, FiUser } from 'react-icons/fi';
 import { signInWithGoogle } from '@/lib/firebase';
 import { useAPI0Chat } from '@/hooks/useAPI0Chat';
 import { useTranslations } from 'next-intl';
@@ -29,11 +29,13 @@ import { useChatPersistence } from '@/hooks/useChatPersistence';
 interface ChatComponentProps {
   isVisible: boolean;
   isAuthenticated: boolean;
+  /** When set, the chat is scoped to this profile: separate history, auto-filled params. */
+  profileName?: string;
 }
 
-const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticated }) => {
+const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticated, profileName }) => {
   const t = useTranslations('chat');
-  const { saveChat, loadChat, clearChat } = useChatPersistence();
+  const { saveChat, loadChat, clearChat } = useChatPersistence(profileName);
 
   // State management
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
@@ -47,13 +49,14 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Custom hook for API0 chat functionality
+  // Custom hook for API0 chat functionality — profile-scoped
   const {
     isLoading,
     executeCommand,
     getCommandSuggestions,
     handlePDFDownload,
-  } = useAPI0Chat();
+    resetConversation,
+  } = useAPI0Chat(profileName);
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {
@@ -64,19 +67,28 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
     scrollToBottom();
   }, [messages]);
 
-  // Update the load effect
+  /** Build a welcome message that mentions the active profile when one is selected. */
+  const createWelcome = useCallback(() => {
+    const base = messageUtils.createWelcomeMessage(isAuthenticated, t);
+    if (profileName) {
+      return {
+        ...base,
+        content: `👤 **${profileName}** is the active profile.\n\nYou can ask things like:\n• "Am I a good fit for [job URL]?"\n• "Optimize my CV for [job URL]"\n• "Generate my CV"\n• "Translate my CV to French"\n\nProfile parameters will be filled in automatically.`,
+      };
+    }
+    return base;
+  }, [isAuthenticated, t, profileName]);
+
+  // Load persisted history (profile-scoped) or show welcome on first open
   useEffect(() => {
-    console.log('🔄 Load effect running...');
     const savedMessages = loadChat();
-    console.log('📥 Got saved messages:', savedMessages.length);
     if (savedMessages.length > 0) {
-      console.log('✅ Setting saved messages');
       setMessages(savedMessages);
     } else {
-      console.log('👋 Setting welcome message');
-      setMessages([messageUtils.createWelcomeMessage(isAuthenticated, t)]);
+      setMessages([createWelcome()]);
     }
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileName]); // re-run when profile changes → loads that profile's history
 
   // Save on messages change
   useEffect(() => {
@@ -156,7 +168,8 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
   // Flush conversation
   const handleFlushChat = () => {
     clearChat();
-    setMessages([messageUtils.createWelcomeMessage(isAuthenticated, t)]);
+    resetConversation();
+    setMessages([createWelcome()]);
   };
 
   // Message sending
@@ -254,19 +267,27 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
         isSigningIn={isSigningIn}
       />
 
-      {/* Chat toolbar */}
-      {messages.length > 1 && (
-        <div className="flex items-center justify-end px-4 py-1.5 border-b border-border">
+      {/* Profile context banner + clear button */}
+      <div className="flex items-center justify-between px-4 py-1.5 border-b border-border min-h-[36px]">
+        {profileName ? (
+          <div className="flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+            <FiUser className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate max-w-[160px]">{profileName}</span>
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground italic">No profile selected</span>
+        )}
+        {messages.length > 1 && (
           <button
             onClick={handleFlushChat}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors ml-2 shrink-0"
             title="Clear conversation"
           >
             <FiTrash2 className="w-3.5 h-3.5" />
             <span>Clear</span>
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Messages Area */}
       <div

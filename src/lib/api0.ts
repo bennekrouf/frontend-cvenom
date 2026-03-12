@@ -279,10 +279,16 @@ function getFilenameFromResponse(response: Response): string | null {
   return match ? match[1].replace(/['"]/g, '') : null;
 }
 
+/** Parameter names that represent a CV profile / collaborator. */
+const PROFILE_PARAM_NAMES = new Set([
+  'profile_name', 'profile', 'name', 'collaborator', 'collaborator_name', 'person_name',
+]);
+
 // Enhanced processCommand with better error handling
 export async function processCommand(
   sentence: string,
-  attachments: FileAttachment[] = []
+  attachments: FileAttachment[] = [],
+  profileName?: string,
 ): Promise<{ success: boolean; data?: StandardApiResponse; error?: string }> {
   try {
     const results = await analyze(sentence, attachments);
@@ -331,7 +337,15 @@ export async function processCommand(
       };
     }
 
-    // Execute
+    // Execute — auto-fill profile param from chat context if api0 didn't extract it
+    if (profileName) {
+      match.parameters.forEach((p: API0Parameter) => {
+        if (PROFILE_PARAM_NAMES.has(p.name.toLowerCase()) && !p.semantic_value && !p.value) {
+          p.semantic_value = profileName;
+        }
+      });
+    }
+
     const params: Record<string, string> = {};
     match.parameters.forEach((p: API0Parameter) => {
       const val = p.semantic_value || p.value;

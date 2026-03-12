@@ -121,7 +121,9 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
       <div key={path}>
         <div
           className={`flex items-center py-1 px-2 hover:bg-secondary/50 cursor-pointer rounded-sm transition-colors group relative ${isSelected ? 'bg-primary/10 text-primary' : ''
-            } ${isSelectedCollaborator ? 'bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-500' : ''} ${!isEditable && !isFolder ? 'opacity-50' : ''
+            } ${isSelectedCollaborator
+              ? 'bg-blue-100 dark:bg-blue-900/40 border-l-2 border-blue-500 text-blue-700 dark:text-blue-300 font-semibold'
+              : ''} ${!isEditable && !isFolder ? 'opacity-50' : ''
             }`}
           style={{ paddingLeft: `${8 + level * 16}px` }}
           title={

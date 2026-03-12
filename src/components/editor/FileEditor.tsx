@@ -754,10 +754,11 @@ const FileEditor = () => {
               </div>
             </div>
           ) : viewMode === 'chat' ? (
-            /* ── Chat assistant (explicit mode) ── */
+            /* ── Chat assistant (explicit mode) — profile-scoped ── */
             <ChatComponent
               isVisible={true}
               isAuthenticated={isAuthenticated}
+              profileName={selectedCollaborator ?? undefined}
             />
           ) : selectedCollaborator && viewMode === 'form' ? (
             /* ── Form editor ── */
@@ -782,6 +783,7 @@ const FileEditor = () => {
             <ChatComponent
               isVisible={true}
               isAuthenticated={isAuthenticated}
+              profileName={selectedCollaborator ?? undefined}
             />
           )}
         </div>

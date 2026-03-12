@@ -1,12 +1,13 @@
 import { ChatMessage } from "@/types/chat";
 
-const CHAT_STORAGE_KEY = 'cvenom_chat_state';
+/** One localStorage key per profile — chat histories never bleed across profiles. */
+const storageKey = (profileName?: string) =>
+  profileName ? `cvenom_chat_${profileName}` : 'cvenom_chat_global';
 
-export const useChatPersistence = () => {
+export const useChatPersistence = (profileName?: string) => {
   const saveChat = (messages: ChatMessage[]) => {
     try {
-      console.log('💾 Saving chat:', messages.length, 'messages');
-      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+      localStorage.setItem(storageKey(profileName), JSON.stringify(messages));
     } catch (error) {
       console.warn('Failed to save chat state:', error);
     }
@@ -14,20 +15,13 @@ export const useChatPersistence = () => {
 
   const loadChat = (): ChatMessage[] => {
     try {
-      const saved = localStorage.getItem(CHAT_STORAGE_KEY);
-      console.log('📂 Loading chat - raw data:', saved);
-      if (!saved) {
-        console.log('📂 No saved chat found');
-        return [];
-      }
-
+      const saved = localStorage.getItem(storageKey(profileName));
+      if (!saved) return [];
       const messages = JSON.parse(saved);
-      const parsedMessages = messages.map((msg: any) => ({
+      return messages.map((msg: ChatMessage & { timestamp: string }) => ({
         ...msg,
         timestamp: new Date(msg.timestamp)
       }));
-      console.log('📂 Loaded chat:', parsedMessages.length, 'messages');
-      return parsedMessages;
     } catch (error) {
       console.warn('Failed to load chat state:', error);
       return [];
@@ -35,8 +29,7 @@ export const useChatPersistence = () => {
   };
 
   const clearChat = () => {
-    console.log('🗑️ Clearing chat');
-    localStorage.removeItem(CHAT_STORAGE_KEY);
+    localStorage.removeItem(storageKey(profileName));
   };
 
   return { saveChat, loadChat, clearChat };
