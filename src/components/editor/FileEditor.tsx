@@ -17,6 +17,7 @@ import {
   FiMessageSquare,
 } from 'react-icons/fi';
 import { useTranslations } from 'next-intl';
+import { useRouter, usePathname } from 'next/navigation';
 import CVFormEditor, { type CVFormEditorHandle } from './CVFormEditor';
 
 import DeleteCollaboratorModal from './DeleteCollaboratorModal';
@@ -64,8 +65,14 @@ function getFirstProfile(tree: Record<string, FileTreeItem>): string | null {
   return profiles.length > 0 ? profiles[0][0] : null;
 }
 
-const FileEditor = () => {
+interface FileEditorProps {
+  initialProfile?: string;
+}
+
+const FileEditor = ({ initialProfile }: FileEditorProps) => {
   const { isAuthenticated, loading, user } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -343,14 +350,16 @@ const FileEditor = () => {
     setViewMode('code');
   }, [viewMode]);
 
-  /** Select a collaborator and switch to Form view (works even when re-clicking the same profile) */
+  /** Select a collaborator, switch to Form view, and sync the profile name into the URL. */
   const handleSelectCollaborator = useCallback((name: string) => {
     setSelectedCollaborator(name);
     setViewMode('form');
     setSelectedFile(null);
     setFileContent('');
     setUnsavedChanges(false);
-  }, []);
+    // Reflect the active profile in the URL so a page refresh restores the same profile.
+    router.replace(`${pathname}?profile=${encodeURIComponent(name)}`, { scroll: false });
+  }, [pathname, router]);
 
   const loadFileTree = useCallback(async (): Promise<Record<string, FileTreeItem> | null> => {
     if (!isAuthenticated) {
@@ -479,10 +488,21 @@ const FileEditor = () => {
     if (isAuthenticated) {
       loadFileTree().then(tree => {
         if (!tree) return;
-        const first = getFirstProfile(tree);
-        if (first) {
-          setSelectedCollaborator(first);
-          setExpandedFolders(new Set(['data', first]));
+        // Prefer the profile from the URL (?profile=…), fall back to the most-recently-modified one.
+        const profileToSelect =
+          (initialProfile && initialProfile in tree)
+            ? initialProfile
+            : getFirstProfile(tree);
+        if (profileToSelect) {
+          setSelectedCollaborator(profileToSelect);
+          setExpandedFolders(new Set(['data', profileToSelect]));
+          // If we fell back to a different profile than what's in the URL, sync the URL.
+          if (profileToSelect !== initialProfile) {
+            router.replace(
+              `${pathname}?profile=${encodeURIComponent(profileToSelect)}`,
+              { scroll: false },
+            );
+          }
         }
       });
     } else {
@@ -491,6 +511,7 @@ const FileEditor = () => {
       setFileContent('');
       setSelectedCollaborator(null);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, loadFileTree]);
 
   const toggleFolder = (folderPath: string) => {
