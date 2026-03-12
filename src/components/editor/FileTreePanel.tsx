@@ -46,6 +46,16 @@ interface FileTreePanelProps {
   onRenameCollaborator?: (oldName: string, newName: string) => void;
 }
 
+// Returns the most recent file modification timestamp inside a tree item (ms).
+// Folders themselves have no `modified` field, so we recurse into children.
+function getLatestModified(item: FileTreeItem): number {
+  if (item.type === 'file') {
+    return item.modified ? new Date(item.modified).getTime() : 0;
+  }
+  if (!item.children) return 0;
+  return Math.max(0, ...Object.values(item.children).map(getLatestModified));
+}
+
 const FileTreePanel: React.FC<FileTreePanelProps> = ({
   fileTree,
   selectedFile,
@@ -336,9 +346,11 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
           </div>
         ) : (
           <div className="space-y-1">
-            {Object.entries(fileTree).map(([name, item]) =>
-              renderFileTreeItem(name, name, item)
-            )}
+            {Object.entries(fileTree)
+              .sort(([, a], [, b]) => getLatestModified(b) - getLatestModified(a))
+              .map(([name, item]) =>
+                renderFileTreeItem(name, name, item)
+              )}
           </div>
         )}
       </div>
