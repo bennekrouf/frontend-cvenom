@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FiTrash2, FiAlertTriangle } from 'react-icons/fi';
 import { useTranslations } from 'next-intl';
 
@@ -30,6 +30,16 @@ const DeleteCollaboratorModal: React.FC<DeleteCollaboratorModalProps> = ({
       onClose();
     }
   };
+
+  // Close on Escape (blocked while deleting)
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, isDeleting]);
 
   if (!isOpen || !collaboratorName) return null;
 

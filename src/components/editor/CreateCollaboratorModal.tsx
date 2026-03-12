@@ -1,7 +1,7 @@
 // src/components/editor/CreateCollaboratorModal.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface CreateCollaboratorModalProps {
   isOpen: boolean;
@@ -28,6 +28,16 @@ const CreateCollaboratorModal: React.FC<CreateCollaboratorModalProps> = ({
     onClose();
     setNewPersonName('');
   };
+
+  // Close on Escape (blocked while loading)
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isLoading) handleClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, isLoading]);
 
   if (!isOpen) return null;
 

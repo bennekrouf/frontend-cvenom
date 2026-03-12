@@ -1,7 +1,7 @@
 // components/chat/AuthPromptModal.tsx
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FiUser } from 'react-icons/fi';
 import { FaMagic } from "react-icons/fa";
 
@@ -18,6 +18,16 @@ const AuthPromptModal: React.FC<AuthPromptModalProps> = ({
   onSignIn,
   isSigningIn,
 }) => {
+  // Close on Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (

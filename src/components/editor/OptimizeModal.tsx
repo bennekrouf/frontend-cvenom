@@ -66,6 +66,16 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
     setErrorMsg('');
   }, [isOpen]);
 
+  // Close on Escape (same guard as backdrop click)
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && phase !== 'optimizing' && !isGeneratingPdf) onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, phase, isGeneratingPdf, onClose]);
+
   if (!isOpen) return null;
 
   const isReady = Boolean(collaboratorName && jobUrl.trim());

@@ -59,6 +59,16 @@ const UploadPictureModal: React.FC<UploadPictureModalProps> = ({
     }
   }, [isOpen]);
 
+  // Close on Escape (blocked while uploading)
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isLoading) handleClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, isLoading]);
+
   if (!isOpen || !collaboratorName) return null;
 
   return (

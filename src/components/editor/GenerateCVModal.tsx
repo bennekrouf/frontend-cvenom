@@ -273,6 +273,16 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
     if (isOpen) fetchTemplates();
   }, [isOpen]);
 
+  // Close on Escape (blocked while generating)
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isGenerating) onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, isGenerating, onClose]);
+
   const fetchTemplates = async () => {
     setLoadingTemplates(true);
     try {
