@@ -338,16 +338,17 @@ const FileEditor = () => {
     setUnsavedChanges(false);
   }, []);
 
-  const loadFileTree = useCallback(async () => {
+  const loadFileTree = useCallback(async (): Promise<Record<string, FileTreeItem> | null> => {
     if (!isAuthenticated) {
       setFileTree(null);
-      return;
+      return null;
     }
 
     setIsLoading(true);
     try {
       const tree = await getTenantFileTree();
       setFileTree(tree);
+      return tree;
     } catch (error) {
       console.error('Error loading file tree:', error);
 
@@ -365,8 +366,10 @@ const FileEditor = () => {
 
       // Set empty tree instead of null for empty states
       setFileTree({});
+      return null;
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, [isAuthenticated, t]);
 
   const isEditableFile = (filename: string) => {
@@ -430,7 +433,17 @@ const FileEditor = () => {
 
   const handleUploadSuccess = useCallback(async (personName: string) => {
     setShowUploadZone(false);
-    await loadFileTree();
+
+    // The cv-import service may finish writing files slightly after returning success.
+    // Poll until the new profile appears in the file tree (max ~10s).
+    const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+    let found = false;
+    for (let attempt = 0; attempt < 10 && !found; attempt++) {
+      if (attempt > 0) await sleep(1000);
+      const tree = await loadFileTree();
+      found = !!(tree && personName in tree);
+    }
+
     setSelectedCollaborator(personName);
     setExpandedFolders(new Set(['data', personName]));
     showStatus(`CV converted successfully! Collaborator "${personName}" created`);
