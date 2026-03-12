@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import { FiDroplet, FiCamera } from 'react-icons/fi';
+import { useTranslations } from 'next-intl';
 import { SectionCard } from './SectionCard';
 import type { StylingData } from '@/types/cvFormData';
 
@@ -77,84 +78,88 @@ const Toggle: React.FC<{
 
 // ── Section ───────────────────────────────────────────────────────────────────
 
-export const StylingSection: React.FC<Props> = ({ data, onChange }) => (
-  <SectionCard icon={<FiDroplet className="h-4 w-4" />} title="Styling">
+export const StylingSection: React.FC<Props> = ({ data, onChange }) => {
+  const t = useTranslations('cvForm');
 
-    {/* Colour pickers */}
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <ColorPicker
-        id="color-primary"
-        label="Primary Colour"
-        value={data.primary_color}
-        onChange={(v) => onChange({ ...data, primary_color: v })}
-      />
-      <ColorPicker
-        id="color-secondary"
-        label="Secondary Colour"
-        value={data.secondary_color}
-        onChange={(v) => onChange({ ...data, secondary_color: v })}
-      />
-    </div>
+  return (
+    <SectionCard icon={<FiDroplet className="h-4 w-4" />} title={t('sectionStyling')}>
 
-    {/* Live preview swatch */}
-    <div className="mt-4 flex items-center gap-3 rounded-lg border border-border p-3">
-      <div className="flex items-center gap-2">
-        <span
-          className="h-6 w-6 rounded-full border border-border shadow-sm"
+      {/* Colour pickers */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ColorPicker
+          id="color-primary"
+          label={t('labelPrimaryColor')}
+          value={data.primary_color}
+          onChange={(v) => onChange({ ...data, primary_color: v })}
+        />
+        <ColorPicker
+          id="color-secondary"
+          label={t('labelSecondaryColor')}
+          value={data.secondary_color}
+          onChange={(v) => onChange({ ...data, secondary_color: v })}
+        />
+      </div>
+
+      {/* Live preview swatch */}
+      <div className="mt-4 flex items-center gap-3 rounded-lg border border-border p-3">
+        <div className="flex items-center gap-2">
+          <span
+            className="h-6 w-6 rounded-full border border-border shadow-sm"
+            style={{ backgroundColor: data.primary_color }}
+          />
+          <span className="text-xs text-muted-foreground">{t('previewPrimary')}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span
+            className="h-6 w-6 rounded-full border border-border shadow-sm"
+            style={{ backgroundColor: data.secondary_color }}
+          />
+          <span className="text-xs text-muted-foreground">{t('previewSecondary')}</span>
+        </div>
+        <div
+          className="ml-auto rounded-md px-3 py-1 text-xs font-medium text-white shadow-sm"
           style={{ backgroundColor: data.primary_color }}
-        />
-        <span className="text-xs text-muted-foreground">Primary</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <span
-          className="h-6 w-6 rounded-full border border-border shadow-sm"
-          style={{ backgroundColor: data.secondary_color }}
-        />
-        <span className="text-xs text-muted-foreground">Secondary</span>
-      </div>
-      <div
-        className="ml-auto rounded-md px-3 py-1 text-xs font-medium text-white shadow-sm"
-        style={{ backgroundColor: data.primary_color }}
-      >
-        Preview
-      </div>
-    </div>
-
-    {/* Divider */}
-    <div className="my-5 border-t border-border" />
-
-    {/* Photo toggle */}
-    <div className="flex items-start justify-between gap-4">
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted">
-          <FiCamera className="h-4 w-4 text-muted-foreground" />
+        >
+          {t('previewLabel')}
         </div>
-        <div>
-          <label
-            htmlFor="styling-show-photo"
-            className="cursor-pointer text-sm font-medium text-foreground"
-          >
-            Show profile photo
-          </label>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Displays your uploaded photo on the CV.{' '}
-            <span className="text-muted-foreground/60">
-              Upload via the ⋯ menu on your profile in the sidebar.
-            </span>
-          </p>
-          {data.show_photo && (
-            <p className="mt-2 inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
-              ⚠ Photos are common in CH/EU/Asia but uncommon in US/UK — check local norms.
+      </div>
+
+      {/* Divider */}
+      <div className="my-5 border-t border-border" />
+
+      {/* Photo toggle */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted">
+            <FiCamera className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div>
+            <label
+              htmlFor="styling-show-photo"
+              className="cursor-pointer text-sm font-medium text-foreground"
+            >
+              {t('showPhotoLabel')}
+            </label>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {t('showPhotoDesc')}{' '}
+              <span className="text-muted-foreground/60">
+                {t('showPhotoHint')}
+              </span>
             </p>
-          )}
+            {data.show_photo && (
+              <p className="mt-2 inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+                {t('photoNormsWarning')}
+              </p>
+            )}
+          </div>
         </div>
+        <Toggle
+          id="styling-show-photo"
+          checked={data.show_photo}
+          onChange={(v) => onChange({ ...data, show_photo: v })}
+        />
       </div>
-      <Toggle
-        id="styling-show-photo"
-        checked={data.show_photo}
-        onChange={(v) => onChange({ ...data, show_photo: v })}
-      />
-    </div>
 
-  </SectionCard>
-);
+    </SectionCard>
+  );
+};

@@ -1,15 +1,9 @@
 'use client';
 import React, { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { FiCode, FiPlus, FiTrash2 } from 'react-icons/fi';
 import { SectionCard, Field } from './SectionCard';
 import { TagInput } from './TagInput';
-
-const DISPLAY_LABELS: Record<string, string> = {
-  programming_languages: 'Programming Languages',
-  frameworks: 'Frameworks & Libraries',
-  tools: 'Tools & Platforms',
-  technical: 'Technical Skills',
-};
 
 interface Props {
   data: Record<string, string[]>;
@@ -17,6 +11,13 @@ interface Props {
 }
 
 export const SkillsSection: React.FC<Props> = ({ data, onChange }) => {
+  const t = useTranslations('cvForm');
+  const DISPLAY_LABELS: Record<string, string> = {
+    programming_languages: t('skillsProgrammingLanguages'),
+    frameworks: t('skillsFrameworks'),
+    tools: t('skillsTools'),
+    technical: t('skillsTechnical'),
+  };
   const [newCategory, setNewCategory] = useState('');
   const [showCategoryInput, setShowCategoryInput] = useState(false);
 
@@ -47,7 +48,7 @@ export const SkillsSection: React.FC<Props> = ({ data, onChange }) => {
   return (
     <SectionCard
       icon={<FiCode className="h-4 w-4" />}
-      title="Skills"
+      title={t('sectionSkills')}
       action={
         showCategoryInput ? (
           <div className="flex items-center gap-2">
@@ -58,7 +59,7 @@ export const SkillsSection: React.FC<Props> = ({ data, onChange }) => {
               onChange={(e) => setNewCategory(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addCategory()}
               onBlur={() => { if (!newCategory.trim()) setShowCategoryInput(false); }}
-              placeholder="Category name"
+              placeholder={t('placeholderCategoryName')}
               className="rounded-lg border border-border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
             <button
@@ -66,7 +67,7 @@ export const SkillsSection: React.FC<Props> = ({ data, onChange }) => {
               onClick={addCategory}
               className="rounded-lg bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
             >
-              Add
+              {t('add')}
             </button>
           </div>
         ) : (
@@ -76,7 +77,7 @@ export const SkillsSection: React.FC<Props> = ({ data, onChange }) => {
             className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
           >
             <FiPlus className="h-3.5 w-3.5" />
-            Add Category
+            {t('addCategory')}
           </button>
         )
       }
@@ -91,7 +92,7 @@ export const SkillsSection: React.FC<Props> = ({ data, onChange }) => {
               <TagInput
                 tags={data[key] ?? []}
                 onChange={(tags) => updateCategory(key, tags)}
-                placeholder="Add skill and press Enter…"
+                placeholder={t('placeholderAddSkill')}
               />
             </Field>
             {!defaultKeys.includes(key) && (
@@ -108,7 +109,7 @@ export const SkillsSection: React.FC<Props> = ({ data, onChange }) => {
         ))}
         {orderedKeys.length === 0 && (
           <p className="text-center text-sm text-muted-foreground py-2">
-            No skills yet — add categories above
+{t('noSkillsYet')}
           </p>
         )}
       </div>

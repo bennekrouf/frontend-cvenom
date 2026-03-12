@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { FiBookOpen, FiPlus, FiTrash2 } from 'react-icons/fi';
 import { SectionCard } from './SectionCard';
 import { InlineField } from './InlineField';
@@ -13,6 +14,7 @@ interface Props {
 const emptyEntry = (): EducationEntry => ({ title: '', date: '', location: '' });
 
 export const EducationSection: React.FC<Props> = ({ data, onChange }) => {
+  const t = useTranslations('cvForm');
   const update = (i: number, field: keyof EducationEntry) => (v: string) => {
     const next = [...data];
     next[i] = { ...data[i], [field]: v };
@@ -22,7 +24,7 @@ export const EducationSection: React.FC<Props> = ({ data, onChange }) => {
   return (
     <SectionCard
       icon={<FiBookOpen className="h-4 w-4" />}
-      title="Education"
+      title={t('sectionEducation')}
       action={
         <button
           type="button"
@@ -30,14 +32,14 @@ export const EducationSection: React.FC<Props> = ({ data, onChange }) => {
           className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
         >
           <FiPlus className="h-3.5 w-3.5" />
-          Add Education
+          {t('addEducation')}
         </button>
       }
     >
       <div className="space-y-3">
         {data.length === 0 && (
           <p className="text-center text-sm text-muted-foreground py-4">
-            No education entries yet — click "Add Education"
+{t('noEducationYet')}
           </p>
         )}
         {data.map((entry, i) => (
@@ -45,22 +47,22 @@ export const EducationSection: React.FC<Props> = ({ data, onChange }) => {
             <div className="flex items-start gap-2">
               <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-3">
                 <InlineField
-                  label="Degree / Diploma"
+                  label={t('labelDegree')}
                   value={entry.title}
-                  placeholder="B.Sc. Computer Science — MIT"
+                  placeholder={t('placeholderDegree')}
                   onChange={update(i, 'title')}
                   className="sm:col-span-3"
                 />
                 <InlineField
-                  label="Date"
+                  label={t('labelDate')}
                   value={entry.date}
-                  placeholder="2015 – 2019"
+                  placeholder={t('placeholderEducationDate')}
                   onChange={update(i, 'date')}
                 />
                 <InlineField
-                  label="Location"
+                  label={t('labelLocation')}
                   value={entry.location}
-                  placeholder="Cambridge, MA"
+                  placeholder={t('placeholderEducationLocation')}
                   onChange={update(i, 'location')}
                   className="sm:col-span-2"
                 />

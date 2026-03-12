@@ -1,5 +1,6 @@
 'use client';
 import React, { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { FiBriefcase, FiChevronDown, FiChevronUp, FiPlus, FiTrash2, FiArrowUp, FiArrowDown } from 'react-icons/fi';
 import { SectionCard, Field } from './SectionCard';
 import { InlineField } from './InlineField';
@@ -28,13 +29,14 @@ const ExperienceCard: React.FC<{
   onRemove: () => void;
   onMove: (dir: -1 | 1) => void;
 }> = ({ entry, index, total, onChange, onRemove, onMove }) => {
+  const t = useTranslations('cvForm');
   const [open, setOpen] = useState(index === 0);
   const set = (field: keyof WorkExperienceEntry) => (v: string) =>
     onChange({ ...entry, [field]: v });
 
   const header = entry.company
     ? `${entry.company}${entry.title ? ` · ${entry.title}` : ''}${entry.date ? ` · ${entry.date}` : ''}`
-    : 'New Experience';
+    : t('newExperience');
 
   return (
     <div className="rounded-lg border border-border bg-background overflow-hidden">
@@ -67,27 +69,27 @@ const ExperienceCard: React.FC<{
       {open && (
         <div className="border-t border-border px-4 pb-4 pt-3 space-y-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <InlineField label="Company"      value={entry.company}     placeholder="Acme Corp"           onChange={set('company')} />
-            <InlineField label="Job Title"    value={entry.title}       placeholder="Senior Engineer"     onChange={set('title')} />
+            <InlineField label={t('labelCompany')}   value={entry.company}     placeholder={t('placeholderCompany')}   onChange={set('company')} />
+            <InlineField label={t('labelJobTitle')}  value={entry.title}       placeholder={t('placeholderJobTitle')}  onChange={set('title')} />
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <InlineField label="Date Range"   value={entry.date}        placeholder="Jan 2020 – Present"  onChange={set('date')} />
-            <InlineField label="Company Desc" value={entry.description} placeholder="Leading tech company…" onChange={set('description')} />
+            <InlineField label={t('labelDateRange')}  value={entry.date}        placeholder={t('placeholderDateRange')}  onChange={set('date')} />
+            <InlineField label={t('labelCompanyDesc')} value={entry.description} placeholder={t('placeholderCompanyDesc')} onChange={set('description')} />
           </div>
 
-          <Field label="Responsibilities & Achievements">
+          <Field label={t('labelResponsibilities')}>
             <TagInput
               tags={entry.responsibilities}
               onChange={(tags) => onChange({ ...entry, responsibilities: tags })}
-              placeholder="Add responsibility…"
+              placeholder={t('placeholderResponsibility')}
             />
           </Field>
 
-          <Field label="Technologies Used">
+          <Field label={t('labelTechnologies')}>
             <TagInput
               tags={entry.technologies}
               onChange={(tags) => onChange({ ...entry, technologies: tags })}
-              placeholder="React, Rust, Docker…"
+              placeholder={t('placeholderTechnologies')}
             />
           </Field>
         </div>
@@ -97,6 +99,7 @@ const ExperienceCard: React.FC<{
 };
 
 export const WorkExperienceSection: React.FC<Props> = ({ data, onChange }) => {
+  const t = useTranslations('cvForm');
   const update = (i: number, entry: WorkExperienceEntry) => {
     const next = [...data];
     next[i] = entry;
@@ -115,7 +118,7 @@ export const WorkExperienceSection: React.FC<Props> = ({ data, onChange }) => {
   return (
     <SectionCard
       icon={<FiBriefcase className="h-4 w-4" />}
-      title="Work Experience"
+      title={t('sectionWorkExperience')}
       action={
         <button
           type="button"
@@ -123,14 +126,14 @@ export const WorkExperienceSection: React.FC<Props> = ({ data, onChange }) => {
           className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
         >
           <FiPlus className="h-3.5 w-3.5" />
-          Add Experience
+          {t('addExperience')}
         </button>
       }
     >
       <div className="space-y-3">
         {data.length === 0 && (
           <p className="text-center text-sm text-muted-foreground py-4">
-            No experience yet — click "Add Experience" to get started
+{t('noExperienceYet')}
           </p>
         )}
         {data.map((entry, i) => (
