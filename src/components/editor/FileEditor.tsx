@@ -15,6 +15,7 @@ import {
   FiTarget,
   FiList,
   FiMessageSquare,
+  FiFileText,
 } from 'react-icons/fi';
 import { useTranslations } from 'next-intl';
 import { useRouter, usePathname } from 'next/navigation';
@@ -730,6 +731,19 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
                 >
                   <FiTarget className="h-3.5 w-3.5 shrink-0" />
                   <span className="hidden lg:inline">Optimize</span>
+                </button>
+              )}
+
+              {/* Generate PDF */}
+              {isAuthenticated && (
+                <button
+                  onClick={() => setShowGenerateModal(true)}
+                  disabled={!selectedCollaborator}
+                  className="flex items-center gap-1.5 rounded-md bg-green-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  title={selectedCollaborator ? 'Generate CV as PDF' : 'Select a profile first'}
+                >
+                  <FiFileText className="h-3.5 w-3.5 shrink-0" />
+                  <span className="hidden lg:inline">Generate</span>
                 </button>
               )}
 
