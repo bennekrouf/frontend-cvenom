@@ -360,27 +360,73 @@ export class ChatRenderer {
 
     if (response.type !== 'data') return null;
 
-    const data = response.data as { message?: string } | undefined;
+    const data = response.data;
 
-    if (data?.message && typeof data.message === 'string') {
-      return React.createElement(
-        'div',
-        { className: 'text-sm' },
-        React.createElement(
-          'div',
-          { className: 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-3 rounded' },
-          React.createElement(
-            'div',
-            { className: 'text-blue-800 dark:text-blue-200 text-sm whitespace-pre-wrap' },
-            data.message
-          )
+    // ── Known response shapes ─────────────────────────────────────────────
+
+    // /api/me → { uid, email, name, tenant_name }
+    if (data && typeof data === 'object' && 'uid' in data) {
+      const u = data as { email?: string; name?: string; tenant_name?: string };
+      return React.createElement('div', { className: 'text-sm space-y-1' },
+        u.name && React.createElement('div', { className: 'font-medium' }, u.name),
+        u.email && React.createElement('div', { className: 'text-muted-foreground' }, u.email),
+        u.tenant_name && React.createElement('div', { className: 'text-xs text-muted-foreground' }, `Tenant: ${u.tenant_name}`),
+      );
+    }
+
+    // /api/payment/balance → { balance }
+    if (data && typeof data === 'object' && 'balance' in data && Object.keys(data as object).length <= 3) {
+      const b = data as { balance: number };
+      return React.createElement('div', { className: 'text-sm' },
+        React.createElement('span', { className: 'font-medium' }, '💳 Credits: '),
+        React.createElement('span', null, b.balance.toLocaleString()),
+      );
+    }
+
+    // /api/optimize → data: { optimized_typst, job_title, company_name, optimizations, keyword_analysis }
+    if (data && typeof data === 'object' && 'optimized_typst' in data) {
+      const o = data as { job_title?: string; company_name?: string; optimizations?: string[]; keyword_analysis?: string };
+      return React.createElement('div', { className: 'text-sm space-y-2' },
+        (o.job_title || o.company_name) && React.createElement('div', { className: 'font-medium' },
+          [o.job_title, o.company_name].filter(Boolean).join(' — ')),
+        o.optimizations?.length && React.createElement('div', null,
+          React.createElement('div', { className: 'text-xs font-medium text-muted-foreground mb-1' }, 'Optimizations applied:'),
+          ...o.optimizations.map((opt, i) => React.createElement('div', { key: i, className: 'text-xs' }, `• ${opt}`))
+        ),
+        o.keyword_analysis && React.createElement('div', { className: 'text-xs text-muted-foreground whitespace-pre-wrap' }, o.keyword_analysis),
+      );
+    }
+
+    // /api/translate → data: { translated_content }
+    if (data && typeof data === 'object' && 'translated_content' in data) {
+      const t = data as { translated_content: string };
+      return React.createElement('div', { className: 'text-sm' },
+        React.createElement('div', { className: 'text-xs text-muted-foreground mb-1' }, '✅ Translation complete'),
+        React.createElement('pre', { className: 'text-xs bg-muted p-2 rounded overflow-auto max-h-64 whitespace-pre-wrap' }, t.translated_content),
+      );
+    }
+
+    // /api/files/tree or cv-data → large raw object with no message field — show key summary
+    if (data && typeof data === 'object' && !('message' in (data as object))) {
+      const keys = Object.keys(data as object);
+      const summary = keys.length <= 6 ? keys.join(', ') : `${keys.slice(0, 5).join(', ')} … +${keys.length - 5} more`;
+      return React.createElement('div', { className: 'text-sm' },
+        React.createElement('div', { className: 'text-green-600 mb-1' }, `✅ ${message.content.split('\n')[0]}`),
+        React.createElement('div', { className: 'text-xs text-muted-foreground' }, summary),
+      );
+    }
+
+    // ── Fallback: message field in blue box ───────────────────────────────
+    const msgField = (data as { message?: string } | undefined)?.message;
+    if (msgField && typeof msgField === 'string') {
+      return React.createElement('div', { className: 'text-sm' },
+        React.createElement('div', { className: 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-3 rounded' },
+          React.createElement('div', { className: 'text-blue-800 dark:text-blue-200 text-sm whitespace-pre-wrap' }, msgField)
         )
       );
     }
 
-    return React.createElement(
-      'div',
-      { className: 'text-sm' },
+    return React.createElement('div', { className: 'text-sm' },
       React.createElement('div', { className: 'text-green-600' }, `✅ ${message.content}`)
     );
   }
