@@ -14,6 +14,7 @@ import {
   FiChevronLeft,
   FiTarget,
   FiList,
+  FiMessageSquare,
 } from 'react-icons/fi';
 import { useTranslations } from 'next-intl';
 import CVFormEditor, { type CVFormEditorHandle } from './CVFormEditor';
@@ -77,8 +78,8 @@ const FileEditor = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
 
-  // Form / Code view toggle
-  const [viewMode, setViewMode] = useState<'form' | 'code'>('form');
+  // Form / Code / Chat view toggle
+  const [viewMode, setViewMode] = useState<'form' | 'code' | 'chat'>('form');
   const cvFormEditorRef = useRef<CVFormEditorHandle>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -569,18 +570,22 @@ const FileEditor = () => {
 
             {/* ── Left zone: icon + name + subtitle (shrinks gracefully) ── */}
             <div className="flex min-w-0 flex-1 items-center gap-2">
-              {viewMode === 'form' && selectedCollaborator
+              {viewMode === 'chat'
+                ? <FiMessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
+                : viewMode === 'form' && selectedCollaborator
                 ? <FiList className="h-4 w-4 shrink-0 text-muted-foreground" />
                 : <FiCode className="h-4 w-4 shrink-0 text-muted-foreground" />
               }
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-foreground leading-tight">
-                  {selectedFile
+                  {selectedFile && viewMode === 'code'
                     ? selectedFile.split('/').pop()
                     : selectedCollaborator ?? 'CV Assistant'}
                 </p>
                 <p className="truncate text-xs text-muted-foreground leading-tight">
-                  {selectedCollaborator && viewMode === 'form'
+                  {viewMode === 'chat'
+                    ? 'Chat assistant'
+                    : selectedCollaborator && viewMode === 'form'
                     ? 'Form editor · auto-saves'
                     : selectedFile
                     ? `${selectedFile} · ${getFileLanguage(selectedFile)}`
@@ -603,7 +608,7 @@ const FileEditor = () => {
             {/* ── Right zone: fixed-width toolbar, never reflows ── */}
             <div className="flex shrink-0 items-center gap-1.5">
 
-              {/* Form / Code segmented toggle — only when a profile is active */}
+              {/* Form / Code / Chat segmented toggle — only when a profile is active */}
               {selectedCollaborator && isAuthenticated && (
                 <>
                   <div className="flex overflow-hidden rounded-md border border-border text-xs font-medium">
@@ -630,6 +635,18 @@ const FileEditor = () => {
                     >
                       <FiCode className="h-3 w-3" />
                       <span className="hidden sm:inline">Code</span>
+                    </button>
+                    <button
+                      onClick={() => setViewMode('chat')}
+                      className={`flex items-center gap-1 border-l border-border px-2.5 py-1.5 transition-colors ${
+                        viewMode === 'chat'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
+                      }`}
+                      title="Switch to Chat assistant"
+                    >
+                      <FiMessageSquare className="h-3 w-3" />
+                      <span className="hidden sm:inline">Chat</span>
                     </button>
                   </div>
                   <div className="h-5 w-px bg-border" />
@@ -672,12 +689,12 @@ const FileEditor = () => {
                 <span className="hidden md:inline">{t('addCollaborator')}</span>
               </button>
 
-              {/* Save — always rendered to keep width stable; invisible in form mode */}
+              {/* Save — always rendered to keep width stable; invisible in form/chat mode */}
               <button
                 onClick={saveFile}
-                disabled={viewMode === 'form' || !selectedFile || !unsavedChanges || !isAuthenticated}
+                disabled={viewMode !== 'code' || !selectedFile || !unsavedChanges || !isAuthenticated}
                 className={`flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 ${
-                  viewMode === 'form' ? 'invisible' : ''
+                  viewMode !== 'code' ? 'invisible' : ''
                 }`}
                 title={
                   !isAuthenticated ? t('signInToSaveFiles') :
@@ -713,8 +730,24 @@ const FileEditor = () => {
                 </button>
               </div>
             </div>
-          ) : selectedCollaborator && (viewMode === 'form' || !selectedFile) ? (
-            /* ── Form editor — default when collaborator selected and no file open ── */
+          ) : !fileTree || Object.keys(fileTree).length === 0 ? (
+            /* ── No profiles yet — prompt to upload ── */
+            <div className="h-full flex items-center justify-center p-4">
+              <div className="text-center max-w-md">
+                <CVUploadDropZone onUploadSuccess={handleUploadSuccess} />
+                <p className="text-xs text-muted-foreground mt-4">
+                  Supported format: .docx files only
+                </p>
+              </div>
+            </div>
+          ) : viewMode === 'chat' ? (
+            /* ── Chat assistant (explicit mode) ── */
+            <ChatComponent
+              isVisible={true}
+              isAuthenticated={isAuthenticated}
+            />
+          ) : selectedCollaborator && viewMode === 'form' ? (
+            /* ── Form editor ── */
             <CVFormEditor
               ref={cvFormEditorRef}
               profileName={selectedCollaborator}
@@ -731,20 +764,10 @@ const FileEditor = () => {
                 spellCheck={false}
               />
             </div>
-          ) : !fileTree || Object.keys(fileTree).length === 0 ? (
-            /* ── No profiles yet — prompt to upload ── */
-            <div className="h-full flex items-center justify-center p-4">
-              <div className="text-center max-w-md">
-                <CVUploadDropZone onUploadSuccess={handleUploadSuccess} />
-                <p className="text-xs text-muted-foreground mt-4">
-                  Supported format: .docx files only
-                </p>
-              </div>
-            </div>
           ) : (
-            /* ── Chat assistant (no file open, code mode, no profile) ── */
+            /* ── Fallback: chat when no profile selected or code with no file ── */
             <ChatComponent
-              isVisible={!selectedFile}
+              isVisible={true}
               isAuthenticated={isAuthenticated}
             />
           )}
