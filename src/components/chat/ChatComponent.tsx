@@ -3,6 +3,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { FaMagic } from "react-icons/fa";
+import { FiTrash2 } from 'react-icons/fi';
 import { signInWithGoogle } from '@/lib/firebase';
 import { useAPI0Chat } from '@/hooks/useAPI0Chat';
 import { useTranslations } from 'next-intl';
@@ -32,7 +33,7 @@ interface ChatComponentProps {
 
 const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticated }) => {
   const t = useTranslations('chat');
-  const { saveChat, loadChat } = useChatPersistence();
+  const { saveChat, loadChat, clearChat } = useChatPersistence();
 
   // State management
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
@@ -152,6 +153,12 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
     setShowSuggestions(false);
   };
 
+  // Flush conversation
+  const handleFlushChat = () => {
+    clearChat();
+    setMessages([messageUtils.createWelcomeMessage(isAuthenticated, t)]);
+  };
+
   // Message sending
   const handleSendMessage = async () => {
     if (!inputValue.trim() && attachments.length === 0) return;
@@ -246,6 +253,20 @@ const ChatComponent: React.FC<ChatComponentProps> = ({ isVisible, isAuthenticate
         onSignIn={handleSignIn}
         isSigningIn={isSigningIn}
       />
+
+      {/* Chat toolbar */}
+      {messages.length > 1 && (
+        <div className="flex items-center justify-end px-4 py-1.5 border-b border-border">
+          <button
+            onClick={handleFlushChat}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-destructive transition-colors"
+            title="Clear conversation"
+          >
+            <FiTrash2 className="w-3.5 h-3.5" />
+            <span>Clear</span>
+          </button>
+        </div>
+      )}
 
       {/* Messages Area */}
       <div
