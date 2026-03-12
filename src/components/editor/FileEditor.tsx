@@ -50,6 +50,20 @@ interface FileTreeItem {
   children?: Record<string, FileTreeItem>;
 }
 
+/** Mirror of FileTreePanel's sort — picks the most-recently-modified profile name. */
+function getLatestModified(item: FileTreeItem): number {
+  if (item.type === 'file') return item.modified ? new Date(item.modified).getTime() : 0;
+  if (!item.children) return 0;
+  return Math.max(0, ...Object.values(item.children).map(getLatestModified));
+}
+
+function getFirstProfile(tree: Record<string, FileTreeItem>): string | null {
+  const profiles = Object.entries(tree)
+    .filter(([, item]) => item.type === 'folder')
+    .sort(([, a], [, b]) => getLatestModified(b) - getLatestModified(a));
+  return profiles.length > 0 ? profiles[0][0] : null;
+}
+
 const FileEditor = () => {
   const { isAuthenticated, loading, user } = useAuth();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -463,7 +477,14 @@ const FileEditor = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      loadFileTree();
+      loadFileTree().then(tree => {
+        if (!tree) return;
+        const first = getFirstProfile(tree);
+        if (first) {
+          setSelectedCollaborator(first);
+          setExpandedFolders(new Set(['data', first]));
+        }
+      });
     } else {
       setFileTree(null);
       setSelectedFile(null);
