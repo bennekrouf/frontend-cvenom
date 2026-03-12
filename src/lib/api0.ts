@@ -115,6 +115,22 @@ interface API0AnalysisResult {
   parameters: API0Parameter[];
   path: string;
   verb: string;
+  /** Token usage from the gRPC/LLM call — camelCase as serialised by prost/tonic */
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+    model: string;
+    estimated: boolean;
+  };
+}
+
+/** Normalised token usage (snake_case) forwarded through StandardApiResponse. */
+export interface TokenUsage {
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  model: string;
 }
 
 interface ExecutionResult {
@@ -132,6 +148,7 @@ export type StandardApiResponse =
     success: true;
     message: string;
     conversation_id?: string;
+    usage?: TokenUsage;
   }
   | {
     type: 'file';
@@ -142,6 +159,7 @@ export type StandardApiResponse =
     download_url?: string;
     blob_data?: Blob;
     conversation_id?: string;
+    usage?: TokenUsage;
   }
   | {
     type: 'data';
@@ -149,6 +167,7 @@ export type StandardApiResponse =
     message: string;
     data: unknown;
     conversation_id?: string;
+    usage?: TokenUsage;
   }
   | {
     type: 'action';
@@ -157,6 +176,7 @@ export type StandardApiResponse =
     action?: string;
     next_actions?: string[];
     conversation_id?: string;
+    usage?: TokenUsage;
   }
   | {
     type: 'error';
@@ -310,6 +330,17 @@ export async function processCommand(
 
     const match = results[0];
 
+    // Normalise token usage from camelCase (proto JSON) to snake_case
+    const rawUsage = match.usage;
+    const usage: TokenUsage | undefined = rawUsage?.totalTokens
+      ? {
+          input_tokens: rawUsage.inputTokens,
+          output_tokens: rawUsage.outputTokens,
+          total_tokens: rawUsage.totalTokens,
+          model: rawUsage.model,
+        }
+      : undefined;
+
     // Handle conversation responses
     if (match.intent !== 0 || match.api_group_id === 'conversation') {
       const json = JSON.parse(match.json_output);
@@ -319,7 +350,8 @@ export async function processCommand(
           type: 'text',
           success: true,
           message: json.response || json.content,
-          conversation_id: match.conversation_id
+          conversation_id: match.conversation_id,
+          ...(usage && { usage }),
         }
       };
     }
@@ -332,7 +364,8 @@ export async function processCommand(
           type: 'text',
           success: true,
           message: match.user_prompt,
-          conversation_id: match.conversation_id
+          conversation_id: match.conversation_id,
+          ...(usage && { usage }),
         }
       };
     }
@@ -368,7 +401,8 @@ export async function processCommand(
               filename: result.filename || 'generated.pdf',
               download_url: url,
               blob_data: result.blob,
-              conversation_id: result.conversation_id
+              conversation_id: result.conversation_id,
+              ...(usage && { usage }),
             }
           };
         }
@@ -390,9 +424,10 @@ export async function processCommand(
           data: {
             type: 'data',
             success: true,
-            message: JSON.stringify(jsonData, null, 2), // Show actual data instead of generic message
+            message: JSON.stringify(jsonData, null, 2),
             data: jsonData,
-            conversation_id: result.conversation_id
+            conversation_id: result.conversation_id,
+            ...(usage && { usage }),
           }
         };
 
@@ -403,7 +438,8 @@ export async function processCommand(
             type: 'text',
             success: true,
             message: result.content || 'Operation completed',
-            conversation_id: result.conversation_id
+            conversation_id: result.conversation_id,
+            ...(usage && { usage }),
           }
         };
     }

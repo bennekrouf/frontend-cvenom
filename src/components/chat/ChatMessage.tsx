@@ -45,6 +45,15 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, onPDFDownload }) => 
               }`}>
               {formatTime(message.timestamp)}
             </p>
+            {message.role === 'assistant' &&
+              message.response?.success &&
+              message.response.usage && (
+              <p className="text-[10px] text-muted-foreground/50 mt-0.5 select-none tabular-nums">
+                ↑&nbsp;{message.response.usage.input_tokens.toLocaleString()}
+                {' · '}↓&nbsp;{message.response.usage.output_tokens.toLocaleString()} tokens
+                {' · '}{message.response.usage.model}
+              </p>
+            )}
           </div>
 
           {message.role === 'user' && (
