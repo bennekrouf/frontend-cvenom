@@ -3,6 +3,11 @@ import React from 'react';
 import type { ChatMessage } from '@/types/chat';
 import { StandardApiResponse } from './api0';
 
+// Declared at module level so React.lazy is only called once.
+// Calling React.lazy() inside a render function creates a new lazy component
+// reference on every render, causing Suspense to flash "Loading..." on every keystroke.
+const ReactMarkdown = React.lazy(() => import('react-markdown'));
+
 // ============================================================================
 // RESPONSE FORMATTING (from chatResponseFormatter.ts)
 // ============================================================================
@@ -389,9 +394,6 @@ export class ChatRenderer {
       message.content.includes('- ');
 
     if (hasMarkdownSyntax) {
-      // Dynamic import for ReactMarkdown
-      const ReactMarkdown = React.lazy(() => import('react-markdown'));
-
       return React.createElement(
         'div',
         { className: 'prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-ul:text-foreground prose-li:text-foreground' },
