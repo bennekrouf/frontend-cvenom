@@ -255,19 +255,35 @@ async function analyze(sentence: string, attachments: FileAttachment[] = []): Pr
 
 async function execute(endpoint: API0AnalysisResult, params: Record<string, string>): Promise<ExecutionResult> {
   const token = await getAuth().currentUser?.getIdToken();
+  const apiUrl = getApiUrl();
 
-  // Override the base URL from API0 response with actual backend URL
-  const apiUrl = getApiUrl(); // This gets cvenom backend URL
-  const fullUrl = `${apiUrl.replace(/\/$/, '')}${endpoint.path}`;
+  // 1. Substitute path parameters: /api/profiles/{profile}/rename → /api/profiles/john-doe/rename
+  const pathParams = new Set<string>();
+  const resolvedPath = endpoint.path.replace(/\{(\w+)\}/g, (_, key) => {
+    const val = params[key];
+    if (val) { pathParams.add(key); return encodeURIComponent(val); }
+    return `{${key}}`; // leave unresolved if value missing
+  });
 
-  const res = await fetch(fullUrl, { // Use fullUrl instead of endpoint.base + endpoint.path
+  // 2. For GET/DELETE, append remaining params as query string
+  const isBodyMethod = ['POST', 'PUT', 'PATCH'].includes(endpoint.verb);
+  const queryParams = isBodyMethod
+    ? {}
+    : Object.fromEntries(Object.entries(params).filter(([k]) => !pathParams.has(k)));
+  const queryString = Object.keys(queryParams).length
+    ? '?' + new URLSearchParams(queryParams).toString()
+    : '';
+
+  const fullUrl = `${apiUrl.replace(/\/$/, '')}${resolvedPath}${queryString}`;
+
+  const res = await fetch(fullUrl, {
     method: endpoint.verb,
     headers: {
       'Authorization': token ? `Bearer ${token}` : '',
       'Content-Type': 'application/json'
     },
-    body: ['POST', 'PUT', 'PATCH'].includes(endpoint.verb)
-      ? JSON.stringify({ ...params, conversation_id: endpoint.conversation_id })
+    body: isBodyMethod
+      ? JSON.stringify({ ...Object.fromEntries(Object.entries(params).filter(([k]) => !pathParams.has(k))), conversation_id: endpoint.conversation_id })
       : undefined
   });
 
@@ -409,16 +425,22 @@ export async function processCommand(
         break;
 
       case 'json':
-        // Check if the JSON response is an error from your backend
         const jsonData = result.data;
-        if (jsonData && typeof jsonData === 'object' && 'type' in jsonData && jsonData.type === 'error') {
-          return {
-            success: true,
-            data: jsonData as StandardApiResponse
-          };
+
+        // If the backend already returns a StandardApiResponse shape (has a recognised type
+        // field), pass it through directly so next_actions, nested data, etc. are preserved.
+        if (jsonData && typeof jsonData === 'object' && 'type' in jsonData) {
+          const responseType = (jsonData as { type: string }).type;
+          if (['text', 'file', 'data', 'action', 'error'].includes(responseType)) {
+            return {
+              success: (jsonData as { success?: boolean }).success !== false,
+              data: { ...(jsonData as StandardApiResponse), ...(usage && { usage }) },
+            };
+          }
         }
 
-        // For non-error JSON responses, show the data without generic message
+        // Raw JSON (no StandardApiResponse envelope) — wrap in a data response
+        // with a human-friendly formatted message.
         return {
           success: true,
           data: {
