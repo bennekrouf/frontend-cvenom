@@ -192,7 +192,12 @@
     "generate": "Generate",
     "formEditorSubtitle": "Form editor · auto-saves",
     "chatSubtitle": "Chat assistant",
-    "codeViewSubtitle": "Code view · select a file"
+    "codeViewSubtitle": "Code view · select a file",
+    "createProfileTitle": "New Profile",
+    "profileNameLabel": "Profile Name",
+    "profileNameHint": "Use lowercase with hyphens (e.g., john-doe)",
+    "createProfileButton": "Create",
+    "creating": "Creating..."
   },
   "credits": {
     "buttonLabel": "Credits",
