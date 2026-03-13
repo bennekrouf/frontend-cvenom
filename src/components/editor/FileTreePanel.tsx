@@ -18,15 +18,7 @@ import {
 } from 'react-icons/fi';
 import { useTranslations } from 'next-intl';
 import { User } from 'firebase/auth';
-
-// Backend may return modified as a plain number (new) or Rust SystemTime struct (legacy)
-type RustSystemTime = { secs_since_epoch: number; nanos_since_epoch: number };
-interface FileTreeItem {
-  type: 'file' | 'folder';
-  size?: number;
-  modified?: number | RustSystemTime;
-  children?: Record<string, FileTreeItem>;
-}
+import { FileTreeItem, RustSystemTime } from '@/lib/api';
 
 interface FileTreePanelProps {
   fileTree: Record<string, FileTreeItem> | null;
