@@ -416,14 +416,16 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
                   <button
                     key={item.value}
                     onClick={() => handleAmountSelect(item.value)}
-                    className={`relative flex flex-col items-center rounded-lg border-2 p-3 transition-all ${
+                    className={`relative flex flex-col items-center rounded-lg border-2 px-3 pb-3 transition-all ${
+                      item.badgeKey ? 'pt-5' : 'pt-3'
+                    } ${
                       selected
                         ? 'border-primary bg-primary/5 text-primary'
                         : 'border-border hover:border-primary/40'
                     }`}
                   >
                     {item.badgeKey && (
-                      <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
                         {t(item.badgeKey)}
                       </span>
                     )}
