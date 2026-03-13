@@ -782,7 +782,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
               <div className="text-center max-w-md">
                 <CVUploadDropZone onUploadSuccess={handleUploadSuccess} />
                 <p className="text-xs text-muted-foreground mt-4">
-                  Supported format: .docx files only
+                  {t('supportsPDFWord')}
                 </p>
               </div>
             </div>
