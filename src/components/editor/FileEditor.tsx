@@ -629,11 +629,9 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
                 </p>
                 <p className="truncate text-xs text-muted-foreground leading-tight">
                   {viewMode === 'chat'
-                    ? 'Chat assistant'
+                    ? t('chatSubtitle')
                     : selectedCollaborator && viewMode === 'form'
                     ? t('formEditorSubtitle')
-                    : viewMode === 'chat'
-                    ? t('chatSubtitle')
                     : selectedFile
                     ? `${selectedFile} · ${getFileLanguage(selectedFile)}`
                     : selectedCollaborator
