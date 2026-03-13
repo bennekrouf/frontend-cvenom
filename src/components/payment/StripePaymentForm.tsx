@@ -69,16 +69,17 @@ function useIsDark(): boolean {
 const CREDIT_ACTIONS = [
   { icon: FiFileText, labelKey: 'actionExportPdf' as const, cost: 1 },
   { icon: FiGlobe,    labelKey: 'actionTranslate' as const,  cost: 1 },
-  { icon: FiZap,      labelKey: 'actionOptimize' as const,   cost: 2 },
+  { icon: FiZap,      labelKey: 'actionOptimize' as const,   cost: 1 },
 ];
 
 // ── Quick-select amounts (currency-agnostic whole units) ──────────────────────
+// Pricing: 1 credit = $0.25 → $1 = 4 credits → $5 = 20 credits = 20 CV generations
 
 const QUICK_AMOUNTS = [
-  { value: 5,  credits: 500,  badgeKey: null },
-  { value: 10, credits: 1000, badgeKey: 'badgePopular' as const },
-  { value: 25, credits: 2500, badgeKey: 'badgeBestValue' as const },
-  { value: 50, credits: 5000, badgeKey: 'badgePowerUser' as const },
+  { value: 5,  credits: 20,  badgeKey: null },
+  { value: 10, credits: 40,  badgeKey: 'badgePopular' as const },
+  { value: 25, credits: 100, badgeKey: 'badgeBestValue' as const },
+  { value: 50, credits: 200, badgeKey: 'badgePowerUser' as const },
 ];
 
 // ── Currency picker ───────────────────────────────────────────────────────────
@@ -460,7 +461,7 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
                       {item.credits.toLocaleString()} {t('creditsUnit')}
                     </span>
                     <span className="text-[11px] text-muted-foreground/80">
-                      {t('optimizationsCount', { count: (item.value * 50).toLocaleString() })}
+                      {t('optimizationsCount', { count: item.credits.toLocaleString() })}
                     </span>
                   </button>
                 );
@@ -489,7 +490,7 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
               {useCustom && finalAmount() >= 1 && (
                 <p className="text-xs text-muted-foreground">
                   = {Math.round(finalAmount() * 100).toLocaleString()} {t('creditsUnit')} ·{' '}
-                  {t('optimizationsCount', { count: Math.floor(finalAmount() * 50).toLocaleString() })}
+                  {t('optimizationsCount', { count: Math.round(finalAmount() * 4).toLocaleString() })}
                 </p>
               )}
             </div>
