@@ -256,9 +256,11 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
 
         {isFolder && isExpanded && item.children && (
           <div>
-            {Object.entries(item.children).map(([childName, childItem]) =>
-              renderFileTreeItem(childName, `${path}/${childName}`, childItem, level + 1)
-            )}
+            {Object.entries(item.children)
+              .sort(([, a], [, b]) => getLatestModified(b) - getLatestModified(a))
+              .map(([childName, childItem]) =>
+                renderFileTreeItem(childName, `${path}/${childName}`, childItem, level + 1)
+              )}
           </div>
         )}
       </div>
