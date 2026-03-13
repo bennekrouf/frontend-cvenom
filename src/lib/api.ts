@@ -39,7 +39,7 @@ export interface AuthError {
 export interface FileTreeItem {
   type: 'file' | 'folder';
   size?: number;
-  modified?: Date;
+  modified?: number; // Unix epoch seconds from backend
   children?: Record<string, FileTreeItem>;
 }
 

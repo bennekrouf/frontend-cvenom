@@ -22,7 +22,7 @@ import { User } from 'firebase/auth';
 interface FileTreeItem {
   type: 'file' | 'folder';
   size?: number;
-  modified?: Date;
+  modified?: number; // Unix epoch seconds from backend
   children?: Record<string, FileTreeItem>;
 }
 
@@ -51,9 +51,10 @@ interface FileTreePanelProps {
 
 // Returns the most recent file modification timestamp inside a tree item (ms).
 // Folders themselves have no `modified` field, so we recurse into children.
+// `modified` is Unix epoch seconds from the backend, so multiply by 1000 for ms.
 function getLatestModified(item: FileTreeItem): number {
   if (item.type === 'file') {
-    return item.modified ? new Date(item.modified).getTime() : 0;
+    return item.modified ? item.modified * 1000 : 0;
   }
   if (!item.children) return 0;
   return Math.max(0, ...Object.values(item.children).map(getLatestModified));
