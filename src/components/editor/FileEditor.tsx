@@ -11,7 +11,6 @@ import {
   FiUser,
   FiUpload,
   FiMenu,
-  FiChevronLeft,
   FiTarget,
   FiList,
   FiMessageSquare,
@@ -582,17 +581,6 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
         ${sidebarOpen && !isMobile ? 'w-80' : 'w-0'}
         bg-card border-r border-border flex flex-col
       `}>
-        {/* Toggle Button inside Sidebar */}
-        {sidebarOpen && (
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="absolute top-4 right-4 z-10 p-2 bg-background border border-border rounded-md shadow-sm hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
-            title="Close sidebar"
-          >
-            <FiChevronLeft className="w-4 h-4" />
-          </button>
-        )}
-
         {sidebarOpen && (
           <FileTreePanel
             fileTree={fileTree}
@@ -614,6 +602,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
             onDeleteCollaborator={() => setShowDeleteModal(true)}
             onShowGenerateModal={() => setShowGenerateModal(true)}
             onRenameCollaborator={handleRenameCollaborator}
+            onCloseSidebar={() => setSidebarOpen(false)}
           />
         )}
       </div>
@@ -642,11 +631,13 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
                   {viewMode === 'chat'
                     ? 'Chat assistant'
                     : selectedCollaborator && viewMode === 'form'
-                    ? 'Form editor · auto-saves'
+                    ? t('formEditorSubtitle')
+                    : viewMode === 'chat'
+                    ? t('chatSubtitle')
                     : selectedFile
                     ? `${selectedFile} · ${getFileLanguage(selectedFile)}`
                     : selectedCollaborator
-                    ? 'Code view · select a file'
+                    ? t('codeViewSubtitle')
                     : isAuthenticated ? t('cvAssistantEnabled') : t('cvAssistantSignIn')}
                 </p>
               </div>
@@ -675,10 +666,10 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
                       }`}
-                      title="Switch to Form editor"
+                      title={t('viewForm')}
                     >
                       <FiList className="h-3 w-3" />
-                      <span className="hidden sm:inline">Form</span>
+                      <span className="hidden sm:inline">{t('viewForm')}</span>
                     </button>
                     <button
                       onClick={switchToCode}
@@ -687,10 +678,10 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
                       }`}
-                      title="Switch to Code editor"
+                      title={t('viewCode')}
                     >
                       <FiCode className="h-3 w-3" />
-                      <span className="hidden sm:inline">Code</span>
+                      <span className="hidden sm:inline">{t('viewCode')}</span>
                     </button>
                     <button
                       onClick={() => setViewMode('chat')}
@@ -699,10 +690,10 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
                       }`}
-                      title="Switch to Chat assistant"
+                      title={t('viewChat')}
                     >
                       <FiMessageSquare className="h-3 w-3" />
-                      <span className="hidden sm:inline">Chat</span>
+                      <span className="hidden sm:inline">{t('viewChat')}</span>
                     </button>
                   </div>
                   <div className="h-5 w-px bg-border" />
@@ -730,7 +721,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
                   title={selectedCollaborator ? 'Optimize CV for a job posting URL' : 'Select a profile first'}
                 >
                   <FiTarget className="h-3.5 w-3.5 shrink-0" />
-                  <span className="hidden lg:inline">Optimize</span>
+                  <span className="hidden lg:inline">{t('optimize')}</span>
                 </button>
               )}
 
@@ -740,10 +731,10 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
                   onClick={() => setShowGenerateModal(true)}
                   disabled={!selectedCollaborator}
                   className="flex items-center gap-1.5 rounded-md bg-green-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
-                  title={selectedCollaborator ? 'Generate CV as PDF' : 'Select a profile first'}
+                  title={selectedCollaborator ? t('generate') : 'Select a profile first'}
                 >
                   <FiFileText className="h-3.5 w-3.5 shrink-0" />
-                  <span className="hidden lg:inline">Generate</span>
+                  <span className="hidden lg:inline">{t('generate')}</span>
                 </button>
               )}
 

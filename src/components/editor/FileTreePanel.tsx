@@ -6,6 +6,7 @@ import {
   FiFile,
   FiChevronRight,
   FiChevronDown,
+  FiChevronLeft,
   FiRefreshCw,
   FiToggleLeft,
   FiToggleRight,
@@ -15,6 +16,7 @@ import {
   FiTrash2,
   FiCheck,
 } from 'react-icons/fi';
+import { useTranslations } from 'next-intl';
 import { User } from 'firebase/auth';
 
 interface FileTreeItem {
@@ -44,6 +46,7 @@ interface FileTreePanelProps {
   onDeleteCollaborator: () => void;
   onShowGenerateModal: () => void;
   onRenameCollaborator?: (oldName: string, newName: string) => void;
+  onCloseSidebar: () => void;
 }
 
 // Returns the most recent file modification timestamp inside a tree item (ms).
@@ -74,7 +77,9 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
   onShowUploadModal,
   onShowGenerateModal,
   onRenameCollaborator,
+  onCloseSidebar,
 }) => {
+  const t = useTranslations('fileEditor');
   const [renamingCollaborator, setRenamingCollaborator] = useState<string | null>(null);
   const [newCollaboratorName, setNewCollaboratorName] = useState('');
 
@@ -262,10 +267,21 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
 
   return (
     <div className="h-full flex flex-col w-80">
-      {/* Header - starts from top with space for toggle button */}
-      <div className="p-4 border-b border-border pt-12 pr-16">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-foreground">Profiles</h2>
+      {/* Header */}
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center justify-between mb-2">
+          {/* Left: close button + title */}
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={onCloseSidebar}
+              className="p-1.5 hover:bg-secondary rounded-md transition-colors text-muted-foreground hover:text-foreground"
+              title={t('closeSidebar')}
+            >
+              <FiChevronLeft className="w-4 h-4" />
+            </button>
+            <h2 className="text-lg font-semibold text-foreground">{t('profiles')}</h2>
+          </div>
+          {/* Right: refresh + autosave */}
           <div className="flex gap-2">
             <button
               onClick={onLoadFileTree}
@@ -274,9 +290,9 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
               title={
                 isAuthenticated
                   ? isLoading
-                    ? 'Refreshing file tree...'
-                    : 'Refresh file tree from server'
-                  : 'Sign in to refresh files'
+                    ? t('refreshingFileTree')
+                    : t('refreshFileTree')
+                  : t('signInToRefresh')
               }
             >
               <FiRefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -288,11 +304,8 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
                 }`}
               title={
                 isAuthenticated
-                  ? `Auto-save: ${autoSaveEnabled
-                    ? 'ON - Files automatically save 10 seconds after editing'
-                    : 'OFF - Files must be saved manually with Ctrl+S or Save button'
-                  }`
-                  : 'Sign in to enable auto-save feature'
+                  ? `${t('autoSave')}: ${autoSaveEnabled ? t('autoSaveOn') : t('autoSaveOff')}`
+                  : t('signInToEnableAutoSave')
               }
             >
               {autoSaveEnabled && isAuthenticated ? (
@@ -305,15 +318,10 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
         </div>
 
         <div className="text-xs text-muted-foreground">
-          {isAuthenticated ? (
-            <>
-              <span className="font-medium">Editable:</span> .typ, .toml files
-              <br />
-              <span className="font-medium">Upload:</span> PDF, DOCX → auto-convert
-            </>
-          ) : (
-            'Sign in to view and edit your files'
-          )}
+          {isAuthenticated
+            ? `${t('editableFilesDesc')} · ${t('uploadFilesDesc')}`
+            : t('signInToViewFiles2')
+          }
         </div>
       </div>
 

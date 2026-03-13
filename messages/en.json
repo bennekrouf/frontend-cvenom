@@ -179,7 +179,20 @@
     "goodMorning": "Good morning",
     "goodAfternoon": "Good afternoon",
     "goodEvening": "Good evening",
-    "readyToCreateCVs": "Ready to create amazing CVs?"
+    "readyToCreateCVs": "Ready to create amazing CVs?",
+    "profiles": "Profiles",
+    "closeSidebar": "Close sidebar",
+    "editableFilesDesc": ".typ, .toml",
+    "uploadFilesDesc": "PDF, DOCX",
+    "signInToViewFiles2": "Sign in to view and edit your files",
+    "viewForm": "Form",
+    "viewCode": "Code",
+    "viewChat": "Chat",
+    "optimize": "Optimize",
+    "generate": "Generate",
+    "formEditorSubtitle": "Form editor · auto-saves",
+    "chatSubtitle": "Chat assistant",
+    "codeViewSubtitle": "Code view · select a file"
   },
   "cvForm": {
     "loadingCvData": "Loading CV data…",
