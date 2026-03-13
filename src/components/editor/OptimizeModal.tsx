@@ -235,9 +235,18 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
                 placeholder="Copy the full job description from LinkedIn and paste it here…"
                 className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 disabled:opacity-50 placeholder:text-muted-foreground resize-y"
               />
-              <p className="mt-1 text-xs text-muted-foreground">
-                When a description is pasted, the URL is used for reference only — scraping is skipped.
-              </p>
+              {isLinkedInUrl(jobUrl) ? (
+                <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
+                  On LinkedIn: scroll to the{' '}
+                  <span className="font-medium text-foreground">"About the job"</span> section
+                  → select all text (<kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[10px]">Ctrl+A</kbd> won&apos;t work) →{' '}
+                  <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[10px]">Ctrl+C</kbd> → paste here.
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  When a description is pasted, the URL is used for reference only — scraping is skipped.
+                </p>
+              )}
             </div>
           )}
 
