@@ -32,6 +32,7 @@ import {
   FiChevronDown,
 } from 'react-icons/fi';
 import { createPaymentIntent, confirmPayment } from '@/lib/paymentService';
+import { useTranslations } from 'next-intl';
 import {
   detectCurrency,
   formatAmount,
@@ -52,18 +53,18 @@ function getStripePromise(publishableKey: string): Promise<Stripe | null> {
 // ── Credit actions reference ──────────────────────────────────────────────────
 
 const CREDIT_ACTIONS = [
-  { icon: FiFileText, label: 'Export PDF', cost: 1 },
-  { icon: FiGlobe,    label: 'Translate',  cost: 1 },
-  { icon: FiZap,      label: 'Optimize',   cost: 2 },
-] as const;
+  { icon: FiFileText, labelKey: 'actionExportPdf' as const, cost: 1 },
+  { icon: FiGlobe,    labelKey: 'actionTranslate' as const,  cost: 1 },
+  { icon: FiZap,      labelKey: 'actionOptimize' as const,   cost: 2 },
+];
 
 // ── Quick-select amounts (currency-agnostic whole units) ──────────────────────
 
 const QUICK_AMOUNTS = [
-  { value: 5,  credits: 500,  badge: null,         sub: '250 optimizations' },
-  { value: 10, credits: 1000, badge: 'Popular',    sub: '500 optimizations' },
-  { value: 25, credits: 2500, badge: 'Best value', sub: '1,250 optimizations' },
-  { value: 50, credits: 5000, badge: 'Power user', sub: '2,500 optimizations' },
+  { value: 5,  credits: 500,  badgeKey: null },
+  { value: 10, credits: 1000, badgeKey: 'badgePopular' as const },
+  { value: 25, credits: 2500, badgeKey: 'badgeBestValue' as const },
+  { value: 50, credits: 5000, badgeKey: 'badgePowerUser' as const },
 ];
 
 // ── Currency picker ───────────────────────────────────────────────────────────
@@ -124,6 +125,7 @@ const PaymentFormContent: React.FC<PaymentFormContentProps> = ({
   onBack,
   onSuccess,
 }) => {
+  const t = useTranslations('credits');
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -174,7 +176,7 @@ const PaymentFormContent: React.FC<PaymentFormContentProps> = ({
             <FiDollarSign className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Amount to pay</p>
+            <p className="text-xs text-muted-foreground">{t('amountToPay')}</p>
             <p className="text-xl font-bold">{formatAmount(amount, currency)}</p>
           </div>
         </div>
@@ -183,7 +185,7 @@ const PaymentFormContent: React.FC<PaymentFormContentProps> = ({
           onClick={onBack}
           className="text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          Change
+          {t('changeButton')}
         </button>
       </div>
 
@@ -209,7 +211,7 @@ const PaymentFormContent: React.FC<PaymentFormContentProps> = ({
           className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
         >
           <FiArrowLeft className="h-4 w-4" />
-          Back
+          {t('backButton')}
         </button>
         <button
           type="submit"
@@ -219,12 +221,12 @@ const PaymentFormContent: React.FC<PaymentFormContentProps> = ({
           {loading ? (
             <>
               <FiLoader className="h-4 w-4 animate-spin" />
-              Processing…
+              {t('processing')}
             </>
           ) : (
             <>
               <FiCreditCard className="h-4 w-4" />
-              Pay {formatAmount(amount, currency)}
+              {t('payButton', { amount: formatAmount(amount, currency) })}
             </>
           )}
         </button>
@@ -248,6 +250,7 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
   onSuccess,
   onClose,
 }) => {
+  const t = useTranslations('credits');
   const [step, setStep] = useState<Step>('amount');
   const [amount, setAmount] = useState(10);
   const [customAmount, setCustomAmount] = useState('');
@@ -303,7 +306,7 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
   const handleContinue = async () => {
     const fa = finalAmount();
     if (fa < 1) {
-      setIntentError('Minimum amount is 1');
+      setIntentError(t('minimumAmountError'));
       return;
     }
     setIntentError(null);
@@ -316,7 +319,7 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
       stripePromise = null;
       setStep('payment');
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to initialise payment';
+      const msg = err instanceof Error ? err.message : t('failedToInitPayment');
       setIntentError(msg);
     } finally {
       setLoadingIntent(false);
@@ -353,14 +356,14 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
       <div className="flex items-center justify-between border-b border-border px-6 py-4">
         <div>
           <h2 className="font-semibold text-foreground">
-            {step === 'amount' && 'Add Credits'}
-            {step === 'payment' && 'Payment Details'}
-            {step === 'success' && 'Payment Successful'}
+            {step === 'amount' && t('stepAddCredits')}
+            {step === 'payment' && t('stepPaymentDetails')}
+            {step === 'success' && t('stepSuccess')}
           </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {step === 'amount' && `1 ${currency.label} = 100 credits`}
-            {step === 'payment' && 'Complete your purchase securely via Stripe'}
-            {step === 'success' && 'Your credits have been added'}
+            {step === 'amount' && t('stepAddCreditsSubtitle', { currency: currency.label })}
+            {step === 'payment' && t('stepPaymentSubtitle')}
+            {step === 'success' && t('stepSuccessSubtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -372,7 +375,7 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
             <button
               onClick={onClose}
               className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              aria-label="Close"
+              aria-label={t('closeButton')}
             >
               ✕
             </button>
@@ -387,18 +390,18 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
             {/* Credit actions explainer */}
             <div className="rounded-lg bg-muted/50 p-3">
               <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                What credits unlock
+                {t('whatCreditsUnlock')}
               </p>
               <div className="grid grid-cols-3 gap-2">
-                {CREDIT_ACTIONS.map(({ icon: Icon, label, cost }) => (
+                {CREDIT_ACTIONS.map(({ icon: Icon, labelKey, cost }) => (
                   <div
-                    key={label}
+                    key={labelKey}
                     className="flex flex-col items-center gap-1 rounded-md border border-border bg-background p-2"
                   >
                     <Icon className="h-4 w-4 text-primary" />
-                    <span className="text-xs font-medium text-foreground">{label}</span>
+                    <span className="text-xs font-medium text-foreground">{t(labelKey)}</span>
                     <span className="text-xs text-muted-foreground">
-                      {cost} credit{cost > 1 ? 's' : ''}
+                      {cost === 1 ? t('creditSingular') : t('creditPlural', { count: cost })}
                     </span>
                   </div>
                 ))}
@@ -419,18 +422,20 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
                         : 'border-border hover:border-primary/40'
                     }`}
                   >
-                    {item.badge && (
+                    {item.badgeKey && (
                       <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                        {item.badge}
+                        {t(item.badgeKey)}
                       </span>
                     )}
                     <span className="text-lg font-bold">
                       {formatAmount(item.value, currency)}
                     </span>
                     <span className="text-xs font-medium text-muted-foreground">
-                      {item.credits.toLocaleString()} credits
+                      {item.credits.toLocaleString()} {t('creditsUnit')}
                     </span>
-                    <span className="text-[11px] text-muted-foreground/80">{item.sub}</span>
+                    <span className="text-[11px] text-muted-foreground/80">
+                      {t('optimizationsCount', { count: (item.value * 50).toLocaleString() })}
+                    </span>
                   </button>
                 );
               })}
@@ -439,7 +444,7 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
             {/* Custom amount */}
             <div className="space-y-1.5">
               <label htmlFor="custom-amount" className="text-sm font-medium text-foreground">
-                Custom amount
+                {t('customAmountLabel')}
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
@@ -457,8 +462,8 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
               </div>
               {useCustom && finalAmount() >= 1 && (
                 <p className="text-xs text-muted-foreground">
-                  = {Math.round(finalAmount() * 100).toLocaleString()} credits ·{' '}
-                  {Math.floor(finalAmount() * 50).toLocaleString()} optimizations
+                  = {Math.round(finalAmount() * 100).toLocaleString()} {t('creditsUnit')} ·{' '}
+                  {t('optimizationsCount', { count: Math.floor(finalAmount() * 50).toLocaleString() })}
                 </p>
               )}
             </div>
@@ -478,13 +483,12 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
               {loadingIntent ? (
                 <>
                   <FiLoader className="h-4 w-4 animate-spin" />
-                  Setting up…
+                  {t('settingUp')}
                 </>
               ) : (
-                <>
-                  Continue · Pay{' '}
-                  {finalAmount() >= 1 ? formatAmount(finalAmount(), currency) : '—'}
-                </>
+                t('continueButton', {
+                  amount: finalAmount() >= 1 ? formatAmount(finalAmount(), currency) : '—',
+                })
               )}
             </button>
           </div>
@@ -518,17 +522,17 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
               <FiCheckCircle className="h-10 w-10 text-green-600 dark:text-green-400" />
             </div>
             <div className="space-y-1">
-              <p className="text-lg font-semibold text-foreground">Credits Added!</p>
+              <p className="text-lg font-semibold text-foreground">{t('creditsAddedTitle')}</p>
               <p className="text-sm text-muted-foreground">
                 <span className="font-medium text-foreground">
-                  {successInfo.creditsAdded.toLocaleString()} credits
+                  {successInfo.creditsAdded.toLocaleString()} {t('creditsUnit')}
                 </span>{' '}
-                have been added to your account.
+                {t('creditsAddedSuffix')}
               </p>
               <p className="text-xs text-muted-foreground">
-                New balance:{' '}
+                {t('newBalanceLabel')}{' '}
                 <span className="font-medium text-foreground">
-                  {successInfo.newBalance.toLocaleString()} credits
+                  {successInfo.newBalance.toLocaleString()} {t('creditsUnit')}
                 </span>
               </p>
             </div>
@@ -537,14 +541,14 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
                 onClick={handleReset}
                 className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium transition-colors hover:bg-muted"
               >
-                Add More
+                {t('addMoreButton')}
               </button>
               {onClose && (
                 <button
                   onClick={onClose}
                   className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                 >
-                  Done
+                  {t('doneButton')}
                 </button>
               )}
             </div>

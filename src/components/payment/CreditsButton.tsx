@@ -13,12 +13,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { FiZap, FiUser, FiFileText, FiGlobe, FiGift } from 'react-icons/fi';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/contexts/AuthContext';
 import { signInWithGoogle } from '@/lib/firebase';
 import StripePaymentForm from './StripePaymentForm';
 import { getBalance } from '@/lib/paymentService';
 
 const CreditsButton: React.FC = () => {
+  const t = useTranslations('credits');
   const { isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -92,7 +94,7 @@ const CreditsButton: React.FC = () => {
       <button
         onClick={handleButtonClick}
         className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-secondary"
-        aria-label="Add credits"
+        aria-label={t('buttonAriaLabel')}
       >
         <FiZap className="h-3.5 w-3.5 text-primary" />
         {isAuthenticated && balance !== null ? (
@@ -100,7 +102,7 @@ const CreditsButton: React.FC = () => {
             {balance.toLocaleString()}
           </span>
         ) : (
-          <span className="hidden sm:inline">Credits</span>
+          <span className="hidden sm:inline">{t('buttonLabel')}</span>
         )}
       </button>
 
@@ -122,8 +124,8 @@ const CreditsButton: React.FC = () => {
                   <FiZap className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground">Power up your CV</h3>
-                  <p className="text-xs text-muted-foreground">$1 = 100 credits · secure via Stripe</p>
+                  <h3 className="font-semibold text-foreground">{t('loginTitle')}</h3>
+                  <p className="text-xs text-muted-foreground">{t('loginSubtitle')}</p>
                 </div>
               </div>
 
@@ -131,21 +133,25 @@ const CreditsButton: React.FC = () => {
               <div className="mb-4 flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-3 py-2">
                 <FiGift className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
                 <p className="text-xs text-green-700 dark:text-green-300 font-medium">
-                  New accounts get <span className="font-bold">30 free credits</span> — no card needed to get started
+                  {t('welcomeBonusPrefix')}{' '}
+                  <span className="font-bold">{t('welcomeBonusFree')}</span>{' '}
+                  {t('welcomeBonusSuffix')}
                 </p>
               </div>
 
               {/* What credits do */}
               <div className="mb-5 grid grid-cols-3 gap-2">
-                {[
-                  { icon: FiFileText, label: 'Export PDF', cost: '1 credit' },
-                  { icon: FiGlobe,    label: 'Translate',  cost: '1 credit' },
-                  { icon: FiZap,      label: 'Optimize',   cost: '2 credits' },
-                ].map(({ icon: Icon, label, cost }) => (
-                  <div key={label} className="flex flex-col items-center gap-1 rounded-md border border-border bg-muted/40 p-2 text-center">
+                {([
+                  { icon: FiFileText, labelKey: 'actionExportPdf', cost: 1 },
+                  { icon: FiGlobe,    labelKey: 'actionTranslate',  cost: 1 },
+                  { icon: FiZap,      labelKey: 'actionOptimize',   cost: 2 },
+                ] as const).map(({ icon: Icon, labelKey, cost }) => (
+                  <div key={labelKey} className="flex flex-col items-center gap-1 rounded-md border border-border bg-muted/40 p-2 text-center">
                     <Icon className="h-3.5 w-3.5 text-primary" />
-                    <span className="text-[11px] font-medium text-foreground">{label}</span>
-                    <span className="text-[10px] text-muted-foreground">{cost}</span>
+                    <span className="text-[11px] font-medium text-foreground">{t(labelKey)}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {cost === 1 ? t('creditSingular') : t('creditPlural', { count: cost })}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -155,7 +161,7 @@ const CreditsButton: React.FC = () => {
                   onClick={() => setShowLoginPrompt(false)}
                   className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted"
                 >
-                  Cancel
+                  {t('cancelButton')}
                 </button>
                 <button
                   onClick={handleSignIn}
@@ -167,7 +173,7 @@ const CreditsButton: React.FC = () => {
                   ) : (
                     <FiUser className="h-4 w-4" />
                   )}
-                  {isSigningIn ? 'Signing in…' : 'Sign In with Google'}
+                  {isSigningIn ? t('signingIn') : t('signInButton')}
                 </button>
               </div>
             </div>
