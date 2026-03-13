@@ -321,7 +321,8 @@ export async function optimizeCV(
   jobUrl: string,
   language: string = 'en',
   template: string = 'default',
-  cvJson?: string
+  cvJson?: string,
+  jobDescription?: string,
 ): Promise<OptimizeApiResponse> {
   return apiRequest('/optimize', {
     method: 'POST',
@@ -331,6 +332,7 @@ export async function optimizeCV(
       lang: language,
       template,
       ...(cvJson !== undefined ? { cv_json: cvJson } : {}),
+      ...(jobDescription ? { job_description: jobDescription } : {}),
     },
     requireAuth: true,
   });
@@ -346,7 +348,8 @@ export async function optimizeAndGenerate(
   jobUrl: string,
   language: string = 'en',
   template: string = 'default',
-  cvJson?: string
+  cvJson?: string,
+  jobDescription?: string,
 ): Promise<Blob> {
   return apiRequest('/optimize-and-generate', {
     method: 'POST',
@@ -356,6 +359,7 @@ export async function optimizeAndGenerate(
       lang: language,
       template,
       ...(cvJson !== undefined ? { cv_json: cvJson } : {}),
+      ...(jobDescription ? { job_description: jobDescription } : {}),
     },
     requireAuth: true,
   });

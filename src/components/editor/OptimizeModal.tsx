@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FiX, FiTarget, FiDownload, FiCheckCircle, FiAlertCircle, FiLoader } from 'react-icons/fi';
+import { FiX, FiTarget, FiDownload, FiCheckCircle, FiAlertCircle, FiLoader, FiClipboard } from 'react-icons/fi';
 import { optimizeCV, optimizeAndGenerate, KeywordAnalysis } from '@/lib/api';
 
 interface OptimizeModalProps {
@@ -17,6 +17,24 @@ const LANGUAGES = [
   { code: 'en', label: '🇬🇧 English' },
   { code: 'fr', label: '🇫🇷 Français' },
 ];
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+/** Returns true if the URL is a LinkedIn job URL. */
+function isLinkedInUrl(url: string): boolean {
+  return url.includes('linkedin.com');
+}
+
+/** Returns true if the error message indicates a scraping / auth-wall failure. */
+function isScrapingError(msg: string): boolean {
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes('scraping') ||
+    lower.includes('extract job') ||
+    lower.includes('login') ||
+    lower.includes('paste the job')
+  );
+}
 
 // ── Keyword chip ───────────────────────────────────────────────────────────────
 
@@ -41,6 +59,7 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
   collaboratorName,
 }) => {
   const [jobUrl, setJobUrl] = useState('');
+  const [jobDescription, setJobDescription] = useState('');
   const [language, setLanguage] = useState('en');
 
   // Optimization state
@@ -59,6 +78,7 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
     if (!isOpen) return;
     setPhase('idle');
     setJobUrl('');
+    setJobDescription('');
     setKeywordAnalysis(null);
     setJobTitle('');
     setCompanyName('');
@@ -78,7 +98,16 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isReady = Boolean(collaboratorName && jobUrl.trim());
+  // Show the paste-description area when:
+  //  - URL looks like LinkedIn (proactive hint), OR
+  //  - A scraping / auth error just occurred (reactive fallback)
+  const showPasteArea =
+    isLinkedInUrl(jobUrl) || (phase === 'error' && isScrapingError(errorMsg));
+
+  const isReady = Boolean(
+    collaboratorName &&
+      (jobUrl.trim() || jobDescription.trim()),
+  );
 
   const handleOptimize = async () => {
     if (!isReady || !collaboratorName) return;
@@ -87,7 +116,15 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
     setKeywordAnalysis(null);
 
     try {
-      const resp = await optimizeCV(collaboratorName, jobUrl.trim(), language, 'default');
+      const desc = jobDescription.trim() || undefined;
+      const resp = await optimizeCV(
+        collaboratorName,
+        jobUrl.trim() || 'manual',
+        language,
+        'default',
+        undefined,
+        desc,
+      );
       setJobTitle(resp.data.job_title);
       setCompanyName(resp.data.company_name);
       setOptimizations(resp.data.optimizations ?? []);
@@ -103,7 +140,15 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
     if (!collaboratorName) return;
     setIsGeneratingPdf(true);
     try {
-      const blob = await optimizeAndGenerate(collaboratorName, jobUrl.trim(), language, 'default');
+      const desc = jobDescription.trim() || undefined;
+      const blob = await optimizeAndGenerate(
+        collaboratorName,
+        jobUrl.trim() || 'manual',
+        language,
+        'default',
+        undefined,
+        desc,
+      );
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -152,7 +197,7 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-5">
           {/* Job URL */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1.5">
@@ -172,6 +217,29 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
               </p>
             )}
           </div>
+
+          {/* Paste description — shown for LinkedIn URLs or after a scraping error */}
+          {showPasteArea && (
+            <div>
+              <label className="flex items-center gap-1.5 text-sm font-medium text-foreground mb-1.5">
+                <FiClipboard className="w-3.5 h-3.5 text-orange-500" />
+                {isLinkedInUrl(jobUrl)
+                  ? 'Paste job description (LinkedIn requires login to scrape)'
+                  : 'Paste job description'}
+              </label>
+              <textarea
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+                disabled={phase === 'optimizing'}
+                rows={6}
+                placeholder="Copy the full job description from LinkedIn and paste it here…"
+                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 disabled:opacity-50 placeholder:text-muted-foreground resize-y"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                When a description is pasted, the URL is used for reference only — scraping is skipped.
+              </p>
+            </div>
+          )}
 
           {/* Language selector */}
           <div>
@@ -276,6 +344,11 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
                   Optimization failed
                 </p>
                 <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">{errorMsg}</p>
+                {isScrapingError(errorMsg) && (
+                  <p className="text-xs text-red-500 dark:text-red-400 mt-1.5 font-medium">
+                    ↑ Paste the job description above and try again.
+                  </p>
+                )}
               </div>
             </div>
           )}
