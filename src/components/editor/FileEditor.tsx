@@ -39,6 +39,7 @@ import {
 } from '@/lib/api';
 import ChatComponent from '../chat/ChatComponent';
 import { signInWithGoogle } from '@/lib/firebase';
+import { fileTreeEvents } from '@/lib/fileTreeEvents';
 
 interface ApiSuccessResponse {
   success: boolean;
@@ -471,6 +472,13 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [saveFile]);
+
+  // Refresh the file tree whenever a chat command (or any other component)
+  // signals that the profile list may have changed.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    return fileTreeEvents.subscribe(() => loadFileTree());
+  }, [isAuthenticated, loadFileTree]);
 
   useEffect(() => {
     if (isAuthenticated) {
