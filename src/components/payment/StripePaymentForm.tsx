@@ -50,6 +50,20 @@ function getStripePromise(publishableKey: string): Promise<Stripe | null> {
   return stripePromise;
 }
 
+// ── Dark-mode detection hook ──────────────────────────────────────────────────
+
+function useIsDark(): boolean {
+  const [isDark, setIsDark] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    setIsDark(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return isDark;
+}
+
 // ── Credit actions reference ──────────────────────────────────────────────────
 
 const CREDIT_ACTIONS = [
@@ -189,9 +203,18 @@ const PaymentFormContent: React.FC<PaymentFormContentProps> = ({
         </button>
       </div>
 
-      {/* Stripe Elements */}
+      {/* Stripe Elements – wallets:'auto' shows Google Pay / Apple Pay
+           when the browser supports them and they are enabled in the
+           Stripe Dashboard (Settings → Payment methods). */}
       <div className="rounded-lg border border-border p-4">
-        <PaymentElement />
+        <PaymentElement
+          options={{
+            wallets: {
+              googlePay: 'auto',
+              applePay: 'auto',
+            },
+          }}
+        />
       </div>
 
       {/* Error message */}
@@ -251,6 +274,7 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
   onClose,
 }) => {
   const t = useTranslations('credits');
+  const isDark = useIsDark();
   const [step, setStep] = useState<Step>('amount');
   const [amount, setAmount] = useState(10);
   const [customAmount, setCustomAmount] = useState('');
@@ -503,8 +527,11 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
             options={{
               clientSecret,
               appearance: {
-                theme: 'stripe',
-                variables: { colorPrimary: '#0f172a' },
+                // 'night' renders Google Pay / Apple Pay buttons in dark style
+                theme: isDark ? 'night' : 'stripe',
+                variables: {
+                  colorPrimary: isDark ? '#818cf8' : '#0f172a',
+                },
               },
             }}
           >
