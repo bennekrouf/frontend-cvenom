@@ -35,7 +35,7 @@ import {
   uploadPicture,
   generateCV,
   FileTreeItem,
-  RustSystemTime,
+  getLatestModified,
 } from '@/lib/api';
 import ChatComponent from '../chat/ChatComponent';
 import { signInWithGoogle } from '@/lib/firebase';
@@ -44,18 +44,6 @@ interface ApiSuccessResponse {
   success: boolean;
   message?: string;
   [key: string]: unknown;
-}
-
-function modifiedToMs(modified: FileTreeItem['modified']): number {
-  if (!modified) return 0;
-  if (typeof modified === 'number') return modified * 1000;
-  return (modified as RustSystemTime).secs_since_epoch * 1000;
-}
-
-function getLatestModified(item: FileTreeItem): number {
-  if (item.type === 'file') return modifiedToMs(item.modified);
-  if (!item.children) return 0;
-  return Math.max(0, ...Object.values(item.children).map(getLatestModified));
 }
 
 function getFirstProfile(tree: Record<string, FileTreeItem>): string | null {

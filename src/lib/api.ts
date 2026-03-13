@@ -45,6 +45,18 @@ export interface FileTreeItem {
   children?: Record<string, FileTreeItem>;
 }
 
+export function modifiedToMs(modified: FileTreeItem['modified']): number {
+  if (!modified) return 0;
+  if (typeof modified === 'number') return modified * 1000;
+  return (modified as RustSystemTime).secs_since_epoch * 1000;
+}
+
+export function getLatestModified(item: FileTreeItem): number {
+  if (item.type === 'file') return modifiedToMs(item.modified);
+  if (!item.children) return 0;
+  return Math.max(0, ...Object.values(item.children).map(getLatestModified));
+}
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message?: string;

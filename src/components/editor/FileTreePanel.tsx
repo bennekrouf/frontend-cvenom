@@ -18,7 +18,7 @@ import {
 } from 'react-icons/fi';
 import { useTranslations } from 'next-intl';
 import { User } from 'firebase/auth';
-import { FileTreeItem, RustSystemTime } from '@/lib/api';
+import { FileTreeItem, getLatestModified } from '@/lib/api';
 
 interface FileTreePanelProps {
   fileTree: Record<string, FileTreeItem> | null;
@@ -41,20 +41,6 @@ interface FileTreePanelProps {
   onShowGenerateModal: () => void;
   onRenameCollaborator?: (oldName: string, newName: string) => void;
   onCloseSidebar: () => void;
-}
-
-// Returns the most recent file modification timestamp inside a tree item (ms).
-// Handles both plain Unix seconds (new backend) and Rust SystemTime struct (legacy).
-function modifiedToMs(modified: FileTreeItem['modified']): number {
-  if (!modified) return 0;
-  if (typeof modified === 'number') return modified * 1000;
-  return (modified as { secs_since_epoch: number }).secs_since_epoch * 1000;
-}
-
-function getLatestModified(item: FileTreeItem): number {
-  if (item.type === 'file') return modifiedToMs(item.modified);
-  if (!item.children) return 0;
-  return Math.max(0, ...Object.values(item.children).map(getLatestModified));
 }
 
 const FileTreePanel: React.FC<FileTreePanelProps> = ({
