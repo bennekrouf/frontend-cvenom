@@ -19,10 +19,12 @@ import {
 import { useTranslations } from 'next-intl';
 import { User } from 'firebase/auth';
 
+// Backend may return modified as a plain number (new) or Rust SystemTime struct (legacy)
+type RustSystemTime = { secs_since_epoch: number; nanos_since_epoch: number };
 interface FileTreeItem {
   type: 'file' | 'folder';
   size?: number;
-  modified?: number; // Unix epoch seconds from backend
+  modified?: number | RustSystemTime;
   children?: Record<string, FileTreeItem>;
 }
 
@@ -50,12 +52,15 @@ interface FileTreePanelProps {
 }
 
 // Returns the most recent file modification timestamp inside a tree item (ms).
-// Folders themselves have no `modified` field, so we recurse into children.
-// `modified` is Unix epoch seconds from the backend, so multiply by 1000 for ms.
+// Handles both plain Unix seconds (new backend) and Rust SystemTime struct (legacy).
+function modifiedToMs(modified: FileTreeItem['modified']): number {
+  if (!modified) return 0;
+  if (typeof modified === 'number') return modified * 1000;
+  return (modified as { secs_since_epoch: number }).secs_since_epoch * 1000;
+}
+
 function getLatestModified(item: FileTreeItem): number {
-  if (item.type === 'file') {
-    return item.modified ? item.modified * 1000 : 0;
-  }
+  if (item.type === 'file') return modifiedToMs(item.modified);
   if (!item.children) return 0;
   return Math.max(0, ...Object.values(item.children).map(getLatestModified));
 }

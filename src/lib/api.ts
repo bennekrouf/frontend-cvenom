@@ -36,10 +36,12 @@ export interface AuthError {
   message: string;
 }
 
+// Backend may return modified as a plain number (new) or Rust SystemTime struct (legacy)
+export type RustSystemTime = { secs_since_epoch: number; nanos_since_epoch: number };
 export interface FileTreeItem {
   type: 'file' | 'folder';
   size?: number;
-  modified?: number; // Unix epoch seconds from backend
+  modified?: number | RustSystemTime;
   children?: Record<string, FileTreeItem>;
 }
 
