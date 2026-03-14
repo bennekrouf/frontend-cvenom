@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FiX, FiTarget, FiDownload, FiCheckCircle, FiAlertCircle, FiLoader, FiClipboard } from 'react-icons/fi';
+import { FiX, FiTarget, FiDownload, FiCheckCircle, FiAlertCircle, FiLoader, FiClipboard, FiArrowRight } from 'react-icons/fi';
 import { optimizeCV, optimizeAndGenerate, KeywordAnalysis } from '@/lib/api';
 
 interface OptimizeModalProps {
@@ -51,6 +51,35 @@ const KeywordChip: React.FC<{ label: string; matched: boolean }> = ({ label, mat
   </span>
 );
 
+// ── Score bar ──────────────────────────────────────────────────────────────────
+
+const ScoreBar: React.FC<{ score: number; label: string; highlight?: boolean }> = ({
+  score,
+  label,
+  highlight = false,
+}) => {
+  const barColor =
+    score >= 80 ? 'bg-green-500' : score >= 60 ? 'bg-yellow-500' : 'bg-orange-500';
+  return (
+    <div className="flex-1 text-center">
+      <div
+        className={`text-3xl font-bold tabular-nums ${
+          highlight ? 'text-foreground' : 'text-muted-foreground'
+        }`}
+      >
+        {score}%
+      </div>
+      <div className="mt-1.5 h-2 bg-secondary rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-700 ${barColor}`}
+          style={{ width: `${score}%` }}
+        />
+      </div>
+      <div className="text-xs text-muted-foreground mt-1">{label}</div>
+    </div>
+  );
+};
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 const OptimizeModal: React.FC<OptimizeModalProps> = ({
@@ -70,6 +99,10 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
   const [companyName, setCompanyName] = useState('');
   const [optimizations, setOptimizations] = useState<string[]>([]);
 
+  // Match scores
+  const [beforeScore, setBeforeScore] = useState<number | null>(null);
+  const [afterScore, setAfterScore] = useState<number | null>(null);
+
   // PDF generation state
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
@@ -84,6 +117,8 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
     setCompanyName('');
     setOptimizations([]);
     setErrorMsg('');
+    setBeforeScore(null);
+    setAfterScore(null);
   }, [isOpen]);
 
   // Close on Escape (same guard as backdrop click)
@@ -129,6 +164,8 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
       setCompanyName(resp.data.company_name);
       setOptimizations(resp.data.optimizations ?? []);
       setKeywordAnalysis(resp.data.keyword_analysis);
+      setBeforeScore(resp.data.before_score ?? null);
+      setAfterScore(resp.data.after_score ?? null);
       setPhase('done');
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : 'Optimization failed');
@@ -288,6 +325,27 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
                   </p>
                 </div>
               </div>
+
+              {/* ATS match score */}
+              {beforeScore !== null && afterScore !== null && (
+                <div className="rounded-lg border border-border p-4 bg-background">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 text-center">
+                    ATS Match Score
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <ScoreBar score={beforeScore} label="Before" />
+                    <div className="flex flex-col items-center gap-1 shrink-0">
+                      <FiArrowRight className="w-5 h-5 text-orange-500" />
+                      {afterScore > beforeScore && (
+                        <span className="text-xs font-bold text-green-500">
+                          +{afterScore - beforeScore}%
+                        </span>
+                      )}
+                    </div>
+                    <ScoreBar score={afterScore} label="After" highlight />
+                  </div>
+                </div>
+              )}
 
               {/* What was done */}
               {optimizations.length > 0 && (

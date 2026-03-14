@@ -300,6 +300,10 @@ export interface OptimizeResponse {
   company_name: string;
   optimizations: string[] | null;
   keyword_analysis: KeywordAnalysis | null;
+  /** ATS match percentage before optimization (0-100) */
+  before_score?: number;
+  /** ATS match percentage after optimization (0-100) */
+  after_score?: number;
   saved: boolean;
   status: string;
 }
