@@ -296,6 +296,8 @@ export interface KeywordAnalysis {
 
 export interface OptimizeResponse {
   optimized_typst: string;
+  /** Serialised CvJson — pass to saveOptimizedProfile() to create a new profile. */
+  optimized_cv_json?: string;
   job_title: string;
   company_name: string;
   optimizations: string[] | null;
@@ -364,6 +366,26 @@ export async function optimizeAndGenerate(
       template,
       ...(cvJson !== undefined ? { cv_json: cvJson } : {}),
       ...(jobDescription ? { job_description: jobDescription } : {}),
+    },
+    requireAuth: true,
+  });
+}
+
+/**
+ * Save an optimized CV under a new profile name.
+ * Pass the `optimized_cv_json` string returned by optimizeCV().
+ */
+export async function saveOptimizedProfile(
+  profileName: string,
+  cvJson: string,
+  language: string = 'en',
+): Promise<{ success: boolean; message: string }> {
+  return apiRequest('/save-optimized', {
+    method: 'POST',
+    body: {
+      profile_name: profileName,
+      cv_json: cvJson,
+      lang: language,
     },
     requireAuth: true,
   });
