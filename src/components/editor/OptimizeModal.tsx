@@ -131,15 +131,18 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
     setSaveError('');
   }, [isOpen]);
 
-  // Close on Escape
+  // True when optimization results are present but not yet saved — backdrop/Escape are locked
+  const hasUnsavedResults = phase === 'done' && savePhase !== 'saved';
+
+  // Close on Escape — blocked when there are unsaved results
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && phase !== 'optimizing') onClose();
+      if (e.key === 'Escape' && phase !== 'optimizing' && !hasUnsavedResults) onClose();
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, phase, onClose]);
+  }, [isOpen, phase, hasUnsavedResults, onClose]);
 
   if (!isOpen) return null;
 
@@ -205,7 +208,7 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       onClick={(e) => {
-        if (e.target === e.currentTarget && phase !== 'optimizing') onClose();
+        if (e.target === e.currentTarget && phase !== 'optimizing' && !hasUnsavedResults) onClose();
       }}
     >
       <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
