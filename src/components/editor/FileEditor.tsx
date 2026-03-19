@@ -92,8 +92,26 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
   const [viewMode, setViewMode] = useState<'form' | 'code' | 'chat'>('form');
   const cvFormEditorRef = useRef<CVFormEditorHandle>(null);
 
+  // Language selection (derived from the file tree)
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Derive available languages for the selected profile from the file tree.
+  // Looks for files named experiences_{lang}.typ (e.g. experiences_en.typ → "en").
+  const availableLanguages: string[] = React.useMemo(() => {
+    if (!fileTree || !selectedCollaborator) return [];
+    const children = fileTree[selectedCollaborator]?.children ?? {};
+    return Object.keys(children)
+      .flatMap((name) => {
+        const m = name.match(/^experiences_([a-z]{2})\.typ$/);
+        return m ? [m[1]] : [];
+      })
+      .sort();
+  }, [fileTree, selectedCollaborator]);
+
+  const LANG_FLAG: Record<string, string> = { en: '🇬🇧', fr: '🇫🇷', de: '🇩🇪', es: '🇪🇸', pt: '🇵🇹', it: '🇮🇹', nl: '🇳🇱', ar: '🇸🇦' };
 
   useEffect(() => {
     setMounted(true);
@@ -342,6 +360,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
   /** Select a collaborator, switch to Form view, and sync the profile name into the URL. */
   const handleSelectCollaborator = useCallback((name: string) => {
     setSelectedCollaborator(name);
+    setSelectedLanguage('en');
     setViewMode('form');
     setSelectedFile(null);
     setFileContent('');
@@ -649,6 +668,32 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
             {/* ── Right zone: fixed-width toolbar, never reflows ── */}
             <div className="flex shrink-0 items-center gap-1.5">
 
+              {/* Language tabs — only when profile has 2+ language variants */}
+              {selectedCollaborator && isAuthenticated && availableLanguages.length > 1 && (
+                <>
+                  <div className="flex overflow-hidden rounded-md border border-border text-xs font-medium">
+                    {availableLanguages.map((lang, idx) => (
+                      <button
+                        key={lang}
+                        onClick={() => setSelectedLanguage(lang)}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 transition-colors ${
+                          idx > 0 ? 'border-l border-border' : ''
+                        } ${
+                          selectedLanguage === lang
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
+                        }`}
+                        title={lang.toUpperCase()}
+                      >
+                        <span>{LANG_FLAG[lang] ?? '🌐'}</span>
+                        <span className="hidden sm:inline uppercase">{lang}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="h-5 w-px bg-border" />
+                </>
+              )}
+
               {/* Form / Code / Chat segmented toggle — only when a profile is active */}
               {selectedCollaborator && isAuthenticated && (
                 <>
@@ -806,6 +851,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
             <CVFormEditor
               ref={cvFormEditorRef}
               profileName={selectedCollaborator}
+              language={selectedLanguage}
             />
           ) : selectedFile ? (
             /* ── Code editor (raw TOML / Typst textarea) ── */

@@ -12,9 +12,9 @@ import type { CvFormData } from '@/types/cvFormData';
  * Fetch the unified CV data for a profile.
  * Parses cv_params.toml + experiences_en.typ on the backend and returns CvFormData.
  */
-export async function getCvData(profileName: string): Promise<CvFormData> {
+export async function getCvData(profileName: string, lang = 'en'): Promise<CvFormData> {
   const encoded = encodeURIComponent(profileName);
-  return apiRequest<CvFormData>(`/profiles/${encoded}/cv-data`, {
+  return apiRequest<CvFormData>(`/profiles/${encoded}/cv-data?lang=${encodeURIComponent(lang)}`, {
     method: 'GET',
     requireAuth: true,
   });
@@ -22,11 +22,11 @@ export async function getCvData(profileName: string): Promise<CvFormData> {
 
 /**
  * Save the unified CV data for a profile.
- * Regenerates cv_params.toml and experiences_en.typ on the backend.
+ * Regenerates cv_params.toml and experiences_{lang}.typ on the backend.
  */
-export async function saveCvData(profileName: string, data: CvFormData): Promise<void> {
+export async function saveCvData(profileName: string, data: CvFormData, lang = 'en'): Promise<void> {
   const encoded = encodeURIComponent(profileName);
-  await apiRequest(`/profiles/${encoded}/cv-data`, {
+  await apiRequest(`/profiles/${encoded}/cv-data?lang=${encodeURIComponent(lang)}`, {
     method: 'PUT',
     body: data,
     requireAuth: true,

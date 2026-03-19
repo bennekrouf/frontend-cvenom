@@ -28,6 +28,7 @@ type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved' | 'error';
 
 interface Props {
   profileName: string;
+  language?: string;
 }
 
 export interface CVFormEditorHandle {
@@ -37,7 +38,7 @@ export interface CVFormEditorHandle {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-const CVFormEditor = forwardRef<CVFormEditorHandle, Props>(({ profileName }, ref) => {
+const CVFormEditor = forwardRef<CVFormEditorHandle, Props>(({ profileName, language = 'en' }, ref) => {
   const t = useTranslations('cvForm');
   const [data, setData] = useState<CvFormData>(emptyCvFormData());
   const [isLoading, setIsLoading] = useState(true);
@@ -58,7 +59,7 @@ const CVFormEditor = forwardRef<CVFormEditorHandle, Props>(({ profileName }, ref
       setSaveStatus('idle');
 
       try {
-        const fetched = await getCvData(profileName);
+        const fetched = await getCvData(profileName, language);
         if (!cancelled) {
           setData(fetched);
         }
@@ -73,14 +74,14 @@ const CVFormEditor = forwardRef<CVFormEditorHandle, Props>(({ profileName }, ref
 
     load();
     return () => { cancelled = true; };
-  }, [profileName]);
+  }, [profileName, language]);
 
   // ── Persist helper ────────────────────────────────────────────────────────
 
   const persist = useCallback(async (payload: CvFormData) => {
     setSaveStatus('saving');
     try {
-      await saveCvData(profileName, payload);
+      await saveCvData(profileName, payload, language);
       setSaveStatus('saved');
       // Reset to idle after 2 s so the "Saved" pill fades away
       setTimeout(() => setSaveStatus('idle'), 2000);
@@ -89,7 +90,7 @@ const CVFormEditor = forwardRef<CVFormEditorHandle, Props>(({ profileName }, ref
       setSaveStatus('error');
     }
     pendingDataRef.current = null;
-  }, [profileName]);
+  }, [profileName, language]);
 
   // ── Exposed imperative handle ─────────────────────────────────────────────
 
