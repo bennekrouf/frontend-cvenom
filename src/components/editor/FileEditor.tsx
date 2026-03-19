@@ -668,8 +668,8 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
             {/* ── Right zone: fixed-width toolbar, never reflows ── */}
             <div className="flex shrink-0 items-center gap-1.5">
 
-              {/* Language tabs — only when profile has 2+ language variants */}
-              {selectedCollaborator && isAuthenticated && availableLanguages.length > 1 && (
+              {/* Language tabs — only in form view with 2+ language variants */}
+              {selectedCollaborator && isAuthenticated && viewMode === 'form' && availableLanguages.length > 1 && (
                 <>
                   <div className="flex overflow-hidden rounded-md border border-border text-xs font-medium">
                     {availableLanguages.map((lang, idx) => (
