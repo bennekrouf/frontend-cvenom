@@ -402,6 +402,34 @@ export async function saveOptimizedProfile(
   });
 }
 
+// ── Cover Letter ──────────────────────────────────────────────────────────────
+
+export interface CoverLetterApiResponse {
+  success: boolean;
+  message: string;
+  data: {
+    cover_letter: string;
+    lang: string;
+    profile: string;
+  };
+}
+
+/**
+ * Generate a cover letter tailored to a job description using the profile's CV data.
+ * Costs 20 credits.
+ */
+export async function generateCoverLetter(
+  profile: string,
+  jobDescription: string,
+  lang: string = 'en',
+): Promise<CoverLetterApiResponse> {
+  return apiRequest('/cover-letter', {
+    method: 'POST',
+    body: { profile, job_description: jobDescription, lang },
+    requireAuth: true,
+  });
+}
+
 export async function renameCollaborator(oldName: string, newName: string): Promise<unknown> {
   const auth = getAuth();
   const user = auth.currentUser;

@@ -25,6 +25,7 @@ import { deleteCollaborator, renameCollaborator } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import CreateCollaboratorModal from './CreateCollaboratorModal';
 import OptimizeModal from './OptimizeModal';
+import CoverLetterModal from './CoverLetterModal';
 import UploadPictureModal from './UploadPictureModal';
 import GenerateCVModal from './GenerateCVModal';
 import {
@@ -84,6 +85,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showOptimizeModal, setShowOptimizeModal] = useState(false);
+  const [showCoverLetterModal, setShowCoverLetterModal] = useState(false);
   const [selectedCollaborator, setSelectedCollaborator] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
@@ -737,6 +739,19 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
                 </button>
               )}
 
+              {/* Cover Letter */}
+              {isAuthenticated && (
+                <button
+                  onClick={() => setShowCoverLetterModal(true)}
+                  disabled={!selectedCollaborator}
+                  className="flex items-center gap-1.5 rounded-md bg-purple-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  title={selectedCollaborator ? 'Generate a cover letter for a job posting' : 'Select a profile first'}
+                >
+                  <FiFileText className="h-3.5 w-3.5 shrink-0" />
+                  <span className="hidden lg:inline">Cover Letter</span>
+                </button>
+              )}
+
               {/* Generate PDF */}
               {isAuthenticated && (
                 <button
@@ -875,6 +890,12 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
           <OptimizeModal
             isOpen={showOptimizeModal}
             onClose={() => setShowOptimizeModal(false)}
+            collaboratorName={selectedCollaborator}
+          />
+
+          <CoverLetterModal
+            isOpen={showCoverLetterModal}
+            onClose={() => setShowCoverLetterModal(false)}
             collaboratorName={selectedCollaborator}
           />
 
