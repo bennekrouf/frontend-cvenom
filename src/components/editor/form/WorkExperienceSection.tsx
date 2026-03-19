@@ -53,26 +53,37 @@ const ExperienceCard: React.FC<{
     [entry, onChange],
   );
 
-  const header = entry.company
-    ? `${entry.company}${entry.title ? ` · ${entry.title}` : ''}${entry.date ? ` · ${entry.date}` : ''}`
-    : t('newExperience');
+  const subtitle = [entry.title, entry.date].filter(Boolean).join(' · ');
 
   return (
     <div className="rounded-lg border border-border bg-background overflow-hidden">
-      {/* ── Card header ── */}
-      <div className="flex items-center gap-2 px-4 py-3">
+      {/* ── Card header — company always editable, chevron toggles body ── */}
+      <div className="flex items-center gap-2 px-3 py-2">
+        {/* Chevron: only button that toggles open/close */}
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
-          className="flex flex-1 items-center gap-2 text-left min-w-0"
+          className="flex-shrink-0 rounded p-1 text-muted-foreground hover:text-foreground transition-colors"
+          aria-label={open ? 'Collapse' : 'Expand'}
         >
-          {open
-            ? <FiChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            : <FiChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
-          <span className="text-sm font-medium text-foreground truncate">{header}</span>
+          {open ? <FiChevronUp className="h-4 w-4" /> : <FiChevronDown className="h-4 w-4" />}
         </button>
 
-        {/* Controls — intentionally outside the toggle button so clicks don't bubble */}
+        {/* Company name — always editable, clicking does NOT toggle */}
+        <div className="flex-1 min-w-0">
+          <input
+            className="w-full bg-transparent text-sm font-medium text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 rounded px-1 py-0.5"
+            value={entry.company}
+            onChange={set('company')}
+            placeholder={t('placeholderCompany')}
+            onClick={(e) => e.stopPropagation()}
+          />
+          {subtitle && (
+            <p className="text-xs text-muted-foreground truncate px-1">{subtitle}</p>
+          )}
+        </div>
+
+        {/* Controls */}
         <div className="flex items-center gap-1 flex-shrink-0">
           <button
             type="button"
@@ -104,19 +115,10 @@ const ExperienceCard: React.FC<{
         </div>
       </div>
 
-      {/* ── Expanded fields — always-visible inputs (no click-to-edit) ── */}
+      {/* ── Expanded fields ── */}
       {open && (
         <div className="border-t border-border px-4 pb-4 pt-3 space-y-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className={labelCls}>{t('labelCompany')}</label>
-              <input
-                className={inputCls}
-                value={entry.company}
-                onChange={set('company')}
-                placeholder={t('placeholderCompany')}
-              />
-            </div>
             <div>
               <label className={labelCls}>{t('labelJobTitle')}</label>
               <input
@@ -126,9 +128,6 @@ const ExperienceCard: React.FC<{
                 placeholder={t('placeholderJobTitle')}
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className={labelCls}>{t('labelDateRange')}</label>
               <input
@@ -138,15 +137,16 @@ const ExperienceCard: React.FC<{
                 placeholder={t('placeholderDateRange')}
               />
             </div>
-            <div>
-              <label className={labelCls}>{t('labelCompanyDesc')}</label>
-              <input
-                className={inputCls}
-                value={entry.description}
-                onChange={set('description')}
-                placeholder={t('placeholderCompanyDesc')}
-              />
-            </div>
+          </div>
+
+          <div>
+            <label className={labelCls}>{t('labelCompanyDesc')}</label>
+            <input
+              className={inputCls}
+              value={entry.description}
+              onChange={set('description')}
+              placeholder={t('placeholderCompanyDesc')}
+            />
           </div>
 
           <Field label={t('labelResponsibilities')}>
