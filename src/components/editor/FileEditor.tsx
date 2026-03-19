@@ -111,7 +111,6 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
       .sort();
   }, [fileTree, selectedCollaborator]);
 
-  const LANG_FLAG: Record<string, string> = { en: '🇬🇧', fr: '🇫🇷', de: '🇩🇪', es: '🇪🇸', pt: '🇵🇹', it: '🇮🇹', nl: '🇳🇱', ar: '🇸🇦' };
 
   useEffect(() => {
     setMounted(true);
@@ -668,32 +667,6 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
             {/* ── Right zone: fixed-width toolbar, never reflows ── */}
             <div className="flex shrink-0 items-center gap-1.5">
 
-              {/* Language tabs — only in form view with 2+ language variants */}
-              {selectedCollaborator && isAuthenticated && viewMode === 'form' && availableLanguages.length > 1 && (
-                <>
-                  <div className="flex overflow-hidden rounded-md border border-border text-xs font-medium">
-                    {availableLanguages.map((lang, idx) => (
-                      <button
-                        key={lang}
-                        onClick={() => setSelectedLanguage(lang)}
-                        className={`flex items-center gap-1 px-2.5 py-1.5 transition-colors ${
-                          idx > 0 ? 'border-l border-border' : ''
-                        } ${
-                          selectedLanguage === lang
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
-                        }`}
-                        title={lang.toUpperCase()}
-                      >
-                        <span>{LANG_FLAG[lang] ?? '🌐'}</span>
-                        <span className="hidden sm:inline uppercase">{lang}</span>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="h-5 w-px bg-border" />
-                </>
-              )}
-
               {/* Form / Code / Chat segmented toggle — only when a profile is active */}
               {selectedCollaborator && isAuthenticated && (
                 <>
@@ -852,6 +825,8 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
               ref={cvFormEditorRef}
               profileName={selectedCollaborator}
               language={selectedLanguage}
+              availableLanguages={availableLanguages}
+              onLanguageChange={setSelectedLanguage}
             />
           ) : selectedFile ? (
             /* ── Code editor (raw TOML / Typst textarea) ── */

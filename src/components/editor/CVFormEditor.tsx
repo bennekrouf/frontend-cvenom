@@ -29,6 +29,8 @@ type SaveStatus = 'idle' | 'pending' | 'saving' | 'saved' | 'error';
 interface Props {
   profileName: string;
   language?: string;
+  availableLanguages?: string[];
+  onLanguageChange?: (lang: string) => void;
 }
 
 export interface CVFormEditorHandle {
@@ -38,7 +40,7 @@ export interface CVFormEditorHandle {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-const CVFormEditor = forwardRef<CVFormEditorHandle, Props>(({ profileName, language = 'en' }, ref) => {
+const CVFormEditor = forwardRef<CVFormEditorHandle, Props>(({ profileName, language = 'en', availableLanguages = [], onLanguageChange }, ref) => {
   const t = useTranslations('cvForm');
   const [data, setData] = useState<CvFormData>(emptyCvFormData());
   const [isLoading, setIsLoading] = useState(true);
@@ -185,6 +187,9 @@ const CVFormEditor = forwardRef<CVFormEditorHandle, Props>(({ profileName, langu
         <WorkExperienceSection
           data={data.work_experience}
           onChange={(v) => update('work_experience', v)}
+          availableLanguages={availableLanguages}
+          selectedLanguage={language}
+          onLanguageChange={onLanguageChange}
         />
         <EducationSection
           data={data.education}

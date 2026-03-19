@@ -81,9 +81,19 @@ const footerNav: FooterNavItem[] = [
           <p className="text-sm text-muted-foreground">
             &copy; {currentYear} Mayorana. {t('copyright')}
           </p>
-          <p className="text-sm text-muted-foreground mt-2 md:mt-0">
-            {t('tagline')}
-          </p>
+          <div className="flex items-center gap-4 mt-2 md:mt-0">
+            <a
+              href="https://mayorana.ch/en/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Privacy Policy
+            </a>
+            <p className="text-sm text-muted-foreground">
+              {t('tagline')}
+            </p>
+          </div>
         </div>
       </div>
     </footer>

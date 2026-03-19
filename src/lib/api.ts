@@ -170,6 +170,17 @@ export async function apiRequest<T = unknown>(
   return jsonData;
 }
 
+/**
+ * Permanently delete the current user's account and all associated data.
+ * Removes all profile files on the server and the tenant DB record.
+ */
+export async function deleteAccount(): Promise<void> {
+  await apiRequest('/me', {
+    method: 'DELETE',
+    requireAuth: true,
+  });
+}
+
 export async function deleteCollaborator(personName: string) {
   return apiRequest('/delete-profile', {
     method: 'POST',

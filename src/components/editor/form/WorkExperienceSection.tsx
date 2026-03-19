@@ -7,9 +7,14 @@ import { InlineField } from './InlineField';
 import { TagInput } from './TagInput';
 import type { WorkExperienceEntry } from '@/types/cvFormData';
 
+const LANG_FLAG: Record<string, string> = { en: '🇬🇧', fr: '🇫🇷', de: '🇩🇪', es: '🇪🇸', pt: '🇵🇹', it: '🇮🇹', nl: '🇳🇱', ar: '🇸🇦' };
+
 interface Props {
   data: WorkExperienceEntry[];
   onChange: (data: WorkExperienceEntry[]) => void;
+  availableLanguages?: string[];
+  selectedLanguage?: string;
+  onLanguageChange?: (lang: string) => void;
 }
 
 const emptyEntry = (): WorkExperienceEntry => ({
@@ -98,7 +103,7 @@ const ExperienceCard: React.FC<{
   );
 };
 
-export const WorkExperienceSection: React.FC<Props> = ({ data, onChange }) => {
+export const WorkExperienceSection: React.FC<Props> = ({ data, onChange, availableLanguages = [], selectedLanguage = 'en', onLanguageChange }) => {
   const t = useTranslations('cvForm');
   const update = (i: number, entry: WorkExperienceEntry) => {
     const next = [...data];
@@ -120,14 +125,38 @@ export const WorkExperienceSection: React.FC<Props> = ({ data, onChange }) => {
       icon={<FiBriefcase className="h-4 w-4" />}
       title={t('sectionWorkExperience')}
       action={
-        <button
-          type="button"
-          onClick={() => onChange([...data, emptyEntry()])}
-          className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
-        >
-          <FiPlus className="h-3.5 w-3.5" />
-          {t('addExperience')}
-        </button>
+        <div className="flex items-center gap-2">
+          {availableLanguages.length > 1 && (
+            <div className="flex overflow-hidden rounded-md border border-border text-xs font-medium">
+              {availableLanguages.map((lang, idx) => (
+                <button
+                  key={lang}
+                  type="button"
+                  onClick={() => onLanguageChange?.(lang)}
+                  className={`flex items-center gap-1 px-2 py-1.5 transition-colors ${
+                    idx > 0 ? 'border-l border-border' : ''
+                  } ${
+                    selectedLanguage === lang
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-card text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  }`}
+                  title={lang.toUpperCase()}
+                >
+                  <span>{LANG_FLAG[lang] ?? '🌐'}</span>
+                  <span className="uppercase">{lang}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => onChange([...data, emptyEntry()])}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-muted"
+          >
+            <FiPlus className="h-3.5 w-3.5" />
+            {t('addExperience')}
+          </button>
+        </div>
       }
     >
       <div className="space-y-3">
