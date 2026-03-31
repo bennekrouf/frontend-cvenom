@@ -12,7 +12,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { FiZap, FiUser, FiFileText, FiGlobe, FiGift } from 'react-icons/fi';
+import { FiZap, FiUser, FiFileText, FiGlobe, FiGift, FiMail } from 'react-icons/fi';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/contexts/AuthContext';
 import { signInWithGoogle } from '@/lib/firebase';
@@ -140,11 +140,12 @@ const CreditsButton: React.FC = () => {
               </div>
 
               {/* What credits do */}
-              <div className="mb-5 grid grid-cols-3 gap-2">
+              <div className="mb-5 grid grid-cols-2 gap-2">
                 {([
-                  { icon: FiFileText, labelKey: 'actionExportPdf', cost: 1 },
-                  { icon: FiGlobe,    labelKey: 'actionTranslate',  cost: 1 },
-                  { icon: FiZap,      labelKey: 'actionOptimize',   cost: 2 },
+                  { icon: FiFileText, labelKey: 'actionExportPdf',   cost: 20 },
+                  { icon: FiMail,     labelKey: 'actionCoverLetter', cost: 20 },
+                  { icon: FiZap,      labelKey: 'actionOptimize',    cost: 1  },
+                  { icon: FiGlobe,    labelKey: 'actionTranslate',   cost: 1  },
                 ] as const).map(({ icon: Icon, labelKey, cost }) => (
                   <div key={labelKey} className="flex flex-col items-center gap-1 rounded-md border border-border bg-muted/40 p-2 text-center">
                     <Icon className="h-3.5 w-3.5 text-primary" />

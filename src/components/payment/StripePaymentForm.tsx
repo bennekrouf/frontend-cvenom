@@ -29,6 +29,7 @@ import {
   FiFileText,
   FiGlobe,
   FiZap,
+  FiMail,
   FiChevronDown,
 } from 'react-icons/fi';
 import { createPaymentIntent, confirmPayment } from '@/lib/paymentService';
@@ -67,13 +68,14 @@ function useIsDark(): boolean {
 // ── Credit actions reference ──────────────────────────────────────────────────
 
 const CREDIT_ACTIONS = [
-  { icon: FiFileText, labelKey: 'actionExportPdf' as const, cost: 1 },
-  { icon: FiGlobe,    labelKey: 'actionTranslate' as const,  cost: 1 },
-  { icon: FiZap,      labelKey: 'actionOptimize' as const,   cost: 1 },
+  { icon: FiFileText, labelKey: 'actionExportPdf' as const,    cost: 20 },
+  { icon: FiMail,     labelKey: 'actionCoverLetter' as const,  cost: 20 },
+  { icon: FiZap,      labelKey: 'actionOptimize' as const,     cost: 1  },
+  { icon: FiGlobe,    labelKey: 'actionTranslate' as const,    cost: 1  },
 ];
 
 // ── Quick-select amounts (currency-agnostic whole units) ──────────────────────
-// Pricing: 1 credit = $0.25 → $1 = 4 credits → $5 = 20 credits = 20 CV generations
+// Pricing: $5 = 20 credits · CV/cover letter = 20 credits · optimize/translate = 1 credit
 
 const QUICK_AMOUNTS = [
   { value: 5,  credits: 20,  badgeKey: null },
@@ -417,7 +419,7 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
               <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {t('whatCreditsUnlock')}
               </p>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {CREDIT_ACTIONS.map(({ icon: Icon, labelKey, cost }) => (
                   <div
                     key={labelKey}
