@@ -151,7 +151,7 @@ const CreditsButton: React.FC = () => {
                     <Icon className="h-3.5 w-3.5 text-primary" />
                     <span className="text-[11px] font-medium text-foreground">{t(labelKey)}</span>
                     <span className="text-[10px] text-muted-foreground">
-                      {cost === 1 ? t('creditSingular') : t('creditPlural', { count: cost })}
+                      {t('creditPlural', { count: cost })}
                     </span>
                   </div>
                 ))}

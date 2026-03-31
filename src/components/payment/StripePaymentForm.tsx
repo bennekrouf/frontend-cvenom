@@ -428,7 +428,7 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
                     <Icon className="h-4 w-4 text-primary" />
                     <span className="text-xs font-medium text-foreground">{t(labelKey)}</span>
                     <span className="text-xs text-muted-foreground">
-                      {cost === 1 ? t('creditSingular') : t('creditPlural', { count: cost })}
+                      {t('creditPlural', { count: cost })}
                     </span>
                   </div>
                 ))}
