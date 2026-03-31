@@ -144,8 +144,8 @@ const CreditsButton: React.FC = () => {
                 {([
                   { icon: FiFileText, labelKey: 'actionExportPdf',   cost: 20 },
                   { icon: FiMail,     labelKey: 'actionCoverLetter', cost: 20 },
-                  { icon: FiZap,      labelKey: 'actionOptimize',    cost: 1  },
-                  { icon: FiGlobe,    labelKey: 'actionTranslate',   cost: 1  },
+                  { icon: FiZap,      labelKey: 'actionOptimize',    cost: 5  },
+                  { icon: FiGlobe,    labelKey: 'actionTranslate',   cost: 5  },
                 ] as const).map(({ icon: Icon, labelKey, cost }) => (
                   <div key={labelKey} className="flex flex-col items-center gap-1 rounded-md border border-border bg-muted/40 p-2 text-center">
                     <Icon className="h-3.5 w-3.5 text-primary" />

@@ -70,12 +70,12 @@ function useIsDark(): boolean {
 const CREDIT_ACTIONS = [
   { icon: FiFileText, labelKey: 'actionExportPdf' as const,    cost: 20 },
   { icon: FiMail,     labelKey: 'actionCoverLetter' as const,  cost: 20 },
-  { icon: FiZap,      labelKey: 'actionOptimize' as const,     cost: 1  },
-  { icon: FiGlobe,    labelKey: 'actionTranslate' as const,    cost: 1  },
+  { icon: FiZap,      labelKey: 'actionOptimize' as const,     cost: 5  },
+  { icon: FiGlobe,    labelKey: 'actionTranslate' as const,    cost: 5  },
 ];
 
 // ── Quick-select amounts (currency-agnostic whole units) ──────────────────────
-// Pricing: $5 = 20 credits · CV/cover letter = 20 credits · optimize/translate = 1 credit
+// Pricing: $5 = 20 credits · CV/cover letter = 20 cr · optimize/translate = 5 cr · free tier = 100 cr (5 CVs)
 
 const QUICK_AMOUNTS = [
   { value: 5,  credits: 20,  badgeKey: null },
