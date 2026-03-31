@@ -430,6 +430,31 @@ export async function generateCoverLetter(
   });
 }
 
+/**
+ * Export a cover letter as a .docx file.
+ * Returns a Blob that can be used to trigger a browser download.
+ */
+export async function exportCoverLetterDocx(
+  coverLetter: string,
+  name: string,
+  lang: string,
+): Promise<Blob> {
+  const token = await getAuthToken();
+  const apiUrl = getApiUrl();
+  const response = await fetch(`${apiUrl}/cover-letter/export`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ cover_letter: coverLetter, name, lang }),
+  });
+  if (!response.ok) {
+    throw new Error(`Export failed: ${response.statusText}`);
+  }
+  return response.blob();
+}
+
 export async function renameCollaborator(oldName: string, newName: string): Promise<unknown> {
   const auth = getAuth();
   const user = auth.currentUser;

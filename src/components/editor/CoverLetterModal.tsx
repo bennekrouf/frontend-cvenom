@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import {
   FiX, FiFileText, FiLoader, FiAlertCircle, FiClipboard, FiCheck, FiDownload,
 } from 'react-icons/fi';
-import { generateCoverLetter } from '@/lib/api';
+import { generateCoverLetter, exportCoverLetterDocx } from '@/lib/api';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -35,6 +35,7 @@ const CoverLetterModal: React.FC<CoverLetterModalProps> = ({
   const [coverLetter, setCoverLetter] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [copied, setCopied] = useState(false);
+  const [exportingDocx, setExportingDocx] = useState(false);
 
   if (!isOpen) return null;
 
@@ -68,14 +69,49 @@ const CoverLetterModal: React.FC<CoverLetterModalProps> = ({
     }
   };
 
-  const handleDownload = () => {
-    const blob = new Blob([coverLetter], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `cover-letter-${collaboratorName}-${language}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleDownloadPdf = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    const name = collaboratorName ?? '';
+    printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Cover Letter – ${name}</title>
+  <style>
+    body { font-family: Calibri, Arial, sans-serif; font-size: 12pt; line-height: 1.5;
+           max-width: 700px; margin: 40px auto; color: #1a1a1a; }
+    p { margin: 0 0 12pt; }
+    @media print { body { margin: 0; } }
+  </style>
+</head>
+<body>
+  ${coverLetter
+    .split(/\n\n+/)
+    .map(para => `<p>${para.trim().replace(/\n/g, '<br>')}</p>`)
+    .join('')}
+  <script>window.onload = () => { window.print(); window.close(); }<\/script>
+</body>
+</html>`);
+    printWindow.document.close();
+  };
+
+  const handleDownloadDocx = async () => {
+    if (!collaboratorName) return;
+    setExportingDocx(true);
+    try {
+      const blob = await exportCoverLetterDocx(coverLetter, collaboratorName, language);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cover-letter-${collaboratorName}-${language}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('DOCX export failed:', err);
+    } finally {
+      setExportingDocx(false);
+    }
   };
 
   const handleClose = () => {
@@ -169,11 +205,21 @@ const CoverLetterModal: React.FC<CoverLetterModalProps> = ({
                     {copied ? 'Copied!' : 'Copy'}
                   </button>
                   <button
-                    onClick={handleDownload}
+                    onClick={handleDownloadPdf}
                     className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary"
                   >
                     <FiDownload className="h-3.5 w-3.5" />
-                    Download
+                    PDF
+                  </button>
+                  <button
+                    onClick={handleDownloadDocx}
+                    disabled={exportingDocx}
+                    className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary disabled:opacity-50"
+                  >
+                    {exportingDocx
+                      ? <FiLoader className="h-3.5 w-3.5 animate-spin" />
+                      : <FiFileText className="h-3.5 w-3.5 text-blue-500" />}
+                    Word
                   </button>
                 </div>
               </div>
