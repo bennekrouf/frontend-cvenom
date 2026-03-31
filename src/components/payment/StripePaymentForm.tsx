@@ -31,8 +31,9 @@ import {
   FiZap,
   FiMail,
   FiChevronDown,
+  FiClock,
 } from 'react-icons/fi';
-import { createPaymentIntent, confirmPayment } from '@/lib/paymentService';
+import { createPaymentIntent, confirmPayment, getTransactions, CreditTransaction } from '@/lib/paymentService';
 import { useTranslations } from 'next-intl';
 import {
   detectCurrency,
@@ -83,6 +84,29 @@ const QUICK_AMOUNTS = [
   { value: 25, credits: 100, badgeKey: 'badgeBestValue' as const },
   { value: 50, credits: 200, badgeKey: 'badgePowerUser' as const },
 ];
+
+function actionIcon(type: string): string {
+  const icons: Record<string, string> = {
+    cv_generation: '📄', cover_letter: '✉️', optimize: '⚡',
+    translate: '🌐', cv_import: '📥', topup: '💳', welcome: '🎁',
+  };
+  return icons[type] ?? '💳';
+}
+
+function actionLabel(type: string): string {
+  const labels: Record<string, string> = {
+    cv_generation: 'CV Generated', cover_letter: 'Cover Letter',
+    optimize: 'Optimization', translate: 'Translation',
+    cv_import: 'CV Import', topup: 'Credit Top-up', welcome: 'Welcome Bonus',
+  };
+  return labels[type] ?? type;
+}
+
+function formatTxDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
 
 // ── Currency picker ───────────────────────────────────────────────────────────
 
@@ -282,6 +306,9 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
   const [amount, setAmount] = useState(10);
   const [customAmount, setCustomAmount] = useState('');
   const [useCustom, setUseCustom] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   // Auto-detect currency from timezone; user can override.
   const [currency, setCurrency] = useState<Currency>(() => detectCurrency());
@@ -309,6 +336,18 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
   }, [useCustom, customAmount, amount]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
+
+  const loadHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const txs = await getTransactions();
+      setTransactions(txs);
+    } catch {
+      setTransactions([]);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   const handleAmountSelect = (val: number) => {
     setAmount(val);
@@ -396,7 +435,21 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
         <div className="flex items-center gap-2">
           {/* Currency picker — only visible on step 1 */}
           {step === 'amount' && (
-            <CurrencyPicker value={currency} onChange={setCurrency} />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => { const next = !showHistory; setShowHistory(next); if (next) loadHistory(); }}
+                className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors border ${
+                  showHistory
+                    ? 'border-primary bg-primary/5 text-primary'
+                    : 'border-border bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                <FiClock className="h-3 w-3" />
+                History
+              </button>
+              <CurrencyPicker value={currency} onChange={setCurrency} />
+            </div>
           )}
           {onClose && (
             <button
@@ -414,112 +467,146 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
         {/* ── Step 1: Amount selection ── */}
         {step === 'amount' && (
           <div className="space-y-5">
-            {/* Credit actions explainer */}
-            <div className="rounded-lg bg-muted/50 p-3">
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {t('whatCreditsUnlock')}
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {CREDIT_ACTIONS.map(({ icon: Icon, labelKey, cost }) => (
-                  <div
-                    key={labelKey}
-                    className="flex flex-col items-center gap-1 rounded-md border border-border bg-background p-2"
-                  >
-                    <Icon className="h-4 w-4 text-primary" />
-                    <span className="text-xs font-medium text-foreground">{t(labelKey)}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {t('creditPlural', { count: cost })}
-                    </span>
+            {showHistory ? (
+              <div className="space-y-2">
+                {loadingHistory ? (
+                  <div className="flex justify-center py-8 text-sm text-muted-foreground">
+                    <FiLoader className="h-4 w-4 animate-spin mr-2" /> Loading…
                   </div>
-                ))}
+                ) : transactions.length === 0 ? (
+                  <div className="flex justify-center py-8 text-sm text-muted-foreground">No transactions yet</div>
+                ) : (
+                  <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
+                    {transactions.map((tx) => (
+                      <div key={tx.id} className="flex items-center justify-between rounded-md border border-border bg-background px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base leading-none">{actionIcon(tx.action_type)}</span>
+                          <div>
+                            <p className="text-xs font-medium text-foreground">{actionLabel(tx.action_type)}</p>
+                            <p className="text-[10px] text-muted-foreground">{formatTxDate(tx.created_at)}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-xs font-semibold ${tx.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+                            {tx.amount > 0 ? '+' : ''}{tx.amount} cr
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">{tx.balance_after} left</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
+            ) : (
+              <>
+                {/* Credit actions explainer */}
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {t('whatCreditsUnlock')}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {CREDIT_ACTIONS.map(({ icon: Icon, labelKey, cost }) => (
+                      <div
+                        key={labelKey}
+                        className="flex flex-col items-center gap-1 rounded-md border border-border bg-background p-2"
+                      >
+                        <Icon className="h-4 w-4 text-primary" />
+                        <span className="text-xs font-medium text-foreground">{t(labelKey)}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {t('creditPlural', { count: cost })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-            {/* Quick-select amounts */}
-            <div className="grid grid-cols-2 gap-3">
-              {QUICK_AMOUNTS.map((item) => {
-                const selected = amount === item.value && !useCustom;
-                return (
-                  <button
-                    key={item.value}
-                    onClick={() => handleAmountSelect(item.value)}
-                    className={`relative flex flex-col items-center rounded-lg border-2 px-3 pb-3 transition-all ${
-                      item.badgeKey ? 'pt-5' : 'pt-3'
-                    } ${
-                      selected
-                        ? 'border-primary bg-primary/5 text-primary'
-                        : 'border-border hover:border-primary/40'
-                    }`}
-                  >
-                    {item.badgeKey && (
-                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                        {t(item.badgeKey)}
-                      </span>
-                    )}
-                    <span className="text-lg font-bold">
-                      {formatAmount(item.value, currency)}
-                    </span>
-                    <span className="text-xs font-medium text-muted-foreground">
-                      {item.credits.toLocaleString()} {t('creditsUnit')}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground/80">
-                      {t('optimizationsCount', { count: item.credits.toLocaleString() })}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                {/* Quick-select amounts */}
+                <div className="grid grid-cols-2 gap-3">
+                  {QUICK_AMOUNTS.map((item) => {
+                    const selected = amount === item.value && !useCustom;
+                    return (
+                      <button
+                        key={item.value}
+                        onClick={() => handleAmountSelect(item.value)}
+                        className={`relative flex flex-col items-center rounded-lg border-2 px-3 pb-3 transition-all ${
+                          item.badgeKey ? 'pt-5' : 'pt-3'
+                        } ${
+                          selected
+                            ? 'border-primary bg-primary/5 text-primary'
+                            : 'border-border hover:border-primary/40'
+                        }`}
+                      >
+                        {item.badgeKey && (
+                          <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                            {t(item.badgeKey)}
+                          </span>
+                        )}
+                        <span className="text-lg font-bold">
+                          {formatAmount(item.value, currency)}
+                        </span>
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {item.credits.toLocaleString()} {t('creditsUnit')}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground/80">
+                          {t('optimizationsCount', { count: item.credits.toLocaleString() })}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
 
-            {/* Custom amount */}
-            <div className="space-y-1.5">
-              <label htmlFor="custom-amount" className="text-sm font-medium text-foreground">
-                {t('customAmountLabel')}
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
-                  {currency.label}
-                </span>
-                <input
-                  id="custom-amount"
-                  type="text"
-                  inputMode="decimal"
-                  value={customAmount}
-                  onChange={(e) => handleCustomChange(e.target.value)}
-                  placeholder="0"
-                  className="w-full rounded-lg border border-border bg-background py-2.5 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-                />
-              </div>
-              {useCustom && finalAmount() >= 1 && (
-                <p className="text-xs text-muted-foreground">
-                  = {Math.round(finalAmount() * 100).toLocaleString()} {t('creditsUnit')} ·{' '}
-                  {t('optimizationsCount', { count: Math.round(finalAmount() * 4).toLocaleString() })}
-                </p>
-              )}
-            </div>
+                {/* Custom amount */}
+                <div className="space-y-1.5">
+                  <label htmlFor="custom-amount" className="text-sm font-medium text-foreground">
+                    {t('customAmountLabel')}
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted-foreground">
+                      {currency.label}
+                    </span>
+                    <input
+                      id="custom-amount"
+                      type="text"
+                      inputMode="decimal"
+                      value={customAmount}
+                      onChange={(e) => handleCustomChange(e.target.value)}
+                      placeholder="0"
+                      className="w-full rounded-lg border border-border bg-background py-2.5 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    />
+                  </div>
+                  {useCustom && finalAmount() >= 1 && (
+                    <p className="text-xs text-muted-foreground">
+                      = {Math.round(finalAmount() * 100).toLocaleString()} {t('creditsUnit')} ·{' '}
+                      {t('optimizationsCount', { count: Math.round(finalAmount() * 4).toLocaleString() })}
+                    </p>
+                  )}
+                </div>
 
-            {intentError && (
-              <p className="flex items-center gap-1.5 text-sm text-destructive">
-                <FiAlertTriangle className="h-3.5 w-3.5" />
-                {intentError}
-              </p>
+                {intentError && (
+                  <p className="flex items-center gap-1.5 text-sm text-destructive">
+                    <FiAlertTriangle className="h-3.5 w-3.5" />
+                    {intentError}
+                  </p>
+                )}
+
+                <button
+                  onClick={handleContinue}
+                  disabled={loadingIntent || finalAmount() < 1}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {loadingIntent ? (
+                    <>
+                      <FiLoader className="h-4 w-4 animate-spin" />
+                      {t('settingUp')}
+                    </>
+                  ) : (
+                    t('continueButton', {
+                      amount: finalAmount() >= 1 ? formatAmount(finalAmount(), currency) : '—',
+                    })
+                  )}
+                </button>
+              </>
             )}
-
-            <button
-              onClick={handleContinue}
-              disabled={loadingIntent || finalAmount() < 1}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-            >
-              {loadingIntent ? (
-                <>
-                  <FiLoader className="h-4 w-4 animate-spin" />
-                  {t('settingUp')}
-                </>
-              ) : (
-                t('continueButton', {
-                  amount: finalAmount() >= 1 ? formatAmount(finalAmount(), currency) : '—',
-                })
-              )}
-            </button>
           </div>
         )}
 

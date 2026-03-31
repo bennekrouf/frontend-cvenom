@@ -123,3 +123,22 @@ export async function getBalance(): Promise<number> {
 
   return (json as BalanceResult).balance;
 }
+
+export interface CreditTransaction {
+  id: number;
+  amount: number;
+  balance_after: number;
+  action_type: string;
+  description: string | null;
+  created_at: string;
+}
+
+export async function getTransactions(): Promise<CreditTransaction[]> {
+  const token = await getAuthToken();
+  const response = await fetch(`${getApiBase()}/payment/transactions`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) throw new Error('Failed to fetch transactions');
+  const data = await response.json();
+  return data.transactions ?? [];
+}
