@@ -358,11 +358,11 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
     setViewMode('code');
   }, [viewMode]);
 
-  /** Select a collaborator, switch to Form view, and sync the profile name into the URL. */
+  /** Select a collaborator, keep current view mode, and sync the profile name into the URL. */
   const handleSelectCollaborator = useCallback((name: string) => {
     setSelectedCollaborator(name);
     setSelectedLanguage('en');
-    setViewMode('form');
+    // Do NOT reset viewMode — stay on whichever tab (chat, form, code) the user is on
     setSelectedFile(null);
     setFileContent('');
     setUnsavedChanges(false);
@@ -540,11 +540,10 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
     setExpandedFolders(newExpanded);
   };
 
-  // When the selected collaborator changes, default back to form view
+  // When the selected collaborator changes, close any open file but keep the current tab
   useEffect(() => {
     if (selectedCollaborator) {
-      setViewMode('form');
-      // Close any open file so the form view takes over
+      // Do NOT reset viewMode — preserve chat/form/code tab across profile switches
       setSelectedFile(null);
       setFileContent('');
       setUnsavedChanges(false);
