@@ -7,6 +7,9 @@ const API0_BASE = process.env.NEXT_PUBLIC_API0_BASE_URL || 'https://gateway.api0
 const API0_KEY = process.env.NEXT_PUBLIC_API0_API_KEY || (() => {
   throw new Error('NEXT_PUBLIC_API0_API_KEY environment variable is required');
 })();
+// The api0 account that owns the cvenom API key.
+// Go to app.api0.ai, log in with this email, and regenerate the key when it expires.
+const API0_ACCOUNT_EMAIL = process.env.NEXT_PUBLIC_API0_ACCOUNT_EMAIL || 'mohamed.bennekrouf@gmail.com';
 
 let conversationId: string | null = null;
 
@@ -213,7 +216,9 @@ async function analyze(sentence: string, attachments: FileAttachment[] = []): Pr
     if (!startRes.ok) {
       const errorData = await startRes.json().catch(() => ({ error: 'Unknown error' }));
       if (startRes.status === 401) {
-        throw new Error('Authentication failed: Invalid or missing API key');
+        throw new Error(
+          `API key invalid or expired. Go to app.api0.ai → log in with ${API0_ACCOUNT_EMAIL} → API Keys → regenerate, then update NEXT_PUBLIC_API0_API_KEY in /opt/cvenom/frontend.env and run: sudo bash update.sh`
+        );
       }
       throw new Error(errorData.error || `Request failed with status ${startRes.status}`);
     }
@@ -245,7 +250,9 @@ async function analyze(sentence: string, attachments: FileAttachment[] = []): Pr
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
     if (res.status === 401) {
-      throw new Error('Authentication failed: Invalid or missing API key');
+      throw new Error(
+        `API key invalid or expired. Go to app.api0.ai → log in with ${API0_ACCOUNT_EMAIL} → API Keys → regenerate, then update NEXT_PUBLIC_API0_API_KEY in /opt/cvenom/frontend.env and run: sudo bash update.sh`
+      );
     }
     throw new Error(errorData.error || `Request failed with status ${res.status}`);
   }
