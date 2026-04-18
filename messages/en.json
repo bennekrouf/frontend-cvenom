@@ -243,7 +243,14 @@
     "addMoreButton": "Add More",
     "doneButton": "Done",
     "failedToInitPayment": "Failed to initialise payment",
-    "closeButton": "Close"
+    "closeButton": "Close",
+    "referralTitle": "Refer a friend",
+    "referralSubtitle": "Earn 50 credits for each friend who signs up with your link",
+    "referralCopy": "Copy",
+    "referralCopied": "Copied",
+    "referralFriendSingular": "friend joined",
+    "referralFriendsPlural": "friends joined",
+    "referralCreditsEarned": "credits earned"
   },
   "cvForm": {
     "loadingCvData": "Loading CV data…",

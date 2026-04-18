@@ -229,7 +229,14 @@
     "addMoreButton": "En ajouter",
     "doneButton": "Terminer",
     "failedToInitPayment": "Échec de l'initialisation du paiement",
-    "closeButton": "Fermer"
+    "closeButton": "Fermer",
+    "referralTitle": "Parrainer un ami",
+    "referralSubtitle": "Gagnez 50 crédits pour chaque ami qui s'inscrit avec votre lien",
+    "referralCopy": "Copier",
+    "referralCopied": "Copié",
+    "referralFriendSingular": "ami inscrit",
+    "referralFriendsPlural": "amis inscrits",
+    "referralCreditsEarned": "crédits gagnés"
   },
   "cvForm": {
     "loadingCvData": "Chargement des données CV…",

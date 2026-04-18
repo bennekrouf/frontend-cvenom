@@ -8,6 +8,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { FiUsers, FiCopy, FiCheck, FiGift } from 'react-icons/fi';
+import { useTranslations } from 'next-intl';
 import { getReferralLink, ReferralLinkResult } from '@/lib/paymentService';
 
 interface ReferralWidgetProps {
@@ -16,6 +17,7 @@ interface ReferralWidgetProps {
 }
 
 const ReferralWidget: React.FC<ReferralWidgetProps> = ({ compact = false }) => {
+  const t = useTranslations('credits');
   const [data, setData] = useState<ReferralLinkResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -65,10 +67,8 @@ const ReferralWidget: React.FC<ReferralWidgetProps> = ({ compact = false }) => {
           <FiGift className="h-4 w-4 text-primary" />
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-foreground">Refer a friend</h3>
-          <p className="text-xs text-muted-foreground">
-            Earn 50 credits for each friend who signs up with your link
-          </p>
+          <h3 className="text-sm font-semibold text-foreground">{t('referralTitle')}</h3>
+          <p className="text-xs text-muted-foreground">{t('referralSubtitle')}</p>
         </div>
       </div>
 
@@ -85,12 +85,12 @@ const ReferralWidget: React.FC<ReferralWidgetProps> = ({ compact = false }) => {
           {copied ? (
             <>
               <FiCheck className="h-3.5 w-3.5 text-green-500" />
-              <span className="text-green-600 dark:text-green-400">Copied</span>
+              <span className="text-green-600 dark:text-green-400">{t('referralCopied')}</span>
             </>
           ) : (
             <>
               <FiCopy className="h-3.5 w-3.5" />
-              <span>Copy</span>
+              <span>{t('referralCopy')}</span>
             </>
           )}
         </button>
@@ -103,14 +103,14 @@ const ReferralWidget: React.FC<ReferralWidgetProps> = ({ compact = false }) => {
           <span>
             <span className="font-semibold text-foreground">{data.total_referrals}</span>
             {' '}
-            {data.total_referrals === 1 ? 'friend joined' : 'friends joined'}
+            {data.total_referrals === 1 ? t('referralFriendSingular') : t('referralFriendsPlural')}
           </span>
         </div>
         <div className="h-3 w-px bg-border" />
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <span>
             <span className="font-semibold text-foreground">{data.credits_earned}</span>
-            {' credits earned'}
+            {' '}{t('referralCreditsEarned')}
           </span>
         </div>
       </div>
