@@ -19,6 +19,7 @@ import {
 import { useTranslations } from 'next-intl';
 import { User } from 'firebase/auth';
 import { FileTreeItem, getLatestModified } from '@/lib/api';
+import Tooltip from '@/components/ui/Tooltip';
 
 interface FileTreePanelProps {
   fileTree: Record<string, FileTreeItem> | null;
@@ -186,50 +187,54 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
 
           {isCollaboratorFolder && isSelectedCollaborator && isAuthenticated && !isRenaming && (
             <div className="flex items-center space-x-1 opacity-60 group-hover:opacity-100 transition-opacity ml-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setRenamingCollaborator(name);
-                  setNewCollaboratorName(name);
-                }}
-                className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground"
-                title={`Rename profile ${name}`}
-              >
-                <FiEdit3 className="w-3 h-3" />
-              </button>
+              <Tooltip content="Rename profile" side="top">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setRenamingCollaborator(name);
+                    setNewCollaboratorName(name);
+                  }}
+                  className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground"
+                >
+                  <FiEdit3 className="w-3 h-3" />
+                </button>
+              </Tooltip>
 
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onShowUploadModal();
-                }}
-                className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground"
-                title={`Upload profile picture for ${name} (JPG, PNG supported)`}
-              >
-                <FiCamera className="w-3 h-3" />
-              </button>
+              <Tooltip content="Upload profile photo (JPG, PNG)" side="top">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onShowUploadModal();
+                  }}
+                  className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground"
+                >
+                  <FiCamera className="w-3 h-3" />
+                </button>
+              </Tooltip>
 
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onShowGenerateModal();
-                }}
-                className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground"
-                title={`Generate and download CV PDF for ${name}`}
-              >
-                <FiFileText className="w-3 h-3" />
-              </button>
+              <Tooltip content="Generate PDF" side="top">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onShowGenerateModal();
+                  }}
+                  className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground"
+                >
+                  <FiFileText className="w-3 h-3" />
+                </button>
+              </Tooltip>
 
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteCollaborator();
-                }}
-                className="p-1 hover:bg-red-500/20 rounded text-muted-foreground hover:text-red-500"
-                title={`Delete profile ${name} and all associated files`}
-              >
-                <FiTrash2 className="w-3 h-3" />
-              </button>
+              <Tooltip content="Delete profile and all files" side="top">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteCollaborator();
+                  }}
+                  className="p-1 hover:bg-red-500/20 rounded text-muted-foreground hover:text-red-500"
+                >
+                  <FiTrash2 className="w-3 h-3" />
+                </button>
+              </Tooltip>
             </div>
           )}
 
