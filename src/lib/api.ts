@@ -118,6 +118,15 @@ export async function apiRequest<T = unknown>(
     }
   }
 
+  // Attach referral code from localStorage (one-time, consumed on first authenticated request)
+  if (typeof window !== 'undefined') {
+    const refCode = localStorage.getItem('cvenom_ref');
+    if (refCode) {
+      requestHeaders['X-Referral-Code'] = refCode;
+      localStorage.removeItem('cvenom_ref');
+    }
+  }
+
   // Get API base URL
   const apiUrl = getApiUrl();
 

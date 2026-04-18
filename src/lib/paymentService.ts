@@ -142,3 +142,32 @@ export async function getTransactions(): Promise<CreditTransaction[]> {
   const data = await response.json();
   return data.transactions ?? [];
 }
+
+// ── Referral ──────────────────────────────────────────────────────────────────
+
+export interface ReferralLinkResult {
+  referral_code: string;
+  referral_url: string;
+  total_referrals: number;
+  credited_referrals: number;
+  credits_earned: number;
+}
+
+/**
+ * Fetch the authenticated user's referral link and stats.
+ */
+export async function getReferralLink(): Promise<ReferralLinkResult> {
+  const token = await getAuthToken();
+
+  const res = await fetch(`${getApiBase()}/referral/my-link`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  const json = await res.json();
+
+  if (!res.ok || !json.success) {
+    throw new Error(json.error || `Referral fetch failed (${res.status})`);
+  }
+
+  return json.data as ReferralLinkResult;
+}

@@ -17,6 +17,7 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/contexts/AuthContext';
 import { signInWithGoogle } from '@/lib/firebase';
 import StripePaymentForm from './StripePaymentForm';
+import ReferralWidget from './ReferralWidget';
 import { getBalance } from '@/lib/paymentService';
 
 const CreditsButton: React.FC = () => {
@@ -191,11 +192,12 @@ const CreditsButton: React.FC = () => {
           }}
         >
           <div className="flex min-h-full items-center justify-center p-4">
-            <div ref={paymentCardRef}>
+            <div ref={paymentCardRef} className="flex flex-col gap-4 w-full max-w-md">
               <StripePaymentForm
                 onSuccess={handleSuccess}
                 onClose={() => setOpen(false)}
               />
+              <ReferralWidget />
             </div>
           </div>
         </div>,
