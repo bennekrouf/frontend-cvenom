@@ -15,6 +15,8 @@ interface GenerateCVModalProps {
   collaboratorName: string | null;
   onGenerateCV: (language: string, template: string) => Promise<void>;
   isGenerating: boolean;
+  /** Languages the profile already has (from experiences_XX.typ files) */
+  availableLanguages?: string[];
 }
 
 // ── Visual thumbnail SVG previews per template ────────────────────────────────
@@ -257,21 +259,37 @@ const getLabel = (name: string) =>
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
+const ALL_LANGUAGES = [
+  { value: 'en', label: '🇬🇧 English' },
+  { value: 'fr', label: '🇫🇷 Français' },
+  { value: 'de', label: '🇩🇪 Deutsch' },
+  { value: 'es', label: '🇪🇸 Español' },
+  { value: 'it', label: '🇮🇹 Italiano' },
+  { value: 'pt', label: '🇵🇹 Português' },
+  { value: 'nl', label: '🇳🇱 Nederlands' },
+  { value: 'ar', label: '🇸🇦 العربية' },
+];
+
 const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
   isOpen,
   onClose,
   collaboratorName,
   onGenerateCV,
   isGenerating,
+  availableLanguages = [],
 }) => {
-  const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const langs = availableLanguages.length > 0 ? availableLanguages : ['en'];
+  const [selectedLanguage, setSelectedLanguage] = useState(langs[0]);
   const [selectedTemplate, setSelectedTemplate] = useState('default');
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
 
   useEffect(() => {
-    if (isOpen) fetchTemplates();
-  }, [isOpen]);
+    if (isOpen) {
+      fetchTemplates();
+      setSelectedLanguage(langs[0]); // reset to first available lang when opening
+    }
+  }, [isOpen, collaboratorName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close on Escape (blocked while generating)
   useEffect(() => {
@@ -331,33 +349,48 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
         {/* ── Scrollable body ── */}
         <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
 
-          {/* Language selector */}
+          {/* Language selector — only languages this profile has */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
               Language
             </label>
-            <div className="flex gap-2">
-              {[
-                { value: 'en', label: '🇬🇧  English' },
-                { value: 'fr', label: '🇫🇷  Français' },
-              ].map(({ value, label }) => (
-                <button
-                  key={value}
-                  onClick={() => setSelectedLanguage(value)}
-                  disabled={isGenerating}
-                  className={`
-                    flex-1 py-2 px-3 rounded-md text-sm font-medium border transition-colors
-                    ${selectedLanguage === value
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground'
-                    }
-                    disabled:opacity-50 disabled:cursor-not-allowed
-                  `}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            {langs.length === 1 ? (
+              // Single language — no choice, just show it
+              <div className="flex items-center gap-2 px-3 py-2 rounded-md border border-primary bg-primary/10 text-primary text-sm font-medium w-fit">
+                {ALL_LANGUAGES.find(l => l.value === langs[0])?.label ?? langs[0].toUpperCase()}
+                <span className="text-xs text-muted-foreground font-normal ml-1">(only available language)</span>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {langs.map(value => {
+                  const lang = ALL_LANGUAGES.find(l => l.value === value);
+                  const label = lang?.label ?? value.toUpperCase();
+                  return (
+                    <button
+                      key={value}
+                      onClick={() => setSelectedLanguage(value)}
+                      disabled={isGenerating}
+                      className={`
+                        py-2 px-4 rounded-md text-sm font-medium border transition-colors
+                        ${selectedLanguage === value
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                        }
+                        disabled:opacity-50 disabled:cursor-not-allowed
+                      `}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {/* Nudge: suggest translation if only one language */}
+            {langs.length === 1 && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                💡 Want another language? Use the chat to translate this profile first.
+              </p>
+            )}
           </div>
 
           {/* Template grid */}

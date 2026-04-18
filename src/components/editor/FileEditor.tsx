@@ -919,6 +919,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
             collaboratorName={selectedCollaborator}
             onGenerateCV={handleGenerateCV}
             isGenerating={isGenerating}
+            availableLanguages={availableLanguages}
           />
 
           <DeleteCollaboratorModal
