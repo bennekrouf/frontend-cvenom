@@ -4,24 +4,22 @@ site:
   domain: "cvenom.com"
   description: "CV app"
   locale: "en"
-
 # Firebase Authentication Configuration
 auth:
   firebase:
-    apiKey: "AIzaSyATOqzoOFlejYgtKsxPhRHXHCFnR5kc8RA"
-    authDomain: "semantic-27923.firebaseapp.com"
-    projectId: "semantic-27923"
-    storageBucket: "semantic-27923.firebasestorage.app"
-    messagingSenderId: "566168954365"
-    appId: "1:566168954365:web:892d52e66a40201cece594"
-    measurementId: "G-1HXVGY2NFG"
+    apiKey: "AIzaSyBaotU17zNzgzMWQyi47PXpR0_LcRZO2mY"
+    authDomain: "cvenom-de582.firebaseapp.com"
+    projectId: "cvenom-de582"
+    storageBucket: "cvenom-de582.firebasestorage.app"
+    messagingSenderId: "710811416199"
+    appId: "1:710811416199:web:1317d4d5de279ab3d8ea22"
+    measurementId: "G-VS684NG0ER"
 
 # Logging preferences (following your Rust preference)
 logging:
   level: "trace"
   format: "json"
   output: "console"
-
 
 # Chat Configuration
 chat:
