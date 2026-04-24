@@ -263,7 +263,9 @@ export async function generateCV(
   language: string,
   template: string = 'default'
 ): Promise<Blob> {
-  return apiRequest('/generate', {
+  // The backend streams the PDF directly (Content-Type: application/pdf).
+  // apiRequest returns a Blob for that content type.
+  return apiRequest<Blob>('/generate', {
     method: 'POST',
     body: {
       profile: personName,
@@ -366,7 +368,7 @@ export async function optimizeCV(
 
 /**
  * Optimize CV for ATS **and** immediately compile + download the PDF.
- * Returns a Blob (PDF binary).
+ * Returns the PDF metadata and download URL.
  * If cvJson is omitted, the server loads CV data from the profile directory.
  */
 export async function optimizeAndGenerate(
@@ -377,7 +379,7 @@ export async function optimizeAndGenerate(
   cvJson?: string,
   jobDescription?: string,
 ): Promise<Blob> {
-  return apiRequest('/optimize-and-generate', {
+  return apiRequest<Blob>('/optimize-and-generate', {
     method: 'POST',
     body: {
       profile,

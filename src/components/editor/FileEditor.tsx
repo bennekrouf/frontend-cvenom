@@ -268,21 +268,20 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
 
     setIsGenerating(true);
     try {
-      const response = await generateCV(selectedCollaborator, language, template);
+      const blob = await generateCV(selectedCollaborator, language, template);
 
-      if (response.success && response.download_url) {
-        const a = document.createElement('a');
-        a.href = response.download_url;
-        a.download = response.filename || `cv-${selectedCollaborator}-${language}-${template}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+      // Backend streams the PDF directly — create a local object URL to trigger download.
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cv-${selectedCollaborator}-${language}-${template}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
-        toast.success(t('cvGeneratedSuccess'));
-        setShowGenerateModal(false);
-      } else {
-        toast.error(response.message || t('generateCVFailed'));
-      }
+      toast.success(t('cvGeneratedSuccess'));
+      setShowGenerateModal(false);
     } catch (error) {
       console.error('Error generating CV:', error);
 
