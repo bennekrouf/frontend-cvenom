@@ -41,6 +41,7 @@ import {
 import ChatComponent from '../chat/ChatComponent';
 import { signInWithGoogle } from '@/lib/firebase';
 import { fileTreeEvents } from '@/lib/fileTreeEvents';
+import { toast } from 'sonner';
 
 interface ApiSuccessResponse {
   success: boolean;
@@ -88,7 +89,6 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
   const [showCoverLetterModal, setShowCoverLetterModal] = useState(false);
   const [selectedCollaborator, setSelectedCollaborator] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('');
 
   // Form / Code / Chat view toggle
   const [viewMode, setViewMode] = useState<'form' | 'code' | 'chat'>('form');
@@ -144,25 +144,20 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
       const data = response as ApiSuccessResponse;
 
       if (data.success) {
-        showStatus(t('deleteCollaboratorSuccess'));
+        toast.success(t('deleteCollaboratorSuccess'));
         setShowDeleteModal(false);
         setSelectedCollaborator(null);
         setSelectedFile(null);
         setFileContent('');
         await loadFileTree();
       } else {
-        showStatus(data.message || t('deleteCollaboratorFailed'));
+        toast.error(data.message || t('deleteCollaboratorFailed'));
       }
     } catch (error) {
       console.error('Error deleting profile:', error);
-      showStatus(t('deleteCollaboratorFailed'));
+      toast.error(t('deleteCollaboratorFailed'));
     }
     setIsDeleting(false);
-  };
-
-  const showStatus = (message: string) => {
-    setStatusMessage(message);
-    setTimeout(() => setStatusMessage(''), 3000);
   };
 
   const saveFile = useCallback(async () => {
@@ -172,19 +167,19 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
       await saveTenantFileContent(selectedFile, fileContent);
       setUnsavedChanges(false);
       setLastSaved(new Date());
-      showStatus(t('fileSavedSuccess'));
+      toast.success(t('fileSavedSuccess'));
     } catch (error) {
       console.error('Error saving file:', error);
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
-          showStatus(t('signInToSave'));
+          toast.error(t('signInToSave'));
         } else if (error.message.includes('token expired')) {
-          showStatus(t('sessionExpired'));
+          toast.error(t('sessionExpired'));
         } else {
-          showStatus(t('saveFileFailed'));
+          toast.error(t('saveFileFailed'));
         }
       } else {
-        showStatus(t('saveFileFailed'));
+        toast.error(t('saveFileFailed'));
       }
     }
   }, [selectedFile, fileContent, isAuthenticated, t]);
@@ -210,27 +205,27 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
       const data = response as ApiSuccessResponse;
 
       if (data.success) {
-        showStatus(t('collaboratorCreatedSuccess'));
+        toast.success(t('collaboratorCreatedSuccess'));
         setShowCreateModal(false);
         await loadFileTree();
         setSelectedCollaborator(personName);
         setExpandedFolders(new Set(['data', personName]));
       } else {
-        showStatus(data.message || t('createCollaboratorFailed'));
+        toast.error(data.message || t('createCollaboratorFailed'));
       }
     } catch (error) {
       console.error('Error creating profile:', error);
 
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
-          showStatus(t('signInToCreateCollaborators'));
+          toast.error(t('signInToCreateCollaborators'));
         } else if (error.message.includes('token expired')) {
-          showStatus(t('sessionExpired'));
+          toast.error(t('sessionExpired'));
         } else {
-          showStatus(error.message || t('createCollaboratorFailed'));
+          toast.error(error.message || t('createCollaboratorFailed'));
         }
       } else {
-        showStatus(t('createCollaboratorFailed'));
+        toast.error(t('createCollaboratorFailed'));
       }
     }
     setIsLoading(false);
@@ -245,24 +240,24 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
       const data = response as ApiSuccessResponse;
 
       if (data.success) {
-        showStatus(t('pictureUploadedSuccess'));
+        toast.success(t('pictureUploadedSuccess'));
         setShowUploadModal(false);
       } else {
-        showStatus(data.message || t('uploadPictureFailed'));
+        toast.error(data.message || t('uploadPictureFailed'));
       }
     } catch (error) {
       console.error('Error uploading picture:', error);
 
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
-          showStatus(t('signInToUploadPictures'));
+          toast.error(t('signInToUploadPictures'));
         } else if (error.message.includes('token expired')) {
-          showStatus(t('sessionExpired'));
+          toast.error(t('sessionExpired'));
         } else {
-          showStatus(error.message || t('uploadPictureFailed'));
+          toast.error(error.message || t('uploadPictureFailed'));
         }
       } else {
-        showStatus(t('uploadPictureFailed'));
+        toast.error(t('uploadPictureFailed'));
       }
     }
     setIsLoading(false);
@@ -273,35 +268,35 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
 
     setIsGenerating(true);
     try {
-      const blob = await generateCV(selectedCollaborator, language, template);
+      const response = await generateCV(selectedCollaborator, language, template);
 
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `cv-${selectedCollaborator}-${language}-${template}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      if (response.success && response.download_url) {
+        const a = document.createElement('a');
+        a.href = response.download_url;
+        a.download = response.filename || `cv-${selectedCollaborator}-${language}-${template}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
 
-      showStatus(t('cvGeneratedSuccess'));
-      setShowGenerateModal(false);
+        toast.success(t('cvGeneratedSuccess'));
+        setShowGenerateModal(false);
+      } else {
+        toast.error(response.message || t('generateCVFailed'));
+      }
     } catch (error) {
       console.error('Error generating CV:', error);
 
-      let errorMessage = t('generateCVFailed');
-
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
-          errorMessage = t('signInToGenerateCV');
+          toast.error(t('signInToGenerateCV'));
         } else if (error.message.includes('token expired')) {
-          errorMessage = t('sessionExpired');
+          toast.error(t('sessionExpired'));
         } else {
-          errorMessage = error.message;
+          toast.error(error.message || t('generateCVFailed'));
         }
+      } else {
+        toast.error(t('generateCVFailed'));
       }
-
-      showStatus(errorMessage);
     }
     setIsGenerating(false);
   };
@@ -315,7 +310,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
       const data = response as ApiSuccessResponse;
 
       if (data.success) {
-        showStatus(`Collaborator renamed from "${oldName}" to "${newName}"`);
+        toast.success(`Collaborator renamed from "${oldName}" to "${newName}"`);
 
         if (selectedCollaborator === oldName) {
           setSelectedCollaborator(newName);
@@ -323,27 +318,27 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
 
         await loadFileTree();
       } else {
-        showStatus(data.message || 'Failed to rename profile');
+        toast.error(data.message || 'Failed to rename profile');
       }
     } catch (error) {
       console.error('Error renaming profile:', error);
 
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
-          showStatus('Sign in required to rename collaborators');
+          toast.error('Sign in required to rename collaborators');
         } else if (error.message.includes('Session expired')) {
-          showStatus('Session expired - please sign in again');
+          toast.error('Session expired - please sign in again');
         } else if (error.message.includes('already exists')) {
-          showStatus('A profile with that name already exists');
+          toast.error('A profile with that name already exists');
         } else if (error.message.includes('not found')) {
-          showStatus('Collaborator not found');
+          toast.error('Collaborator not found');
         } else if (error.message.includes('Invalid profile name')) {
-          showStatus('Invalid name format - use lowercase letters and hyphens only');
+          toast.error('Invalid name format - use lowercase letters and hyphens only');
         } else {
-          showStatus(error.message || 'Failed to rename profile');
+          toast.error(error.message || 'Failed to rename profile');
         }
       } else {
-        showStatus('Failed to rename profile');
+        toast.error('Failed to rename profile');
       }
     } finally {
       setIsLoading(false);
@@ -387,12 +382,12 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
       // Only show error status for actual errors, not empty states
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
-          showStatus(t('signInToViewFiles'));
+          toast.error(t('signInToViewFiles'));
         } else if (error.message.includes('token expired')) {
-          showStatus(t('sessionExpired'));
+          toast.error(t('sessionExpired'));
         } else if (!error.message.includes('No files found') && !error.message.includes('empty')) {
           // Only show error for genuine failures, not empty states
-          showStatus(t('loadFilesFailed'));
+          toast.error(t('loadFilesFailed'));
         }
       }
 
@@ -433,10 +428,10 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
       console.error('Error loading file:', error);
       if (error instanceof Error) {
         if (error.message.includes('Authentication required')) {
-          showStatus(t('signInToAccessFiles'));
+          toast.error(t('signInToAccessFiles'));
           setFileContent(t('authRequiredToView'));
         } else if (error.message.includes('token expired')) {
-          showStatus(t('sessionExpired'));
+          toast.error(t('sessionExpired'));
           setFileContent(t('sessionExpiredMessage'));
         } else {
           setFileContent(t('errorLoadingFile') + ': ' + error.message);
@@ -478,7 +473,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
 
     setSelectedCollaborator(personName);
     setExpandedFolders(new Set(['data', personName]));
-    showStatus(`CV converted successfully! Collaborator "${personName}" created`);
+    toast.success(`CV converted successfully! Collaborator "${personName}" created`);
   }, [loadFileTree]);
 
   useEffect(() => {
@@ -560,15 +555,6 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
 
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-background relative">
-      {/* Status Message */}
-      {statusMessage && (
-        <div className="fixed top-20 right-4 z-50 bg-card border border-border rounded-lg px-4 py-2 shadow-lg">
-          <p className={`text-sm ${statusMessage.includes('Failed') || statusMessage.includes('required') ? 'text-red-500' : 'text-green-500'}`}>
-            {statusMessage}
-          </p>
-        </div>
-      )}
-
       {/* Mobile Overlay */}
       {isMobile && sidebarOpen && (
         <div

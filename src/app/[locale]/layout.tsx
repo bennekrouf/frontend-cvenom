@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 // import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
 import { ThemeProvider } from "../providers";
+import { Toaster } from "sonner";
 import { NextIntlClientProvider } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 import { locales } from '../../../i18n';
@@ -65,6 +66,7 @@ export default async function LocaleLayout({
     <NextIntlClientProvider locale={locale} messages={messages}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
         {children}
+        <Toaster position="top-right" richColors closeButton duration={4000} />
       </ThemeProvider>
     </NextIntlClientProvider>
   );
