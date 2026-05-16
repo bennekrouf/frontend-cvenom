@@ -28,6 +28,7 @@ import OptimizeModal from './OptimizeModal';
 import CoverLetterModal from './CoverLetterModal';
 import UploadPictureModal from './UploadPictureModal';
 import GenerateCVModal from './GenerateCVModal';
+import GeneratePortfolioModal from './GeneratePortfolioModal';
 import {
   createCollaborator,
   getTenantFileTree,
@@ -35,6 +36,7 @@ import {
   saveTenantFileContent,
   uploadPicture,
   generateCV,
+  generatePortfolio,
   FileTreeItem,
   getLatestModified,
 } from '@/lib/api';
@@ -85,10 +87,12 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [showPortfolioModal, setShowPortfolioModal] = useState(false);
   const [showOptimizeModal, setShowOptimizeModal] = useState(false);
   const [showCoverLetterModal, setShowCoverLetterModal] = useState(false);
   const [selectedCollaborator, setSelectedCollaborator] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingPortfolio, setIsGeneratingPortfolio] = useState(false);
 
   // Form / Code / Chat view toggle
   const [viewMode, setViewMode] = useState<'form' | 'code' | 'chat'>('form');
@@ -298,6 +302,26 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
       }
     }
     setIsGenerating(false);
+  };
+
+  const handleGeneratePortfolio = async (language: string) => {
+    if (!selectedCollaborator || !isAuthenticated) return;
+    setIsGeneratingPortfolio(true);
+    try {
+      const result = await generatePortfolio(selectedCollaborator, language);
+      const a = document.createElement('a');
+      a.href = result.download_url;
+      a.download = `portfolio-${selectedCollaborator}-${language}.pdf`;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast.success('Portfolio generated successfully!');
+      setShowPortfolioModal(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Portfolio generation failed');
+    }
+    setIsGeneratingPortfolio(false);
   };
 
   const handleRenameCollaborator = async (oldName: string, newName: string) => {
@@ -736,7 +760,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
                 </button>
               )}
 
-              {/* Generate PDF */}
+              {/* Generate CV PDF */}
               {isAuthenticated && (
                 <button
                   onClick={() => setShowGenerateModal(true)}
@@ -746,6 +770,19 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
                 >
                   <FiFileText className="h-3.5 w-3.5 shrink-0" />
                   <span className="hidden lg:inline">{t('generate')}</span>
+                </button>
+              )}
+
+              {/* Generate Portfolio PDF */}
+              {isAuthenticated && (
+                <button
+                  onClick={() => setShowPortfolioModal(true)}
+                  disabled={!selectedCollaborator}
+                  className="flex items-center gap-1.5 rounded-md bg-violet-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  title={selectedCollaborator ? 'Generate portfolio PDF' : 'Select a profile first'}
+                >
+                  <FiFileText className="h-3.5 w-3.5 shrink-0" />
+                  <span className="hidden lg:inline">Portfolio</span>
                 </button>
               )}
 
@@ -904,6 +941,15 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
             collaboratorName={selectedCollaborator}
             onGenerateCV={handleGenerateCV}
             isGenerating={isGenerating}
+            availableLanguages={availableLanguages}
+          />
+
+          <GeneratePortfolioModal
+            isOpen={showPortfolioModal}
+            onClose={() => setShowPortfolioModal(false)}
+            collaboratorName={selectedCollaborator}
+            onGenerate={handleGeneratePortfolio}
+            isGenerating={isGeneratingPortfolio}
             availableLanguages={availableLanguages}
           />
 

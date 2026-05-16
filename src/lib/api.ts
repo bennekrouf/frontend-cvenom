@@ -276,6 +276,18 @@ export async function generateCV(
   });
 }
 
+export async function generatePortfolio(
+  personName: string,
+  language: string,
+  template: string = 'portfolio'
+): Promise<{ success: boolean; download_url: string; filename: string; profile: string }> {
+  return apiRequest('/portfolio/generate', {
+    method: 'POST',
+    body: { profile: personName, lang: language, template },
+    requireAuth: true,
+  });
+}
+
 export async function getTemplates() {
   const response = await apiRequest<{
     success: boolean;

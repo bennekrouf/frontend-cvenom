@@ -9,6 +9,10 @@ import { useTheme } from 'next-themes';
 import { useTranslations, useLocale } from 'next-intl';
 import LoginButton from '@/components/auth/LoginButton';
 import CreditsButton from '@/components/payment/CreditsButton';
+import { useAuth } from '@/contexts/AuthContext';
+import { bdGetMe } from '@/lib/api';
+
+const ADMIN_EMAIL = 'mohamed.bennekrouf@gmail.com';
 
 const Navbar: React.FC = () => {
   const [mounted, setMounted] = useState(false);
@@ -18,9 +22,18 @@ const Navbar: React.FC = () => {
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations('navigation');
+  const { user, isAuthenticated } = useAuth();
+  const [isBd, setIsBd] = useState(false);
 
-  // Empty navigation items - add your own
+  const isAdmin = isAuthenticated && user?.email?.toLowerCase() === ADMIN_EMAIL;
+
+  useEffect(() => {
+    if (!isAuthenticated) { setIsBd(false); return; }
+    bdGetMe().then(() => setIsBd(true)).catch(() => setIsBd(false));
+  }, [isAuthenticated]);
+
   const navItems: { label: string; path: string; }[] = [
+    ...(isBd && !isAdmin ? [{ label: 'BD Portal', path: '/bd' }] : []),
   ];
 
   useEffect(() => setMounted(true), []);
@@ -84,6 +97,16 @@ const Navbar: React.FC = () => {
           ))}
 
           <div className="flex items-center space-x-3">
+            {/* Admin link — only visible to admin email */}
+            {isAdmin && (
+              <Link
+                href={`/${locale}/admin/bd`}
+                className="text-xs font-medium px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 hover:opacity-80 transition-opacity"
+              >
+                ⚙ Admin
+              </Link>
+            )}
+
             {/* Language Switcher - Direct Toggle */}
             <button
               onClick={toggleLanguage}
@@ -176,6 +199,15 @@ const Navbar: React.FC = () => {
                 {item.label}
               </Link>
             ))}
+            {isAdmin && (
+              <Link
+                href={`/${locale}/admin/bd`}
+                className="block px-4 py-2 text-sm font-medium text-amber-700 dark:text-amber-300 hover:text-primary transition-colors"
+                onClick={toggleMenu}
+              >
+                ⚙ Admin — BD
+              </Link>
+            )}
           </div>
         </div>
       )}
