@@ -104,15 +104,24 @@ export function useAPI0Chat(profileName?: string) {
   }, []);
 
   const handlePDFDownload = useCallback((response: StandardApiResponse) => {
-    if (response.type === 'file' && response.success && response.blob_data) {
-      const url = window.URL.createObjectURL(response.blob_data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = response.filename || 'document.pdf';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+    if (response.type === 'file' && response.success) {
+      if (response.download_url) {
+        const a = document.createElement('a');
+        a.href = response.download_url;
+        a.download = response.filename || 'document.pdf';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else if (response.blob_data) {
+        const url = window.URL.createObjectURL(response.blob_data);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = response.filename || 'document.pdf';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }
     }
   }, []);
 

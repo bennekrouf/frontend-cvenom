@@ -4,6 +4,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User } from 'firebase/auth';
 import { onAuthStateChange } from '@/lib/firebase';
+import { bdAttachRef } from '@/lib/api';
 
 interface AuthContextType {
   user: User | null;
@@ -30,13 +31,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setHydrated(true);
   }, []);
 
+  // Capture ?ref= from URL into localStorage so it survives the Firebase redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) localStorage.setItem('bd_ref', ref);
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChange((user) => {
       setUser(user);
       setLoading(false);
+
+      // After login, attach pending BD referral code to this tenant (fire-and-forget)
+      if (user) {
+        const storedRef = localStorage.getItem('bd_ref');
+        if (storedRef) {
+          bdAttachRef(storedRef)
+            .then(() => localStorage.removeItem('bd_ref'))
+            .catch(() => {/* ignore — will retry next login */});
+        }
+      }
     });
 
-    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, []);
 

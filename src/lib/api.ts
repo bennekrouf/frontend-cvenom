@@ -506,3 +506,46 @@ export async function renameCollaborator(oldName: string, newName: string): Prom
 
   return response.json();
 }
+
+// ── Business Developer API ────────────────────────────────────────────────────
+
+export interface BdInfo {
+  email: string;
+  name: string;
+  referral_code: string;
+  commission_rate: number;
+  referral_url: string;
+  customer_count: number;
+  estimated_revenue_usd: number;
+  created_at: string;
+}
+
+export interface CustomerRow {
+  tenant_name: string;
+  email: string | null;
+  joined_at: string;
+}
+
+export async function bdRegister(name: string): Promise<{ success: boolean; data: BdInfo }> {
+  return apiRequest('/bd/register', {
+    method: 'POST',
+    body: { name },
+    requireAuth: true,
+  });
+}
+
+export async function bdGetMe(): Promise<{ success: boolean; data: BdInfo }> {
+  return apiRequest('/bd/me', { requireAuth: true });
+}
+
+export async function bdGetCustomers(): Promise<{ success: boolean; customers: CustomerRow[] }> {
+  return apiRequest('/bd/customers', { requireAuth: true });
+}
+
+export async function bdAttachRef(code: string): Promise<{ success: boolean }> {
+  return apiRequest('/bd/attach-ref', {
+    method: 'POST',
+    body: { code },
+    requireAuth: true,
+  });
+}
