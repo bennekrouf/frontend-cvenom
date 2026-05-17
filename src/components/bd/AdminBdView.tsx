@@ -524,7 +524,224 @@ function AdminCommissionsTab() {
   );
 }
 
-type AdminTab = 'bd' | 'credits' | 'commissions';
+// ── Models tab ────────────────────────────────────────────────────────────────
+
+const PROVIDERS = ['claude', 'cohere', 'deepseek'] as const;
+type Provider = typeof PROVIDERS[number];
+
+const KNOWN_MODELS: Record<Provider, string[]> = {
+  claude:   ['claude-sonnet-4-6', 'claude-haiku-4-5-20251001', 'claude-opus-4-7', 'claude-sonnet-4-5-20250929'],
+  cohere:   ['command-r7b-12-2024', 'command-a-03-2025', 'command-r-plus'],
+  deepseek: ['deepseek-chat', 'deepseek-reasoner'],
+};
+
+const OPERATIONS = [
+  { key: 'cv_import',      label: 'CV Import / Extraction' },
+  { key: 'translation',    label: 'Translation' },
+  { key: 'job_matching',   label: 'Job Matching' },
+  { key: 'cv_optimization',label: 'CV Optimisation' },
+  { key: 'cover_letter',   label: 'Cover Letter' },
+  { key: 'portfolio',      label: 'Portfolio Generation' },
+] as const;
+
+type OperationKey = typeof OPERATIONS[number]['key'];
+
+interface ProviderModelConfig {
+  model: string;
+  max_tokens: number;
+  temperature: number;
+}
+
+interface ModelConfigData {
+  providers: Record<OperationKey, string>;
+  claude?: ProviderModelConfig;
+  cohere?: ProviderModelConfig;
+  deepseek?: ProviderModelConfig;
+  config_path?: string;
+}
+
+async function fetchModelConfig(): Promise<{ success: boolean; config: ModelConfigData; config_path: string }> {
+  return apiRequest('/admin/models', { requireAuth: true });
+}
+
+async function saveModelConfig(data: ModelConfigData): Promise<{ success: boolean; message: string; restarted: boolean }> {
+  return apiRequest('/admin/models', { method: 'POST', body: data, requireAuth: true });
+}
+
+function AdminModelsTab() {
+  const [config, setConfig] = useState<ModelConfigData | null>(null);
+  const [configPath, setConfigPath] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+
+  const load = useCallback(() => {
+    setLoading(true); setError('');
+    fetchModelConfig()
+      .then(r => { setConfig(r.config); setConfigPath(r.config_path); })
+      .catch(e => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const setProvider = (op: OperationKey, provider: string) => {
+    if (!config) return;
+    setConfig({ ...config, providers: { ...config.providers, [op]: provider } });
+  };
+
+  const setModel = (provider: Provider, model: string) => {
+    if (!config) return;
+    const existing = config[provider] ?? { model: '', max_tokens: 4000, temperature: 0.1 };
+    setConfig({ ...config, [provider]: { ...existing, model } });
+  };
+
+  const setMaxTokens = (provider: Provider, max_tokens: number) => {
+    if (!config) return;
+    const existing = config[provider] ?? { model: '', max_tokens: 4000, temperature: 0.1 };
+    setConfig({ ...config, [provider]: { ...existing, max_tokens } });
+  };
+
+  const save = async () => {
+    if (!config) return;
+    setSaving(true); setError(''); setNotice('');
+    try {
+      const result = await saveModelConfig(config);
+      setNotice(result.message);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return (
+    <div className="flex justify-center py-12">
+      <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-8">
+      {error && <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+      {notice && (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800 flex items-center justify-between">
+          <span>{notice}</span>
+          <button onClick={() => setNotice('')} className="ml-4 text-green-600 hover:text-green-800">×</button>
+        </div>
+      )}
+
+      {config && (<>
+        {/* Operation → provider mapping */}
+        <div>
+          <h2 className="text-base font-semibold text-foreground mb-1">Provider per operation</h2>
+          <p className="text-xs text-muted-foreground mb-4">
+            Config file: <code className="font-mono">{configPath}</code>
+          </p>
+          <div className="rounded-xl border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40">
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Operation</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Provider</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Endpoint</th>
+                </tr>
+              </thead>
+              <tbody>
+                {OPERATIONS.map(op => (
+                  <tr key={op.key} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3 font-medium text-foreground">{op.label}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2">
+                        {PROVIDERS.map(p => (
+                          <button
+                            key={p}
+                            onClick={() => setProvider(op.key, p)}
+                            className={`px-3 py-1 rounded-md text-xs font-medium border transition-colors ${
+                              config.providers[op.key] === p
+                                ? 'border-primary bg-primary text-primary-foreground'
+                                : 'border-border text-muted-foreground hover:border-primary/40'
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <code className="text-xs text-muted-foreground font-mono">
+                        /{op.key.replace('_', '-')}
+                      </code>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Provider model settings */}
+        <div>
+          <h2 className="text-base font-semibold text-foreground mb-4">Model settings per provider</h2>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {PROVIDERS.map(provider => {
+              const cfg = config[provider];
+              const isUsed = Object.values(config.providers).includes(provider);
+              return (
+                <div key={provider} className={`rounded-xl border p-4 flex flex-col gap-3 ${isUsed ? 'border-primary/30 bg-primary/5' : 'border-border bg-muted/20 opacity-60'}`}>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-foreground capitalize">{provider}</h3>
+                    {isUsed && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">in use</span>}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-medium text-muted-foreground">Model</label>
+                    <input
+                      list={`${provider}-models`}
+                      value={cfg?.model ?? ''}
+                      onChange={e => setModel(provider, e.target.value)}
+                      placeholder="model name"
+                      className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <datalist id={`${provider}-models`}>
+                      {KNOWN_MODELS[provider].map(m => <option key={m} value={m} />)}
+                    </datalist>
+                    <label className="text-xs font-medium text-muted-foreground mt-1">Max tokens</label>
+                    <input
+                      type="number"
+                      value={cfg?.max_tokens ?? 4000}
+                      onChange={e => setMaxTokens(provider, parseInt(e.target.value) || 4000)}
+                      className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Save */}
+        <div className="flex items-center gap-4">
+          <button
+            onClick={save}
+            disabled={saving}
+            className="px-6 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+          >
+            {saving ? 'Saving & restarting…' : 'Save & restart cv-import'}
+          </button>
+          <button onClick={load} className="px-4 py-2.5 rounded-lg border border-border text-sm text-foreground hover:bg-muted transition-colors">
+            Reload
+          </button>
+          <p className="text-xs text-muted-foreground">
+            cv-import will restart automatically (~2s downtime). Changes take effect immediately after.
+          </p>
+        </div>
+      </>)}
+    </div>
+  );
+}
+
+type AdminTab = 'bd' | 'credits' | 'commissions' | 'models';
 
 export default function AdminBdView() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -632,7 +849,7 @@ export default function AdminBdView() {
 
         {/* Tab selector */}
         <div className="flex gap-1 border-b border-border">
-          {(['bd', 'commissions', 'credits'] as AdminTab[]).map(tab => (
+          {(['bd', 'commissions', 'credits', 'models'] as AdminTab[]).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -642,10 +859,16 @@ export default function AdminBdView() {
                   : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
-              {tab === 'bd' ? '👥 Business Developers' : tab === 'commissions' ? '💰 Commissions' : '💳 Credits'}
+              {tab === 'bd' ? '👥 Business Developers'
+                : tab === 'commissions' ? '💰 Commissions'
+                : tab === 'credits' ? '💳 Credits'
+                : '🤖 Models'}
             </button>
           ))}
         </div>
+
+        {/* Models tab */}
+        {activeTab === 'models' && <AdminModelsTab />}
 
         {/* Commissions tab */}
         {activeTab === 'commissions' && <AdminCommissionsTab />}
