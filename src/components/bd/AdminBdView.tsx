@@ -1,11 +1,251 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiRequest, BdInfo, CustomerRow } from '@/lib/api';
 import { signInWithGoogle } from '@/lib/firebase';
 
 const ADMIN_EMAIL = 'mohamed.bennekrouf@gmail.com';
+
+// ── Credits API types ─────────────────────────────────────────────────────────
+
+interface AdminUserCredit {
+  email: string;
+  tenant_name: string;
+  balance: number;
+  joined_at: string;
+}
+
+interface AdminCreditUsersResponse {
+  success: boolean;
+  total_users: number;
+  total_credits: number;
+  users: AdminUserCredit[];
+}
+
+interface AdminUserTransactionsResponse {
+  success: boolean;
+  email: string;
+  balance: number;
+  transactions: Array<{
+    id?: string | number;
+    action_type?: string;
+    amount?: number;
+    balance_after?: number;
+    description?: string;
+    created_at?: string;
+    [key: string]: unknown;
+  }>;
+}
+
+async function fetchCreditUsers(): Promise<AdminCreditUsersResponse> {
+  return apiRequest('/admin/credits/users', { requireAuth: true });
+}
+
+async function fetchUserTransactions(email: string): Promise<AdminUserTransactionsResponse> {
+  return apiRequest(`/admin/credits/transactions/${encodeURIComponent(email)}`, { requireAuth: true });
+}
+
+// ── Credits tab ───────────────────────────────────────────────────────────────
+
+function TransactionDrawer({ email, onClose }: { email: string; onClose: () => void }) {
+  const [data, setData] = useState<AdminUserTransactionsResponse | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchUserTransactions(email)
+      .then(setData)
+      .catch(e => setError(e instanceof Error ? e.message : 'Failed to load'));
+  }, [email]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex">
+      <div className="flex-1 bg-black/40" onClick={onClose} />
+      <div className="w-full max-w-lg bg-background border-l border-border flex flex-col shadow-xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div>
+            <h2 className="font-semibold text-foreground text-sm">{email}</h2>
+            {data && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Balance: <span className="font-bold text-foreground">{data.balance} credits</span>
+              </p>
+            )}
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6">
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          {!data && !error && (
+            <div className="flex justify-center pt-10">
+              <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+            </div>
+          )}
+          {data && data.transactions.length === 0 && (
+            <p className="text-muted-foreground text-sm text-center pt-10">No transactions yet.</p>
+          )}
+          {data && data.transactions.length > 0 && (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left pb-2 font-medium text-muted-foreground">Type</th>
+                  <th className="text-right pb-2 font-medium text-muted-foreground">Amount</th>
+                  <th className="text-right pb-2 font-medium text-muted-foreground">Balance</th>
+                  <th className="text-left pb-2 font-medium text-muted-foreground pl-3">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.transactions.map((tx, i) => {
+                  const amount = tx.amount ?? 0;
+                  const positive = amount > 0;
+                  return (
+                    <tr key={i} className="border-b border-border last:border-0">
+                      <td className="py-2.5 pr-2">
+                        <span className="text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                          {tx.action_type ?? '—'}
+                        </span>
+                        {tx.description && (
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[140px]" title={tx.description}>
+                            {tx.description}
+                          </p>
+                        )}
+                      </td>
+                      <td className={`py-2.5 text-right font-medium ${positive ? 'text-green-600' : 'text-red-500'}`}>
+                        {positive ? '+' : ''}{amount}
+                      </td>
+                      <td className="py-2.5 text-right text-muted-foreground">{tx.balance_after ?? '—'}</td>
+                      <td className="py-2.5 pl-3 text-muted-foreground whitespace-nowrap">
+                        {tx.created_at ? new Date(tx.created_at).toLocaleDateString() : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminCreditsTab() {
+  const [data, setData] = useState<AdminCreditUsersResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selected, setSelected] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+
+  const load = useCallback(() => {
+    setLoading(true);
+    setError('');
+    fetchCreditUsers()
+      .then(setData)
+      .catch(e => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = data?.users.filter(u =>
+    u.email.toLowerCase().includes(search.toLowerCase()) ||
+    u.tenant_name.toLowerCase().includes(search.toLowerCase())
+  ) ?? [];
+
+  return (
+    <>
+      {selected && <TransactionDrawer email={selected} onClose={() => setSelected(null)} />}
+
+      <div className="flex flex-col gap-6">
+        {/* Summary */}
+        {data && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="rounded-xl border border-border bg-card p-5">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Users</p>
+              <p className="text-2xl font-bold text-foreground mt-1">{data.total_users}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-5">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Total credits</p>
+              <p className="text-2xl font-bold text-foreground mt-1">{data.total_credits.toLocaleString()}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-5">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Avg / user</p>
+              <p className="text-2xl font-bold text-foreground mt-1">
+                {data.total_users > 0 ? Math.round(data.total_credits / data.total_users) : 0}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Search + refresh */}
+        <div className="flex gap-3">
+          <input
+            type="text"
+            placeholder="Search by email or profile name…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="flex-1 px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          <button
+            onClick={load}
+            className="px-4 py-2 rounded-lg border border-border text-sm text-foreground hover:bg-muted transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
+
+        {error && <p className="text-sm text-red-500">{error}</p>}
+
+        {loading && (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
+          </div>
+        )}
+
+        {!loading && filtered.length === 0 && !error && (
+          <div className="rounded-xl border border-dashed border-border p-10 text-center text-muted-foreground text-sm">
+            No users found.
+          </div>
+        )}
+
+        {!loading && filtered.length > 0 && (
+          <div className="rounded-xl border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40">
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Email</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Profile</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">Credits</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Joined</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((u, i) => (
+                  <tr
+                    key={i}
+                    className="border-b border-border last:border-0 hover:bg-muted/20 cursor-pointer transition-colors"
+                    onClick={() => setSelected(u.email)}
+                  >
+                    <td className="px-4 py-3 text-foreground">{u.email}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{u.tenant_name}</td>
+                    <td className="px-4 py-3 text-right">
+                      <span className={`font-medium ${u.balance > 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                        {u.balance.toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {new Date(u.joined_at).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">Click any row to see credit transaction history.</p>
+      </div>
+    </>
+  );
+}
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
@@ -127,8 +367,11 @@ function CustomerDrawer({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
+type AdminTab = 'bd' | 'credits';
+
 export default function AdminBdView() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
+  const [activeTab, setActiveTab] = useState<AdminTab>('bd');
   const [data, setData] = useState<AdminBdListResponse | null>(null);
   const [error, setError] = useState('');
   const [selectedBd, setSelectedBd] = useState<AdminBdRow | null>(null);
@@ -206,17 +449,52 @@ export default function AdminBdView() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Business Developers</h1>
-            <p className="text-muted-foreground text-sm mt-1">Admin view — {user.email}</p>
+            <h1 className="text-2xl font-bold text-foreground">Admin</h1>
+            <p className="text-muted-foreground text-sm mt-1">{user.email}</p>
           </div>
-          <button
-            onClick={load}
-            className="px-4 py-2 rounded-lg border border-border text-sm text-foreground hover:bg-muted transition-colors"
-          >
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Credits tab button */}
+            <button
+              onClick={() => setActiveTab(activeTab === 'credits' ? 'bd' : 'credits')}
+              className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                activeTab === 'credits'
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border text-foreground hover:bg-muted'
+              }`}
+            >
+              💳 Credits
+            </button>
+            <button
+              onClick={load}
+              className="px-4 py-2 rounded-lg border border-border text-sm text-foreground hover:bg-muted transition-colors"
+            >
+              Refresh
+            </button>
+          </div>
         </div>
 
+        {/* Tab selector */}
+        <div className="flex gap-1 border-b border-border">
+          {(['bd', 'credits'] as AdminTab[]).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                activeTab === tab
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {tab === 'bd' ? '👥 Business Developers' : '💳 Credits'}
+            </button>
+          ))}
+        </div>
+
+        {/* Credits tab */}
+        {activeTab === 'credits' && <AdminCreditsTab />}
+
+        {/* BD tab */}
+        {activeTab === 'bd' && (<>
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {error}
@@ -299,6 +577,7 @@ export default function AdminBdView() {
             )}
           </>
         )}
+        </>)}
       </div>
     </>
   );
