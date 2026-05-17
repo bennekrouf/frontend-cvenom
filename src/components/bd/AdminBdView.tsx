@@ -367,7 +367,164 @@ function CustomerDrawer({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-type AdminTab = 'bd' | 'credits';
+// ── Commissions tab ───────────────────────────────────────────────────────────
+
+interface CommissionGroup {
+  referral_code: string;
+  bd_name: string;
+  bd_email: string;
+  pending_count: number;
+  pending_dollars: number;
+  paid_dollars: number;
+}
+
+async function fetchCommissions(): Promise<{
+  success: boolean;
+  total_pending_dollars: number;
+  total_paid_dollars: number;
+  groups: CommissionGroup[];
+}> {
+  return apiRequest('/admin/commissions', { requireAuth: true });
+}
+
+async function markPaid(referral_code: string): Promise<{ success: boolean; rows_updated: number; total_paid_dollars: number }> {
+  return apiRequest('/admin/commissions/pay', {
+    method: 'POST',
+    body: { referral_code },
+    requireAuth: true,
+  });
+}
+
+function AdminCommissionsTab() {
+  const [data, setData] = useState<{ total_pending_dollars: number; total_paid_dollars: number; groups: CommissionGroup[] } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [paying, setPaying] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    fetchCommissions()
+      .then(setData)
+      .catch(e => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleMarkPaid = async (group: CommissionGroup) => {
+    if (!confirm(`Mark $${group.pending_dollars.toFixed(2)} as paid to ${group.bd_name} (${group.bd_email})?`)) return;
+    setPaying(group.referral_code);
+    try {
+      await markPaid(group.referral_code);
+      load();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to mark as paid');
+    } finally {
+      setPaying(null);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-6">
+      {data && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 p-5">
+            <p className="text-xs text-amber-700 dark:text-amber-400 uppercase tracking-wide">Pending payout</p>
+            <p className="text-2xl font-bold text-amber-800 dark:text-amber-300 mt-1">
+              ${data.total_pending_dollars.toFixed(2)}
+            </p>
+          </div>
+          <div className="rounded-xl border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-800 p-5">
+            <p className="text-xs text-green-700 dark:text-green-400 uppercase tracking-wide">Total paid out</p>
+            <p className="text-2xl font-bold text-green-800 dark:text-green-300 mt-1">
+              ${data.total_paid_dollars.toFixed(2)}
+            </p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-5">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide">BDs with earnings</p>
+            <p className="text-2xl font-bold text-foreground mt-1">
+              {data.groups.filter(g => g.pending_dollars > 0 || g.paid_dollars > 0).length}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <button onClick={load} className="px-4 py-2 rounded-lg border border-border text-sm text-foreground hover:bg-muted transition-colors">
+          Refresh
+        </button>
+      </div>
+
+      {error && <p className="text-sm text-red-500">{error}</p>}
+      {loading && (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
+        </div>
+      )}
+
+      {!loading && data && (
+        data.groups.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border p-10 text-center text-muted-foreground text-sm">
+            No commissions yet. They appear here when referred customers purchase credits.
+          </div>
+        ) : (
+          <div className="rounded-xl border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40">
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">BD</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Code</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">Pending sales</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">Pending commission</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">Total paid</th>
+                  <th className="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody>
+                {data.groups.map(g => (
+                  <tr key={g.referral_code} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-foreground">{g.bd_name}</p>
+                      <p className="text-xs text-muted-foreground">{g.bd_email}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="font-mono text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">{g.referral_code}</span>
+                    </td>
+                    <td className="px-4 py-3 text-right text-muted-foreground">{g.pending_count}</td>
+                    <td className="px-4 py-3 text-right">
+                      <span className={`font-medium ${g.pending_dollars > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                        ${g.pending_dollars.toFixed(2)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right text-green-600 font-medium">
+                      ${g.paid_dollars.toFixed(2)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {g.pending_dollars > 0 && (
+                        <button
+                          onClick={() => handleMarkPaid(g)}
+                          disabled={paying === g.referral_code}
+                          className="text-xs px-3 py-1.5 rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-40 transition-colors"
+                        >
+                          {paying === g.referral_code ? 'Paying…' : 'Mark paid'}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+      <p className="text-xs text-muted-foreground">
+        "Mark paid" sets all pending commissions for that BD to paid status. Record actual bank transfers separately.
+      </p>
+    </div>
+  );
+}
+
+type AdminTab = 'bd' | 'credits' | 'commissions';
 
 export default function AdminBdView() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -475,7 +632,7 @@ export default function AdminBdView() {
 
         {/* Tab selector */}
         <div className="flex gap-1 border-b border-border">
-          {(['bd', 'credits'] as AdminTab[]).map(tab => (
+          {(['bd', 'commissions', 'credits'] as AdminTab[]).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -485,10 +642,13 @@ export default function AdminBdView() {
                   : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
-              {tab === 'bd' ? '👥 Business Developers' : '💳 Credits'}
+              {tab === 'bd' ? '👥 Business Developers' : tab === 'commissions' ? '💰 Commissions' : '💳 Credits'}
             </button>
           ))}
         </div>
+
+        {/* Commissions tab */}
+        {activeTab === 'commissions' && <AdminCommissionsTab />}
 
         {/* Credits tab */}
         {activeTab === 'credits' && <AdminCreditsTab />}

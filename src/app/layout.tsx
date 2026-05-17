@@ -37,8 +37,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "cVenom",
-  description: "AI CV generator that hackes ATS",
+  title: "cVenom — AI CV, Cover Letter & Portfolio Generator",
+  description:
+    "Create a professional CV, cover letter, and portfolio in minutes with AI. Match your profile to LinkedIn job postings. ATS-optimised, multilingual. Start free.",
 };
 
 export default function RootLayout({

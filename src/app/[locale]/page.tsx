@@ -1,15 +1,10 @@
 import LayoutTemplate from '@/components/layout/LayoutTemplate';
-import FileEditor from '@/components/editor/FileEditor';
+import LandingPage from '@/components/landing/LandingPage';
 
-interface Props {
-  searchParams: Promise<{ profile?: string }>;
-}
-
-export default async function HomePage({ searchParams }: Props) {
-  const { profile } = await searchParams;
+export default function HomePage() {
   return (
     <LayoutTemplate>
-      <FileEditor initialProfile={profile} />
+      <LandingPage />
     </LayoutTemplate>
   );
 }

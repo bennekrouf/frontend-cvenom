@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { bdRegister, bdGetMe, bdGetCustomers, BdInfo, CustomerRow } from '@/lib/api';
+import { bdRegister, bdGetMe, bdGetCustomers, bdGetCommissions, BdInfo, CustomerRow, CommissionRow } from '@/lib/api';
 import { signInWithGoogle } from '@/lib/firebase';
 
 // ── Tiny helpers ──────────────────────────────────────────────────────────────
@@ -101,8 +101,16 @@ function RegisterView({ onRegistered }: { onRegistered: (info: BdInfo) => void }
 
 // ── Dashboard view ────────────────────────────────────────────────────────────
 
-function DashboardView({ info, customers }: { info: BdInfo; customers: CustomerRow[] }) {
+function DashboardView({
+  info, customers, commissions,
+}: {
+  info: BdInfo;
+  customers: CustomerRow[];
+  commissions: { pending_dollars: number; paid_dollars: number; commissions: CommissionRow[] } | null;
+}) {
   const commissionPct = Math.round(info.commission_rate * 100);
+  const pending = commissions?.pending_dollars ?? 0;
+  const paid = commissions?.paid_dollars ?? 0;
 
   return (
     <div className="max-w-3xl mx-auto py-10 px-4 flex flex-col gap-8">
@@ -131,14 +139,12 @@ function DashboardView({ info, customers }: { info: BdInfo; customers: CustomerR
         </p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      {/* Stats — real commission data */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Stat label="Customers" value={info.customer_count} />
-        <Stat label="Commission rate" value={`${commissionPct}%`} />
-        <Stat
-          label="Est. revenue / mo"
-          value={`$${info.estimated_revenue_usd.toFixed(2)}`}
-        />
+        <Stat label="Commission" value={`${commissionPct}%`} />
+        <Stat label="Pending payout" value={`$${pending.toFixed(2)}`} />
+        <Stat label="Total paid out" value={`$${paid.toFixed(2)}`} />
       </div>
 
       {/* Customer list */}
@@ -174,8 +180,49 @@ function DashboardView({ info, customers }: { info: BdInfo; customers: CustomerR
         )}
       </div>
 
+      {/* Commission history */}
+      {commissions && commissions.commissions.length > 0 && (
+        <div>
+          <h2 className="text-base font-semibold text-foreground mb-3">Commission history</h2>
+          <div className="rounded-xl border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40">
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Customer</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">Purchase</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">Commission</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {commissions.commissions.map((c, i) => (
+                  <tr key={i} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3 text-muted-foreground text-xs">{c.customer_email}</td>
+                    <td className="px-4 py-3 text-right text-foreground">${c.amount_dollars.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right font-medium text-green-600">+${c.commission_dollars.toFixed(2)}</td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        c.status === 'paid'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                          : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                      }`}>
+                        {c.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {new Date(c.created_at).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       <p className="text-xs text-muted-foreground">
-        Revenue estimates are based on average credit consumption. Actual payouts will be calculated monthly.
+        Commission is earned on every credit purchase by your referred customers. Payouts are processed monthly.
       </p>
     </div>
   );
@@ -190,12 +237,18 @@ export default function BdPortal() {
   const [state, setState] = useState<'loading' | 'unauthenticated' | 'not-registered' | 'dashboard'>('loading');
   const [bdInfo, setBdInfo] = useState<BdInfo | null>(null);
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
+  const [commissions, setCommissions] = useState<{ pending_dollars: number; paid_dollars: number; commissions: CommissionRow[] } | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [meRes, cusRes] = await Promise.all([bdGetMe(), bdGetCustomers()]);
+      const [meRes, cusRes, comRes] = await Promise.all([
+        bdGetMe(),
+        bdGetCustomers(),
+        bdGetCommissions(),
+      ]);
       setBdInfo(meRes.data);
       setCustomers(cusRes.customers);
+      setCommissions(comRes);
       setState('dashboard');
     } catch {
       setState('not-registered');
@@ -241,5 +294,5 @@ export default function BdPortal() {
     return <RegisterView onRegistered={(info) => { setBdInfo(info); setState('dashboard'); load(); }} />;
   }
 
-  return <DashboardView info={bdInfo!} customers={customers} />;
+  return <DashboardView info={bdInfo!} customers={customers} commissions={commissions} />;
 }

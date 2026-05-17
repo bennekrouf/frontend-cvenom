@@ -561,3 +561,21 @@ export async function bdAttachRef(code: string): Promise<{ success: boolean }> {
     requireAuth: true,
   });
 }
+
+export interface CommissionRow {
+  customer_email: string;
+  amount_dollars: number;
+  commission_dollars: number;
+  status: 'pending' | 'paid';
+  created_at: string;
+  paid_at: string | null;
+}
+
+export async function bdGetCommissions(): Promise<{
+  success: boolean;
+  pending_dollars: number;
+  paid_dollars: number;
+  commissions: CommissionRow[];
+}> {
+  return apiRequest('/bd/commissions', { requireAuth: true });
+}

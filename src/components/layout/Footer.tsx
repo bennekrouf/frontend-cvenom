@@ -2,97 +2,104 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useTranslations, useLocale } from 'next-intl';
-
-interface FooterNavItem {
-  label: string;
-  path: string;
-}
+import { useLocale } from 'next-intl';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const locale = useLocale();
-  const t = useTranslations('footer');
-
-  // Helper function to get localized path
-  const getLocalizedPath = (path: string) => {
-    if (locale === 'en') return path;
-    return `/${locale}${path}`;
-  };
-
-  // Empty footer navigation - add your own
-const footerNav: FooterNavItem[] = [
-    // Example: { label: t('privacy'), path: "/privacy" },
-    // Example: { label: t('terms'), path: "/terms" },
-  ];
+  const l = (path: string) => `/${locale}${path}`;
 
   return (
     <footer className="border-t border-border bg-background">
       <div className="container py-12">
         <div className="grid md:grid-cols-4 gap-8">
-          {/* Column 1: Logo & Description */}
+
+          {/* Brand */}
           <div className="space-y-4">
-            <Link href={getLocalizedPath("/")} className="flex items-center space-x-2">
+            <Link href={l('/')} className="flex items-center gap-2">
               <span className="font-bold text-xl text-foreground">cVenom</span>
             </Link>
-            <p className="text-muted-foreground text-sm">
-              {t('description')}
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              AI-powered CV, cover letter, and portfolio generator. Match your profile to any job on LinkedIn.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              contact@cvenom.com
             </p>
           </div>
 
-          {/* Column 2: Quick Links */}
+          {/* Product */}
           <div>
-            <h3 className="font-medium text-foreground mb-4">{t('quick_links')}</h3>
-            <ul className="space-y-2">
-              {footerNav.map((item) => (
-                <li key={item.label}>
-                  <Link
-                    href={getLocalizedPath(item.path)}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    {item.label}
+            <h3 className="font-semibold text-foreground mb-4 text-sm">Product</h3>
+            <ul className="space-y-2.5">
+              {[
+                { label: '📄 CV Generator', href: l('/') },
+                { label: '✉️ Cover Letter', href: l('/') },
+                { label: '🖼️ Portfolio', href: l('/') },
+                { label: '🔗 LinkedIn Match', href: l('/') },
+              ].map(({ label, href }) => (
+                <li key={label}>
+                  <Link href={href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    {label}
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Column 3: Placeholder */}
+          {/* Earn */}
           <div>
-            <h3 className="font-medium text-foreground mb-4">{t('category')}</h3>
-            <ul className="space-y-2">
-              {/* Add your links here */}
+            <h3 className="font-semibold text-foreground mb-4 text-sm">Earn with cVenom</h3>
+            <ul className="space-y-2.5">
+              {[
+                { label: 'Become a Business Developer', href: l('/bd') },
+                { label: 'How commissions work', href: l('/bd') },
+                { label: '30% on every referral', href: l('/bd') },
+              ].map(({ label, href }) => (
+                <li key={label}>
+                  <Link href={href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    {label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
-          {/* Column 4: Contact */}
+          {/* Legal & social */}
           <div>
-            <h3 className="font-medium text-foreground mb-4">{t('connect')}</h3>
-            <div className="flex space-x-4 mb-4">
-              {/* Add your social links here */}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {t('email_label')} contact@mayorana.com
-            </p>
+            <h3 className="font-semibold text-foreground mb-4 text-sm">Legal</h3>
+            <ul className="space-y-2.5">
+              <li>
+                <a
+                  href="https://mayorana.ch/en/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Privacy Policy
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://mayorana.ch/en/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Terms of Service
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
 
-        <div className="border-t border-border mt-8 pt-8 flex flex-col md:flex-row md:justify-between items-center">
+        <div className="border-t border-border mt-10 pt-8 flex flex-col md:flex-row md:justify-between items-center gap-3">
           <p className="text-sm text-muted-foreground">
-            &copy; {currentYear} Mayorana. {t('copyright')}
+            &copy; {currentYear} Mayorana. All rights reserved.
           </p>
-          <div className="flex items-center gap-4 mt-2 md:mt-0">
-            <a
-              href="https://mayorana.ch/en/privacy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Privacy Policy
-            </a>
-            <p className="text-sm text-muted-foreground">
-              {t('tagline')}
-            </p>
+          <div className="flex items-center gap-4">
+            <Link href={l('/bd')} className="text-sm text-primary font-medium hover:underline">
+              💸 Earn 30% commission →
+            </Link>
           </div>
         </div>
       </div>
