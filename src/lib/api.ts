@@ -318,6 +318,34 @@ export async function getCurrentUser() {
   });
 }
 
+// ── SMTP admin ────────────────────────────────────────────────────────────────
+
+export interface SmtpConfig {
+  smtp_host:    string | null;
+  smtp_port:    number | null;
+  smtp_user:    string | null;
+  email_from:   string | null;
+  has_password: boolean;
+}
+
+export async function getSmtpConfig(): Promise<SmtpConfig> {
+  return apiRequest<SmtpConfig>('/admin/smtp-config', { requireAuth: true });
+}
+
+export async function saveSmtpConfig(data: {
+  smtp_host?:     string;
+  smtp_port?:     number;
+  smtp_user?:     string;
+  smtp_password?: string;
+  email_from?:    string;
+}): Promise<void> {
+  await apiRequest('/admin/smtp-config', {
+    method: 'PUT',
+    body: data,
+    requireAuth: true,
+  });
+}
+
 export async function healthCheck() {
   return apiRequest('/health', {
     method: 'GET',
