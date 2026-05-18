@@ -309,13 +309,18 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
     setIsGeneratingPortfolio(true);
     try {
       const result = await generatePortfolio(selectedCollaborator, language);
+      const resp = await fetch(result.download_url);
+      if (!resp.ok) throw new Error(`Failed to download portfolio PDF: HTTP ${resp.status}`);
+      const blob = await resp.blob();
+      if (!blob || blob.size === 0) throw new Error('Downloaded PDF is empty — try again');
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = result.download_url;
+      a.href = url;
       a.download = `portfolio-${selectedCollaborator}-${language}.pdf`;
-      a.target = '_blank';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      URL.revokeObjectURL(url);
       toast.success('Portfolio generated successfully!');
       setShowPortfolioModal(false);
     } catch (error) {

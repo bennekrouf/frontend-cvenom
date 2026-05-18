@@ -258,14 +258,19 @@ export async function uploadPicture(personName: string, file: File) {
   return response.json();
 }
 
+interface GeneratePdfResponse {
+  success: boolean;
+  download_url: string;
+  filename: string;
+  profile: string;
+}
+
 export async function generateCV(
   personName: string,
   language: string,
   template: string = 'default'
 ): Promise<Blob> {
-  // The backend streams the PDF directly (Content-Type: application/pdf).
-  // apiRequest returns a Blob for that content type.
-  return apiRequest<Blob>('/generate', {
+  const result = await apiRequest<GeneratePdfResponse>('/generate', {
     method: 'POST',
     body: {
       profile: personName,
@@ -274,6 +279,12 @@ export async function generateCV(
     },
     requireAuth: true
   });
+
+  const resp = await fetch(result.download_url);
+  if (!resp.ok) throw new Error(`Failed to download PDF: HTTP ${resp.status}`);
+  const blob = await resp.blob();
+  if (!blob || blob.size === 0) throw new Error('Downloaded PDF is empty — try again');
+  return blob;
 }
 
 export async function generatePortfolio(
