@@ -249,9 +249,8 @@ export async function uploadPicture(personName: string, file: File) {
   });
 
   if (!response.ok) {
-    if (response.status === 401) {
-      throw new Error('Authentication required or token expired');
-    }
+    if (response.status === 401) throw new Error('Authentication required or token expired');
+    if (response.status === 413) throw new Error('File is too large. Please choose a smaller image (max 10 MB).');
     throw new Error(`Upload failed: ${response.status}`);
   }
 
