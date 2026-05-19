@@ -116,6 +116,9 @@ function DashboardView({
     <div className="max-w-3xl mx-auto py-10 px-4 flex flex-col gap-8">
       {/* Header */}
       <div>
+        <a href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2">
+          ← CV Editor
+        </a>
         <h1 className="text-2xl font-bold text-foreground">Business Developer Portal</h1>
         <p className="text-muted-foreground text-sm mt-1">
           Welcome back, {info.name} · {commissionPct}% commission

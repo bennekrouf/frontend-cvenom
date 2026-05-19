@@ -532,7 +532,7 @@ type Provider = typeof PROVIDERS[number];
 const KNOWN_MODELS: Record<Provider, string[]> = {
   claude:   ['claude-sonnet-4-6', 'claude-haiku-4-5-20251001', 'claude-opus-4-7', 'claude-sonnet-4-5-20250929'],
   cohere:   ['command-r7b-12-2024', 'command-a-03-2025', 'command-r-plus'],
-  deepseek: ['deepseek-chat', 'deepseek-reasoner'],
+  deepseek: ['deepseek-v4-pro', 'deepseek-v4-flash', 'deepseek-chat', 'deepseek-reasoner'],
 };
 
 const OPERATIONS = [
@@ -822,9 +822,17 @@ export default function AdminBdView() {
       <div className="max-w-5xl mx-auto py-10 px-4 flex flex-col gap-8">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Admin</h1>
-            <p className="text-muted-foreground text-sm mt-1">{user.email}</p>
+          <div className="flex items-center gap-4">
+            <a
+              href="/"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              ← CV Editor
+            </a>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Admin</h1>
+              <p className="text-muted-foreground text-sm mt-1">{user.email}</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {/* Credits tab button */}
