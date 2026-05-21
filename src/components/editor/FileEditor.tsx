@@ -43,7 +43,7 @@ import {
 import ChatComponent from '../chat/ChatComponent';
 import { signInWithGoogle } from '@/lib/firebase';
 import { fileTreeEvents } from '@/lib/fileTreeEvents';
-import OnboardingHints from './OnboardingHints';
+import OnboardingTour from './OnboardingTour';
 import { toast } from 'sonner';
 
 interface ApiSuccessResponse {
@@ -502,7 +502,10 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
 
     setSelectedCollaborator(personName);
     setExpandedFolders(new Set(['data', personName]));
-    toast.success(`CV converted successfully! Collaborator "${personName}" created`);
+    toast.success(`CV converted! Profile "${personName}" created`, {
+      description: 'Click the green Generate button to download your CV as PDF.',
+      duration: 8000,
+    });
   }, [loadFileTree]);
 
   useEffect(() => {
@@ -604,7 +607,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
       )}
 
       {/* Left Sidebar - Full Height starting from navbar bottom */}
-      <div className={`
+      <div data-tour="sidebar" className={`
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
         ${isMobile ? 'fixed left-0 top-16 h-[calc(100vh-4rem)] z-40' : 'relative h-full'}
         transition-transform duration-300 ease-in-out
@@ -686,7 +689,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
               {/* Form / Code / Chat segmented toggle — only when a profile is active */}
               {selectedCollaborator && isAuthenticated && (
                 <>
-                  <div className="flex overflow-hidden rounded-md border border-border text-xs font-medium">
+                  <div data-tour="view-toggle" className="flex overflow-hidden rounded-md border border-border text-xs font-medium">
                     <button
                       onClick={() => setViewMode('form')}
                       className={`flex items-center gap-1 px-2.5 py-1.5 transition-colors ${
@@ -712,6 +715,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
                       <span className="hidden sm:inline">{t('viewCode')}</span>
                     </button>
                     <button
+                      data-tour="chat-tab"
                       onClick={() => setViewMode('chat')}
                       className={`flex items-center gap-1 border-l border-border px-2.5 py-1.5 transition-colors ${
                         viewMode === 'chat'
@@ -731,6 +735,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
               {/* Upload CV */}
               {isAuthenticated && (
                 <button
+                  data-tour="upload-cv"
                   onClick={() => setShowUploadZone(!showUploadZone)}
                   className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                   title="Upload and convert a CV to create a new profile"
@@ -743,6 +748,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
               {/* Optimize for ATS */}
               {isAuthenticated && (
                 <button
+                  data-tour="optimize"
                   onClick={() => setShowOptimizeModal(true)}
                   disabled={!selectedCollaborator}
                   className="flex items-center gap-1.5 rounded-md bg-orange-500 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-40"
@@ -756,6 +762,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
               {/* Cover Letter */}
               {isAuthenticated && (
                 <button
+                  data-tour="cover-letter"
                   onClick={() => setShowCoverLetterModal(true)}
                   disabled={!selectedCollaborator}
                   className="flex items-center gap-1.5 rounded-md bg-purple-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-40"
@@ -769,6 +776,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
               {/* Generate CV PDF */}
               {isAuthenticated && (
                 <button
+                  data-tour="generate-cv"
                   onClick={() => setShowGenerateModal(true)}
                   disabled={!selectedCollaborator}
                   className="flex items-center gap-1.5 rounded-md bg-green-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
@@ -782,6 +790,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
               {/* Generate Portfolio PDF */}
               {isAuthenticated && (
                 <button
+                  data-tour="portfolio"
                   onClick={() => setShowPortfolioModal(true)}
                   disabled={!selectedCollaborator}
                   className="flex items-center gap-1.5 rounded-md bg-violet-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-40"
@@ -846,15 +855,12 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
             </div>
           ) : !fileTree || Object.keys(fileTree).length === 0 ? (
             /* ── No profiles yet — prompt to upload ── */
-            <div className="h-full overflow-auto">
-              <OnboardingHints />
-              <div className="flex items-center justify-center p-4">
-                <div className="text-center max-w-md">
-                  <CVUploadDropZone onUploadSuccess={handleUploadSuccess} />
-                  <p className="text-xs text-muted-foreground mt-4">
-                    {t('supportsPDFWord')}
-                  </p>
-                </div>
+            <div className="h-full flex items-center justify-center p-4">
+              <div className="text-center max-w-md">
+                <CVUploadDropZone onUploadSuccess={handleUploadSuccess} />
+                <p className="text-xs text-muted-foreground mt-4">
+                  {t('supportsPDFWord')}
+                </p>
               </div>
             </div>
           ) : viewMode === 'chat' ? (
@@ -970,6 +976,11 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
             isDeleting={isDeleting}
           />
         </>
+      )}
+
+      {/* Guided onboarding tour for first-time users */}
+      {isAuthenticated && mounted && (
+        <OnboardingTour hasProfiles={!!(fileTree && Object.keys(fileTree).length > 0)} />
       )}
     </div>
   );
