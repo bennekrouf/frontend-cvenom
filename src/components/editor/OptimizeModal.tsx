@@ -21,19 +21,6 @@ const LANGUAGES = [
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function isLinkedInUrl(url: string): boolean {
-  return url.includes('linkedin.com');
-}
-
-function isScrapingError(msg: string): boolean {
-  const lower = msg.toLowerCase();
-  return (
-    lower.includes('scraping') ||
-    lower.includes('extract job') ||
-    lower.includes('login') ||
-    lower.includes('paste the job')
-  );
-}
 
 // ── Keyword chip ───────────────────────────────────────────────────────────────
 
@@ -86,7 +73,6 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
   onClose,
   collaboratorName,
 }) => {
-  const [jobUrl, setJobUrl] = useState('');
   const [jobDescription, setJobDescription] = useState('');
   const [language, setLanguage] = useState('en');
 
@@ -115,7 +101,6 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     setPhase('idle');
-    setJobUrl('');
     setJobDescription('');
     setKeywordAnalysis(null);
     setJobTitle('');
@@ -146,11 +131,8 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
 
   if (!isOpen) return null;
 
-  const showPasteArea =
-    isLinkedInUrl(jobUrl) || (phase === 'error' && isScrapingError(errorMsg));
-
   const isReady = Boolean(
-    collaboratorName && (jobUrl.trim() || jobDescription.trim()),
+    collaboratorName && jobDescription.trim(),
   );
 
   const handleOptimize = async () => {
@@ -160,14 +142,13 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
     setKeywordAnalysis(null);
 
     try {
-      const desc = jobDescription.trim() || undefined;
       const resp = await optimizeCV(
         collaboratorName,
-        jobUrl.trim() || 'manual',
+        'manual',
         language,
         'default',
         undefined,
-        desc,
+        jobDescription.trim(),
       );
       setJobTitle(resp.data.job_title);
       setCompanyName(resp.data.company_name);
@@ -237,57 +218,36 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
         </div>
 
         <div className="p-6 space-y-5">
-          {/* Job URL */}
+          {/* Job description paste area */}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1.5">
-              Job Posting URL
+            <label className="flex items-center gap-1.5 text-sm font-medium text-foreground mb-1.5">
+              <FiClipboard className="w-3.5 h-3.5 text-orange-500" />
+              Job description
             </label>
-            <input
-              type="url"
-              value={jobUrl}
-              onChange={(e) => setJobUrl(e.target.value)}
+            <textarea
+              value={jobDescription}
+              onChange={(e) => setJobDescription(e.target.value)}
               disabled={phase === 'optimizing'}
-              placeholder="https://www.linkedin.com/jobs/view/… or any public job URL"
-              className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 disabled:opacity-50 placeholder:text-muted-foreground"
+              rows={8}
+              placeholder="Paste the full job posting content here..."
+              className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 disabled:opacity-50 placeholder:text-muted-foreground resize-y"
+              autoFocus
             />
             {!collaboratorName && (
               <p className="mt-1.5 text-xs text-orange-500">
                 ⚠ No profile selected. Select a profile from the sidebar first.
               </p>
             )}
-          </div>
-
-          {/* Paste description */}
-          {showPasteArea && (
-            <div>
-              <label className="flex items-center gap-1.5 text-sm font-medium text-foreground mb-1.5">
-                <FiClipboard className="w-3.5 h-3.5 text-orange-500" />
-                {isLinkedInUrl(jobUrl)
-                  ? 'Paste job description (LinkedIn requires login to scrape)'
-                  : 'Paste job description'}
-              </label>
-              <textarea
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-                disabled={phase === 'optimizing'}
-                rows={6}
-                placeholder="Copy the full job description from LinkedIn and paste it here…"
-                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 disabled:opacity-50 placeholder:text-muted-foreground resize-y"
-              />
-              {isLinkedInUrl(jobUrl) ? (
-                <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
-                  On LinkedIn: scroll to the{' '}
-                  <span className="font-medium text-foreground">&quot;About the job&quot;</span> section
-                  → select all text (<kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[10px]">Ctrl+A</kbd> won&apos;t work) →{' '}
-                  <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[10px]">Ctrl+C</kbd> → paste here.
-                </p>
-              ) : (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  When a description is pasted, the URL is used for reference only — scraping is skipped.
-                </p>
-              )}
+            <div className="mt-2 p-3 bg-muted/50 rounded-lg border border-border">
+              <p className="text-xs font-medium text-foreground mb-1.5">How to copy from LinkedIn:</p>
+              <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside leading-relaxed">
+                <li>Open the job posting on LinkedIn</li>
+                <li>Click <span className="font-medium text-foreground">&quot;Show more&quot;</span> to expand the full description</li>
+                <li>Select all the text in the job description area (click at the start, then <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[10px]">Shift+Click</kbd> at the end)</li>
+                <li>Copy (<kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[10px]">Ctrl+C</kbd> / <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-[10px]">⌘+C</kbd>) and paste here</li>
+              </ol>
             </div>
-          )}
+          </div>
 
           {/* Language selector */}
           <div>
@@ -465,11 +425,6 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
                   Optimization failed
                 </p>
                 <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">{errorMsg}</p>
-                {isScrapingError(errorMsg) && (
-                  <p className="text-xs text-red-500 dark:text-red-400 mt-1.5 font-medium">
-                    ↑ Paste the job description above and try again.
-                  </p>
-                )}
               </div>
             </div>
           )}
