@@ -6,10 +6,12 @@ import Footer from '@/components/layout/Footer';
 
 interface LayoutTemplateProps {
   children: React.ReactNode;
+  hideFooter?: boolean;
 }
 
 const LayoutTemplate: React.FC<LayoutTemplateProps> = ({
-  children
+  children,
+  hideFooter = false,
 }) => {
   return (
     <div className="flex flex-col min-h-screen">
@@ -17,7 +19,7 @@ const LayoutTemplate: React.FC<LayoutTemplateProps> = ({
       <main className="flex-grow">
         {children}
       </main>
-      <Footer />
+      {!hideFooter && <Footer />}
     </div>
   );
 };

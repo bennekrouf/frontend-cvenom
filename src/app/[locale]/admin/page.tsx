@@ -2,12 +2,15 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { signInWithGoogle } from '@/lib/firebase';
+import { useLocale } from 'next-intl';
 import SmtpConfigPanel from '@/components/admin/SmtpConfigPanel';
+import CreditManagementPanel from '@/components/admin/CreditManagementPanel';
 
 const ADMIN_EMAIL = 'mohamed.bennekrouf@gmail.com';
 
 export default function AdminPage() {
   const { user, loading } = useAuth();
+  const locale = useLocale();
 
   if (loading) {
     return (
@@ -44,9 +47,20 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-slate-900 text-white">
       <div className="max-w-4xl mx-auto px-6 py-10">
-        <h1 className="text-2xl font-bold mb-8">Admin Settings</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-2xl font-bold">Admin Settings</h1>
+          <a
+            href={`/${locale}/editor`}
+            className="text-sm font-medium px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 transition-colors"
+          >
+            ← Back to Studio
+          </a>
+        </div>
 
         <div className="space-y-10">
+          <section className="bg-slate-800 rounded-lg p-6">
+            <CreditManagementPanel />
+          </section>
           <section className="bg-slate-800 rounded-lg p-6">
             <SmtpConfigPanel />
           </section>

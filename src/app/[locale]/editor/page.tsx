@@ -8,7 +8,7 @@ interface Props {
 export default async function EditorPage({ searchParams }: Props) {
   const { profile } = await searchParams;
   return (
-    <LayoutTemplate>
+    <LayoutTemplate hideFooter>
       <FileEditor initialProfile={profile} />
     </LayoutTemplate>
   );

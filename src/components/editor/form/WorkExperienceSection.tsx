@@ -181,16 +181,15 @@ export const WorkExperienceSection: React.FC<Props> = ({
 }) => {
   const t = useTranslations('cvForm');
 
-  // Stable keys: map each entry to a UUID that persists across re-renders.
-  // This prevents React from reusing the wrong ExperienceCard instance (and
-  // thus the wrong `open` state) when items are added, removed, or reordered.
-  const keyMapRef = useRef<WeakMap<WorkExperienceEntry, string>>(new WeakMap());
-  const getKey = (entry: WorkExperienceEntry): string => {
-    if (!keyMapRef.current.has(entry)) {
-      keyMapRef.current.set(entry, crypto.randomUUID());
+  const nextIdRef = useRef(0);
+  const keysRef = useRef<string[]>([]);
+  if (keysRef.current.length < data.length) {
+    while (keysRef.current.length < data.length) {
+      keysRef.current.push(`exp-${nextIdRef.current++}`);
     }
-    return keyMapRef.current.get(entry)!;
-  };
+  } else if (keysRef.current.length > data.length) {
+    keysRef.current = keysRef.current.slice(0, data.length);
+  }
 
   const update = (i: number, entry: WorkExperienceEntry) => {
     const next = [...data];
@@ -198,12 +197,16 @@ export const WorkExperienceSection: React.FC<Props> = ({
     onChange(next);
   };
 
-  const remove = (i: number) => onChange(data.filter((_, idx) => idx !== i));
+  const remove = (i: number) => {
+    keysRef.current.splice(i, 1);
+    onChange(data.filter((_, idx) => idx !== i));
+  };
 
   const move = (i: number, dir: -1 | 1) => {
     const next = [...data];
     const j = i + dir;
     [next[i], next[j]] = [next[j], next[i]];
+    [keysRef.current[i], keysRef.current[j]] = [keysRef.current[j], keysRef.current[i]];
     onChange(next);
   };
 
@@ -259,7 +262,7 @@ export const WorkExperienceSection: React.FC<Props> = ({
         )}
         {data.map((entry, i) => (
           <ExperienceCard
-            key={getKey(entry)}
+            key={keysRef.current[i]}
             entry={entry}
             index={i}
             total={data.length}

@@ -345,6 +345,34 @@ export async function saveSmtpConfig(data: {
   });
 }
 
+// ── Admin credit management ──────────────────────────────────────────────────
+
+export interface AdminUserCredit {
+  email: string;
+  tenant_name: string;
+  balance: number;
+  joined_at: string;
+}
+
+export interface AdminCreditUsersResponse {
+  success: boolean;
+  total_users: number;
+  total_credits: number;
+  users: AdminUserCredit[];
+}
+
+export async function adminGetCreditUsers(): Promise<AdminCreditUsersResponse> {
+  return apiRequest<AdminCreditUsersResponse>('/admin/credits/users', { requireAuth: true });
+}
+
+export async function adminAddCredits(email: string, amount: number, description?: string): Promise<{ success: boolean; new_balance: number }> {
+  return apiRequest('/admin/credits', {
+    method: 'POST',
+    body: { email, amount, description },
+    requireAuth: true,
+  });
+}
+
 export async function healthCheck() {
   return apiRequest('/health', {
     method: 'GET',

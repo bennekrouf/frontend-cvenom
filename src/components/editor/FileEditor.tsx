@@ -43,6 +43,7 @@ import {
 import ChatComponent from '../chat/ChatComponent';
 import { signInWithGoogle } from '@/lib/firebase';
 import { fileTreeEvents } from '@/lib/fileTreeEvents';
+import OnboardingHints from './OnboardingHints';
 import { toast } from 'sonner';
 
 interface ApiSuccessResponse {
@@ -845,12 +846,15 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
             </div>
           ) : !fileTree || Object.keys(fileTree).length === 0 ? (
             /* ── No profiles yet — prompt to upload ── */
-            <div className="h-full flex items-center justify-center p-4">
-              <div className="text-center max-w-md">
-                <CVUploadDropZone onUploadSuccess={handleUploadSuccess} />
-                <p className="text-xs text-muted-foreground mt-4">
-                  {t('supportsPDFWord')}
-                </p>
+            <div className="h-full overflow-auto">
+              <OnboardingHints />
+              <div className="flex items-center justify-center p-4">
+                <div className="text-center max-w-md">
+                  <CVUploadDropZone onUploadSuccess={handleUploadSuccess} />
+                  <p className="text-xs text-muted-foreground mt-4">
+                    {t('supportsPDFWord')}
+                  </p>
+                </div>
               </div>
             </div>
           ) : viewMode === 'chat' ? (

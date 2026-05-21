@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTranslations } from 'next-intl';
 import { getAuth } from 'firebase/auth';
 import { getApiUrl } from '@/lib/config';
+import { fileTreeEvents } from '@/lib/fileTreeEvents';
 
 interface CVUploadDropZoneProps {
   onUploadSuccess?: (personName: string) => void;
@@ -97,6 +98,7 @@ const CVUploadDropZone: React.FC<CVUploadDropZoneProps> = ({ onUploadSuccess, cl
 
       if (result.success) {
         setSuccess(result.message || `CV converted! Profile "${result.person_name}" created`);
+        fileTreeEvents.emit();
         if (result.person_name && onUploadSuccess) {
           onUploadSuccess(result.person_name);
         }
