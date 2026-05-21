@@ -3,7 +3,7 @@ import LandingPage from '@/components/landing/LandingPage';
 
 export default function HomePage() {
   return (
-    <LayoutTemplate>
+    <LayoutTemplate hideFooter>
       <LandingPage />
     </LayoutTemplate>
   );
