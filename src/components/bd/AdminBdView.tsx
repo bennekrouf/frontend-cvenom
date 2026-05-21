@@ -550,6 +550,8 @@ interface ProviderModelConfig {
   model: string;
   max_tokens: number;
   temperature: number;
+  api_key_masked?: string;
+  api_key?: string;
 }
 
 interface ModelConfigData {
@@ -601,6 +603,12 @@ function AdminModelsTab() {
     if (!config) return;
     const existing = config[provider] ?? { model: '', max_tokens: 4000, temperature: 0.1 };
     setConfig({ ...config, [provider]: { ...existing, max_tokens } });
+  };
+
+  const setApiKey = (provider: Provider, api_key: string) => {
+    if (!config) return;
+    const existing = config[provider] ?? { model: '', max_tokens: 4000, temperature: 0.1 };
+    setConfig({ ...config, [provider]: { ...existing, api_key } });
   };
 
   const save = async () => {
@@ -713,6 +721,20 @@ function AdminModelsTab() {
                       onChange={e => setMaxTokens(provider, parseInt(e.target.value) || 4000)}
                       className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     />
+                    <label className="text-xs font-medium text-muted-foreground mt-1">API Key</label>
+                    <input
+                      type="password"
+                      value={cfg?.api_key ?? ''}
+                      onChange={e => setApiKey(provider, e.target.value)}
+                      placeholder={cfg?.api_key_masked || 'Using env variable'}
+                      className="w-full px-3 py-1.5 text-sm rounded-lg border border-border bg-background text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    {cfg?.api_key_masked && !cfg?.api_key && (
+                      <p className="text-[10px] text-muted-foreground">Current: {cfg.api_key_masked}</p>
+                    )}
+                    {!cfg?.api_key_masked && !cfg?.api_key && (
+                      <p className="text-[10px] text-muted-foreground">Fallback: env ${provider.toUpperCase()}_API_KEY</p>
+                    )}
                   </div>
                 </div>
               );
