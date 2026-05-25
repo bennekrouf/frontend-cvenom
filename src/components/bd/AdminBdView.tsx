@@ -46,17 +46,58 @@ async function fetchUserTransactions(email: string): Promise<AdminUserTransactio
   return apiRequest(`/admin/credits/transactions/${encodeURIComponent(email)}`, { requireAuth: true });
 }
 
+interface AdminAddCreditsResponse {
+  success: boolean;
+  email: string;
+  amount: number;
+  new_balance: number;
+  description: string | null;
+}
+
+async function adminAddCredits(email: string, amount: number, description?: string): Promise<AdminAddCreditsResponse> {
+  return apiRequest('/admin/credits', {
+    method: 'POST',
+    requireAuth: true,
+    body: { email, amount, ...(description ? { description } : {}) },
+  });
+}
+
 // ── Credits tab ───────────────────────────────────────────────────────────────
 
-function TransactionDrawer({ email, onClose }: { email: string; onClose: () => void }) {
+function TransactionDrawer({ email, onClose, onBalanceChanged }: { email: string; onClose: () => void; onBalanceChanged?: () => void }) {
   const [data, setData] = useState<AdminUserTransactionsResponse | null>(null);
   const [error, setError] = useState('');
+  const [creditAmount, setCreditAmount] = useState('');
+  const [creditDesc, setCreditDesc] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitMsg, setSubmitMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  useEffect(() => {
+  const loadTransactions = useCallback(() => {
     fetchUserTransactions(email)
       .then(setData)
       .catch(e => setError(e instanceof Error ? e.message : 'Failed to load'));
   }, [email]);
+
+  useEffect(() => { loadTransactions(); }, [loadTransactions]);
+
+  const handleAddCredits = async () => {
+    const amount = parseInt(creditAmount, 10);
+    if (!amount || amount === 0) return;
+    setSubmitting(true);
+    setSubmitMsg(null);
+    try {
+      const res = await adminAddCredits(email, amount, creditDesc || undefined);
+      setSubmitMsg({ ok: true, text: `${amount > 0 ? '+' : ''}${amount} credits. New balance: ${res.new_balance}` });
+      setCreditAmount('');
+      setCreditDesc('');
+      loadTransactions();
+      onBalanceChanged?.();
+    } catch (e) {
+      setSubmitMsg({ ok: false, text: e instanceof Error ? e.message : 'Failed' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -73,6 +114,44 @@ function TransactionDrawer({ email, onClose }: { email: string; onClose: () => v
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
         </div>
+
+        {/* ── Add / remove credits form ── */}
+        <div className="px-6 py-4 border-b border-border bg-muted/30">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Adjust credits</p>
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <input
+                type="number"
+                value={creditAmount}
+                onChange={e => setCreditAmount(e.target.value)}
+                placeholder="Amount (e.g. 100 or -20)"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div className="flex-1">
+              <input
+                type="text"
+                value={creditDesc}
+                onChange={e => setCreditDesc(e.target.value)}
+                placeholder="Reason (optional)"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <button
+              onClick={handleAddCredits}
+              disabled={submitting || !creditAmount || parseInt(creditAmount, 10) === 0}
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              {submitting ? '...' : 'Apply'}
+            </button>
+          </div>
+          {submitMsg && (
+            <p className={`text-xs mt-2 ${submitMsg.ok ? 'text-green-600' : 'text-red-500'}`}>
+              {submitMsg.text}
+            </p>
+          )}
+        </div>
+
         <div className="flex-1 overflow-y-auto p-6">
           {error && <p className="text-sm text-red-500">{error}</p>}
           {!data && !error && (
@@ -153,7 +232,7 @@ function AdminCreditsTab() {
 
   return (
     <>
-      {selected && <TransactionDrawer email={selected} onClose={() => setSelected(null)} />}
+      {selected && <TransactionDrawer email={selected} onClose={() => setSelected(null)} onBalanceChanged={load} />}
 
       <div className="flex flex-col gap-6">
         {/* Summary */}
