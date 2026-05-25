@@ -28,11 +28,14 @@ step "1/3 — Pull latest frontend from git"
 
 [ -d "$FRONTEND_SRC/.git" ] || err "$FRONTEND_SRC is not a git repo"
 
+# Commit any local changes, then pull
+git -c safe.directory='*' -C "$FRONTEND_SRC" add -A
+git -c safe.directory='*' -C "$FRONTEND_SRC" diff --cached --quiet || git -c safe.directory='*' -C "$FRONTEND_SRC" commit -m "auto-commit local changes before deploy"
 GIT_SSH_COMMAND="ssh -i $DEPLOY_KEY -o StrictHostKeyChecking=no" \
-  git -c safe.directory='*' -C "$FRONTEND_SRC" fetch origin
-
+  git -c safe.directory='*' -C "$FRONTEND_SRC" pull
+GIT_SSH_COMMAND="ssh -i $DEPLOY_KEY -o StrictHostKeyChecking=no" \
+  git -c safe.directory='*' -C "$FRONTEND_SRC" push
 BRANCH=$(git -C "$FRONTEND_SRC" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
-git -c safe.directory='*' -C "$FRONTEND_SRC" reset --hard "origin/$BRANCH"
 log "frontend-cvenom pulled (branch: $BRANCH)"
 
 # Restore ownership so ubuntu can install packages and build
