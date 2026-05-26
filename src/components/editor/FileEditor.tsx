@@ -118,6 +118,12 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
       .sort();
   }, [fileTree, selectedCollaborator]);
 
+  // Check if the selected profile has a photo uploaded.
+  const profileHasPhoto: boolean = React.useMemo(() => {
+    if (!fileTree || !selectedCollaborator) return false;
+    return fileTree[selectedCollaborator]?.has_photo ?? false;
+  }, [fileTree, selectedCollaborator]);
+
 
   useEffect(() => {
     setMounted(true);
@@ -957,6 +963,8 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
             onGenerateCV={handleGenerateCV}
             isGenerating={isGenerating}
             availableLanguages={availableLanguages}
+            hasPhoto={profileHasPhoto}
+            onUploadPhoto={() => setShowUploadModal(true)}
           />
 
           <GeneratePortfolioModal

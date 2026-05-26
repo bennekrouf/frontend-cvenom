@@ -43,6 +43,7 @@ export interface FileTreeItem {
   size?: number;
   modified?: number | RustSystemTime;
   children?: Record<string, FileTreeItem>;
+  has_photo?: boolean;
 }
 
 export function modifiedToMs(modified: FileTreeItem['modified']): number {

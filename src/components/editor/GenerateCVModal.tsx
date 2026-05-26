@@ -7,6 +7,7 @@ import { getTemplates } from '@/lib/api';
 interface Template {
   name: string;
   description: string;
+  photo_recommended?: boolean;
 }
 
 interface GenerateCVModalProps {
@@ -17,6 +18,10 @@ interface GenerateCVModalProps {
   isGenerating: boolean;
   /** Languages the profile already has (from experiences_XX.typ files) */
   availableLanguages?: string[];
+  /** Whether the current profile has a photo uploaded */
+  hasPhoto?: boolean;
+  /** Callback to open the upload-photo modal */
+  onUploadPhoto?: () => void;
 }
 
 // ── Visual thumbnail SVG previews per template ────────────────────────────────
@@ -277,6 +282,8 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
   onGenerateCV,
   isGenerating,
   availableLanguages = [],
+  hasPhoto = false,
+  onUploadPhoto,
 }) => {
   const langs = availableLanguages.length > 0 ? availableLanguages : ['en'];
   const [selectedLanguage, setSelectedLanguage] = useState(langs[0]);
@@ -473,6 +480,35 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
               ) : null;
             })()}
           </div>
+
+          {/* Photo warning for templates that recommend a photo */}
+          {!loadingTemplates && !hasPhoto && (() => {
+            const t = templates.find(t => t.name === selectedTemplate);
+            if (!t?.photo_recommended) return null;
+            return (
+              <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-600 dark:bg-amber-950/30">
+                <svg className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                    Photo recommended for this template
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                    The <strong>{getLabel(t.name)}</strong> template has a prominent photo area. Without a photo, this space will appear empty.
+                  </p>
+                  {onUploadPhoto && (
+                    <button
+                      onClick={() => { onUploadPhoto(); onClose(); }}
+                      className="mt-2 text-xs font-medium text-amber-800 dark:text-amber-300 underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
+                    >
+                      Upload a photo first
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* ── Footer ── */}
