@@ -182,7 +182,16 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
               </button>
             </div>
           ) : (
-            <span className="text-sm font-medium flex-1">{name}</span>
+            <span className="text-sm font-medium flex-1 flex items-center gap-1.5">
+              {name}
+              {isCollaboratorFolder && item.has_photo && (
+                <Tooltip content="Photo uploaded" side="top">
+                  <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 shrink-0">
+                    <FiCamera className="w-2.5 h-2.5" />
+                  </span>
+                </Tooltip>
+              )}
+            </span>
           )}
 
           {isCollaboratorFolder && isSelectedCollaborator && isAuthenticated && !isRenaming && (
