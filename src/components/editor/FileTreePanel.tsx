@@ -185,8 +185,12 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
             <span className="text-sm font-medium flex-1 flex items-center gap-1.5">
               {name}
               {isCollaboratorFolder && item.has_photo && (
-                <Tooltip content="Photo uploaded" side="top">
-                  <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 shrink-0">
+                <Tooltip content={item.has_own_photo ? "Custom photo" : "Using default photo"} side="top">
+                  <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full shrink-0 ${
+                    item.has_own_photo
+                      ? 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400'
+                      : 'bg-blue-100 dark:bg-blue-900/40 text-blue-500 dark:text-blue-400'
+                  }`}>
                     <FiCamera className="w-2.5 h-2.5" />
                   </span>
                 </Tooltip>

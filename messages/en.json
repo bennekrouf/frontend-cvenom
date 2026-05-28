@@ -334,5 +334,32 @@
     "showPhotoDesc": "Displays your uploaded photo on the CV.",
     "showPhotoHint": "Upload via the ⋯ menu on your profile in the sidebar.",
     "photoNormsWarning": "⚠ Photos are common in CH/EU/Asia but uncommon in US/UK — check local norms."
+  },
+  "preferences": {
+    "title": "Preferences",
+    "emailLanguage": "Email language",
+    "emailNotifications": "Email notifications",
+    "emailNotificationsDesc": "Choose which emails you want to receive. Transactional emails (payments, welcome) are always sent.",
+    "emailCvReady": "CV ready",
+    "emailCvReadyDesc": "When your CV PDF has been generated.",
+    "emailPortfolioReady": "Portfolio ready",
+    "emailPortfolioReadyDesc": "When your portfolio PDF has been generated.",
+    "emailCoverLetterReady": "Cover letter ready",
+    "emailCoverLetterReadyDesc": "When your cover letter has been generated.",
+    "emailCvImported": "CV imported",
+    "emailCvImportedDesc": "When a CV has been imported and a profile created.",
+    "emailTranslationReady": "Translation ready",
+    "emailTranslationReadyDesc": "When your CV has been translated to another language.",
+    "emailAtsResults": "ATS optimization results",
+    "emailAtsResultsDesc": "When your CV has been optimized for a job posting.",
+    "emailNudge": "Activity reminders",
+    "emailNudgeDesc": "Gentle reminders if you haven't used CVenom recently.",
+    "emailWinBack": "We miss you",
+    "emailWinBackDesc": "Occasional emails if you've been away for a while.",
+    "emailNewTemplate": "New templates",
+    "emailNewTemplateDesc": "When new CV templates are available.",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving..."
   }
 }

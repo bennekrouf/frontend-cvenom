@@ -320,5 +320,32 @@
     "showPhotoDesc": "Affiche votre photo téléchargée sur le CV.",
     "showPhotoHint": "Téléversez via le menu ⋯ de votre profil dans la barre latérale.",
     "photoNormsWarning": "⚠ Les photos sont courantes en CH/EU/Asie mais rares aux US/UK — vérifiez les normes locales."
+  },
+  "preferences": {
+    "title": "Préférences",
+    "emailLanguage": "Langue des emails",
+    "emailNotifications": "Notifications par email",
+    "emailNotificationsDesc": "Choisissez les emails que vous souhaitez recevoir. Les emails transactionnels (paiements, bienvenue) sont toujours envoyés.",
+    "emailCvReady": "CV prêt",
+    "emailCvReadyDesc": "Lorsque votre CV PDF a été généré.",
+    "emailPortfolioReady": "Portfolio prêt",
+    "emailPortfolioReadyDesc": "Lorsque votre portfolio PDF a été généré.",
+    "emailCoverLetterReady": "Lettre de motivation prête",
+    "emailCoverLetterReadyDesc": "Lorsque votre lettre de motivation a été générée.",
+    "emailCvImported": "CV importé",
+    "emailCvImportedDesc": "Lorsqu'un CV a été importé et un profil créé.",
+    "emailTranslationReady": "Traduction prête",
+    "emailTranslationReadyDesc": "Lorsque votre CV a été traduit dans une autre langue.",
+    "emailAtsResults": "Résultats d'optimisation ATS",
+    "emailAtsResultsDesc": "Lorsque votre CV a été optimisé pour une offre d'emploi.",
+    "emailNudge": "Rappels d'activité",
+    "emailNudgeDesc": "Rappels si vous n'avez pas utilisé CVenom récemment.",
+    "emailWinBack": "Vous nous manquez",
+    "emailWinBackDesc": "Emails occasionnels si vous êtes absent depuis un moment.",
+    "emailNewTemplate": "Nouveaux modèles",
+    "emailNewTemplateDesc": "Lorsque de nouveaux modèles de CV sont disponibles.",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "saving": "Enregistrement..."
   }
 }

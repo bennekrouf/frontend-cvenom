@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FiX, FiTarget, FiCheckCircle, FiAlertCircle, FiLoader, FiClipboard, FiArrowRight, FiSave } from 'react-icons/fi';
+import { FiX, FiTarget, FiCheckCircle, FiAlertCircle, FiLoader, FiClipboard, FiArrowRight, FiPlusCircle } from 'react-icons/fi';
 import { optimizeCV, saveOptimizedProfile, KeywordAnalysis } from '@/lib/api';
 import { fileTreeEvents } from '@/lib/fileTreeEvents';
 
@@ -10,6 +10,8 @@ interface OptimizeModalProps {
   isOpen: boolean;
   onClose: () => void;
   collaboratorName: string | null;
+  /** Called after the optimized profile is created — receives the new profile name. */
+  onProfileCreated?: (profileName: string) => void;
 }
 
 // ── Language labels ────────────────────────────────────────────────────────────
@@ -72,6 +74,7 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
   isOpen,
   onClose,
   collaboratorName,
+  onProfileCreated,
 }) => {
   const [jobDescription, setJobDescription] = useState('');
   const [language, setLanguage] = useState('en');
@@ -91,10 +94,9 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
   // Optimized CV payload (returned by /optimize, sent to /save-optimized)
   const [optimizedCvJson, setOptimizedCvJson] = useState<string | null>(null);
 
-  // "Save as new profile" sub-flow
-  const [showSaveInput, setShowSaveInput] = useState(false);
+  // "Create profile" sub-flow
   const [saveProfileName, setSaveProfileName] = useState('');
-  const [savePhase, setSavePhase] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [savePhase, setSavePhase] = useState<'idle' | 'saving' | 'error'>('idle');
   const [saveError, setSaveError] = useState('');
 
   // Reset form state when modal opens
@@ -110,14 +112,13 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
     setBeforeScore(null);
     setAfterScore(null);
     setOptimizedCvJson(null);
-    setShowSaveInput(false);
     setSaveProfileName('');
     setSavePhase('idle');
     setSaveError('');
   }, [isOpen]);
 
-  // True when optimization results are present but not yet saved — backdrop/Escape are locked
-  const hasUnsavedResults = phase === 'done' && savePhase !== 'saved';
+  // True when optimization results are present but profile not yet created — backdrop/Escape are locked
+  const hasUnsavedResults = phase === 'done';
 
   // Close on Escape — blocked when there are unsaved results
   useEffect(() => {
@@ -163,7 +164,6 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
         : 'ats';
       setSaveProfileName(`${collaboratorName ?? 'profile'}_${suffix}`);
       setSavePhase('idle');
-      setShowSaveInput(false);
       setPhase('done');
     } catch (e) {
       setErrorMsg(e instanceof Error ? e.message : 'Optimization failed');
@@ -171,16 +171,18 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
     }
   };
 
-  const handleSaveProfile = async () => {
+  const handleCreateProfile = async () => {
     if (!optimizedCvJson || !saveProfileName.trim()) return;
     setSavePhase('saving');
     setSaveError('');
     try {
-      await saveOptimizedProfile(saveProfileName.trim(), optimizedCvJson, language);
-      setSavePhase('saved');
+      const name = saveProfileName.trim();
+      await saveOptimizedProfile(name, optimizedCvJson, language);
       fileTreeEvents.emit();
+      onProfileCreated?.(name);
+      onClose();
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : 'Save failed');
+      setSaveError(e instanceof Error ? e.message : 'Creation failed');
       setSavePhase('error');
     }
   };
@@ -283,7 +285,7 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
                     {companyName ? ` at ${companyName}` : ''}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Profile updated — close this and use <strong>Generate</strong> to create your PDF
+                    Create the optimized profile below, then use <strong>Generate</strong> to create your PDF
                   </p>
                 </div>
               </div>
@@ -357,62 +359,38 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
                 </div>
               )}
 
-              {/* Save as new profile */}
-              {savePhase === 'saved' ? (
-                <div className="flex items-center gap-2 px-3 py-2.5 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                  <FiCheckCircle className="w-4 h-4 text-green-500 shrink-0" />
-                  <p className="text-xs text-green-700 dark:text-green-300">
-                    Profile <strong>{saveProfileName}</strong> created — select it in the sidebar, then click <strong>Generate</strong>.
-                  </p>
+              {/* Create as new profile — shown directly with suggested name */}
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-foreground">
+                  New profile name
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={saveProfileName}
+                    onChange={(e) => setSaveProfileName(e.target.value)}
+                    disabled={savePhase === 'saving'}
+                    placeholder="e.g. john_acme_corp"
+                    className="flex-1 px-3 py-1.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 disabled:opacity-50"
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleCreateProfile(); }}
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleCreateProfile}
+                    disabled={!saveProfileName.trim() || savePhase === 'saving'}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
+                  >
+                    {savePhase === 'saving' ? (
+                      <><FiLoader className="w-3 h-3 animate-spin" /> Creating…</>
+                    ) : (
+                      <><FiPlusCircle className="w-3 h-3" /> Create</>
+                    )}
+                  </button>
                 </div>
-              ) : showSaveInput ? (
-                <div className="space-y-2">
-                  <label className="block text-xs font-medium text-foreground">
-                    New profile name
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={saveProfileName}
-                      onChange={(e) => setSaveProfileName(e.target.value)}
-                      disabled={savePhase === 'saving'}
-                      placeholder="e.g. john_acme_corp"
-                      className="flex-1 px-3 py-1.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 disabled:opacity-50"
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleSaveProfile(); if (e.key === 'Escape') setShowSaveInput(false); }}
-                      autoFocus
-                    />
-                    <button
-                      onClick={() => setShowSaveInput(false)}
-                      disabled={savePhase === 'saving'}
-                      className="px-2.5 py-1.5 text-xs bg-secondary text-foreground rounded-lg hover:bg-secondary/80 transition-colors disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleSaveProfile}
-                      disabled={!saveProfileName.trim() || savePhase === 'saving'}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
-                    >
-                      {savePhase === 'saving' ? (
-                        <><FiLoader className="w-3 h-3 animate-spin" /> Saving…</>
-                      ) : (
-                        <><FiSave className="w-3 h-3" /> Save</>
-                      )}
-                    </button>
-                  </div>
-                  {savePhase === 'error' && (
-                    <p className="text-xs text-red-500">{saveError}</p>
-                  )}
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowSaveInput(true)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition-colors"
-                >
-                  <FiSave className="w-4 h-4" />
-                  Save as new profile
-                </button>
-              )}
+                {savePhase === 'error' && (
+                  <p className="text-xs text-red-500">{saveError}</p>
+                )}
+              </div>
             </div>
           )}
 

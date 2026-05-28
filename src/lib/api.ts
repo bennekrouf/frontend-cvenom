@@ -43,7 +43,10 @@ export interface FileTreeItem {
   size?: number;
   modified?: number | RustSystemTime;
   children?: Record<string, FileTreeItem>;
+  /** True if the profile has any photo (own or tenant default). */
   has_photo?: boolean;
+  /** True only if the profile has its own custom photo (not the tenant default). */
+  has_own_photo?: boolean;
 }
 
 export function modifiedToMs(modified: FileTreeItem['modified']): number {
@@ -645,4 +648,35 @@ export async function bdGetCommissions(): Promise<{
   commissions: CommissionRow[];
 }> {
   return apiRequest('/bd/commissions', { requireAuth: true });
+}
+
+// ── Preferences ─────────────────────────────────────────────────────────────
+
+export interface EmailPreferences {
+  cv_ready?: boolean;
+  portfolio_ready?: boolean;
+  cover_letter_ready?: boolean;
+  cv_imported?: boolean;
+  translation_ready?: boolean;
+  ats_results?: boolean;
+  nudge?: boolean;
+  win_back?: boolean;
+  new_template?: boolean;
+}
+
+export interface UserPreferences {
+  email_prefs: EmailPreferences;
+  preferred_lang: string;
+}
+
+export async function getPreferences(): Promise<UserPreferences> {
+  return apiRequest('/preferences', { requireAuth: true });
+}
+
+export async function updatePreferences(prefs: Partial<UserPreferences>): Promise<{ success: boolean }> {
+  return apiRequest('/preferences', {
+    method: 'PUT',
+    body: prefs,
+    requireAuth: true,
+  });
 }

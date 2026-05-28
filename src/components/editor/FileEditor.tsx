@@ -15,6 +15,7 @@ import {
   FiList,
   FiMessageSquare,
   FiFileText,
+  FiSettings,
 } from 'react-icons/fi';
 import { useTranslations } from 'next-intl';
 import { useRouter, usePathname } from 'next/navigation';
@@ -29,6 +30,7 @@ import CoverLetterModal from './CoverLetterModal';
 import UploadPictureModal from './UploadPictureModal';
 import GenerateCVModal from './GenerateCVModal';
 import GeneratePortfolioModal from './GeneratePortfolioModal';
+import PreferencesModal from './PreferencesModal';
 import {
   createCollaborator,
   getTenantFileTree,
@@ -91,6 +93,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
   const [showPortfolioModal, setShowPortfolioModal] = useState(false);
   const [showOptimizeModal, setShowOptimizeModal] = useState(false);
   const [showCoverLetterModal, setShowCoverLetterModal] = useState(false);
+  const [showPreferencesModal, setShowPreferencesModal] = useState(false);
   const [selectedCollaborator, setSelectedCollaborator] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingPortfolio, setIsGeneratingPortfolio] = useState(false);
@@ -835,6 +838,17 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
                 <FiSave className="h-3.5 w-3.5 shrink-0" />
                 <span className="hidden sm:inline">{t('save')}</span>
               </button>
+
+              {/* Preferences */}
+              {isAuthenticated && (
+                <button
+                  onClick={() => setShowPreferencesModal(true)}
+                  className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                  title="Preferences"
+                >
+                  <FiSettings className="h-3.5 w-3.5 shrink-0" />
+                </button>
+              )}
             </div>
 
           </div>
@@ -933,6 +947,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
             isOpen={showOptimizeModal}
             onClose={() => setShowOptimizeModal(false)}
             collaboratorName={selectedCollaborator}
+            onProfileCreated={(name) => setSelectedCollaborator(name)}
           />
 
           <CoverLetterModal
@@ -985,6 +1000,12 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
           />
         </>
       )}
+
+      {/* Preferences modal */}
+      <PreferencesModal
+        isOpen={showPreferencesModal}
+        onClose={() => setShowPreferencesModal(false)}
+      />
 
       {/* Guided onboarding tour for first-time users */}
       {isAuthenticated && mounted && (
