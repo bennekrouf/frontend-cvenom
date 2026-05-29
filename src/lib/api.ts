@@ -680,3 +680,35 @@ export async function updatePreferences(prefs: Partial<UserPreferences>): Promis
     requireAuth: true,
   });
 }
+
+// ── Feedback ──────────────────────────────────────────────────────────────────
+
+export async function checkFeedbackEligible(): Promise<{ eligible: boolean }> {
+  return apiRequest('/feedback/eligible', { requireAuth: true });
+}
+
+export async function submitFeedback(data: {
+  score: number;
+  reason: string;
+  contact_ok: boolean;
+}): Promise<{ success: boolean; message: string; credits_granted: number }> {
+  return apiRequest('/feedback', {
+    method: 'POST',
+    body: data,
+    requireAuth: true,
+  });
+}
+
+export interface FeedbackRow {
+  id: number;
+  email: string;
+  score: number;
+  reason: string;
+  contact_ok: boolean;
+  credits_granted: boolean;
+  created_at: string;
+}
+
+export async function adminGetFeedbacks(): Promise<{ success: boolean; feedbacks: FeedbackRow[] }> {
+  return apiRequest('/admin/feedbacks', { requireAuth: true });
+}

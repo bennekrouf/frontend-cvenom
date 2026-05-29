@@ -1,16 +1,27 @@
 'use client';
 
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { signInWithGoogle } from '@/lib/firebase';
 import { useLocale } from 'next-intl';
 import SmtpConfigPanel from '@/components/admin/SmtpConfigPanel';
 import CreditManagementPanel from '@/components/admin/CreditManagementPanel';
+import FeedbackPanel from '@/components/admin/FeedbackPanel';
 
 const ADMIN_EMAIL = 'mohamed.bennekrouf@gmail.com';
+
+const TABS = [
+  { id: 'credits', label: 'Credits' },
+  { id: 'feedback', label: 'Feedback' },
+  { id: 'smtp', label: 'SMTP' },
+] as const;
+
+type TabId = (typeof TABS)[number]['id'];
 
 export default function AdminPage() {
   const { user, loading } = useAuth();
   const locale = useLocale();
+  const [activeTab, setActiveTab] = useState<TabId>('credits');
 
   if (loading) {
     return (
@@ -57,14 +68,28 @@ export default function AdminPage() {
           </a>
         </div>
 
-        <div className="space-y-10">
-          <section className="bg-slate-800 rounded-lg p-6">
-            <CreditManagementPanel />
-          </section>
-          <section className="bg-slate-800 rounded-lg p-6">
-            <SmtpConfigPanel />
-          </section>
+        {/* Tab bar */}
+        <div className="flex gap-1 mb-6 bg-slate-800 rounded-lg p-1">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
+
+        <section className="bg-slate-800 rounded-lg p-6">
+          {activeTab === 'credits' && <CreditManagementPanel />}
+          {activeTab === 'feedback' && <FeedbackPanel />}
+          {activeTab === 'smtp' && <SmtpConfigPanel />}
+        </section>
       </div>
     </div>
   );

@@ -46,6 +46,7 @@ import ChatComponent from '../chat/ChatComponent';
 import { signInWithGoogle } from '@/lib/firebase';
 import { fileTreeEvents } from '@/lib/fileTreeEvents';
 import OnboardingTour from './OnboardingTour';
+import FeedbackPopup from './FeedbackPopup';
 import { toast } from 'sonner';
 
 interface ApiSuccessResponse {
@@ -1011,6 +1012,9 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
       {isAuthenticated && mounted && (
         <OnboardingTour hasProfiles={!!(fileTree && Object.keys(fileTree).length > 0)} />
       )}
+
+      {/* Daily feedback popup */}
+      {isAuthenticated && mounted && <FeedbackPopup />}
     </div>
   );
 };
