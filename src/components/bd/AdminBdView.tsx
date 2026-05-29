@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { apiRequest, BdInfo, CustomerRow } from '@/lib/api';
 import { signInWithGoogle } from '@/lib/firebase';
+import FeedbackPanel from '@/components/admin/FeedbackPanel';
 
 const ADMIN_EMAIL = 'mohamed.bennekrouf@gmail.com';
 
@@ -842,7 +843,7 @@ function AdminModelsTab() {
   );
 }
 
-type AdminTab = 'bd' | 'credits' | 'commissions' | 'models';
+type AdminTab = 'bd' | 'credits' | 'commissions' | 'models' | 'feedback';
 
 export default function AdminBdView() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
@@ -958,7 +959,7 @@ export default function AdminBdView() {
 
         {/* Tab selector */}
         <div className="flex gap-1 border-b border-border">
-          {(['bd', 'commissions', 'credits', 'models'] as AdminTab[]).map(tab => (
+          {(['bd', 'commissions', 'credits', 'models', 'feedback'] as AdminTab[]).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -971,10 +972,14 @@ export default function AdminBdView() {
               {tab === 'bd' ? '👥 Business Developers'
                 : tab === 'commissions' ? '💰 Commissions'
                 : tab === 'credits' ? '💳 Credits'
-                : '🤖 Models'}
+                : tab === 'models' ? '🤖 Models'
+                : '📝 Feedback'}
             </button>
           ))}
         </div>
+
+        {/* Feedback tab */}
+        {activeTab === 'feedback' && <FeedbackPanel />}
 
         {/* Models tab */}
         {activeTab === 'models' && <AdminModelsTab />}
