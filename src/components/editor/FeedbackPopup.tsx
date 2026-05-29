@@ -18,7 +18,7 @@ const SATISFACTION_LABELS = [
 
 const SATISFACTION_EMOJIS = ['\u{1F621}', '\u{1F61E}', '\u{1F610}', '\u{1F60A}', '\u{1F929}'];
 
-type View = 'feedback' | 'optout';
+type View = 'feedback' | 'optout' | 'confirm-short';
 
 export default function FeedbackPopup() {
   const [open, setOpen] = useState(false);
@@ -65,15 +65,11 @@ export default function FeedbackPopup() {
     dismissToday();
   }, [dismissToday]);
 
-  const handleSubmit = useCallback(async () => {
-    if (score === null) {
-      toast.error('Please select a satisfaction level.');
-      return;
-    }
+  const doSubmit = useCallback(async () => {
     setSubmitting(true);
     try {
       const res = await submitFeedback({
-        score,
+        score: score!,
         reason: reason.slice(0, 500),
         contact_ok: contactOk,
       });
@@ -85,6 +81,20 @@ export default function FeedbackPopup() {
       setSubmitting(false);
     }
   }, [score, reason, contactOk, dismissToday]);
+
+  const handleSubmit = useCallback(async () => {
+    if (score === null) {
+      toast.error('Please select a satisfaction level.');
+      return;
+    }
+    const wc = reason.trim().split(/\s+/).filter(Boolean).length;
+    if (wc < 10) {
+      // Show confirmation instead of submitting directly
+      setView('confirm-short');
+      return;
+    }
+    doSubmit();
+  }, [score, reason, doSubmit]);
 
   if (!open) return null;
 
@@ -197,6 +207,38 @@ export default function FeedbackPopup() {
               className="px-5 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               {submitting ? 'Submitting...' : 'Submit'}
+            </button>
+          </div>
+        </div>
+      ) : view === 'confirm-short' ? (
+        /* Not enough words — let user go back or submit anyway */
+        <div className="relative w-full max-w-sm mx-4 rounded-2xl bg-white shadow-2xl dark:bg-zinc-900 overflow-hidden">
+          <div className="px-6 py-6 space-y-4">
+            <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">
+              Almost there!
+            </h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              Your feedback has only{' '}
+              <span className="font-semibold text-zinc-700 dark:text-zinc-200">
+                {reason.trim().split(/\s+/).filter(Boolean).length}
+              </span>{' '}
+              words. Write at least <span className="font-semibold text-indigo-500">10 words</span> to
+              earn <span className="font-semibold text-yellow-500">+10 credits</span>.
+            </p>
+          </div>
+          <div className="flex justify-end gap-3 px-6 py-4 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
+            <button
+              onClick={doSubmit}
+              disabled={submitting}
+              className="px-4 py-2 rounded-lg text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
+            >
+              {submitting ? 'Submitting...' : 'Submit anyway'}
+            </button>
+            <button
+              onClick={() => setView('feedback')}
+              className="px-5 py-2 rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition"
+            >
+              Add more words
             </button>
           </div>
         </div>
