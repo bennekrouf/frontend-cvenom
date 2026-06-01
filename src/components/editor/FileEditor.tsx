@@ -47,6 +47,7 @@ import { signInWithGoogle } from '@/lib/firebase';
 import { fileTreeEvents } from '@/lib/fileTreeEvents';
 import OnboardingTour from './OnboardingTour';
 import FeedbackPopup from './FeedbackPopup';
+import SafeBoundary from './SafeBoundary';
 import { toast } from 'sonner';
 
 interface ApiSuccessResponse {
@@ -1013,8 +1014,12 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
         <OnboardingTour hasProfiles={!!(fileTree && Object.keys(fileTree).length > 0)} />
       )}
 
-      {/* Daily feedback popup */}
-      {isAuthenticated && mounted && <FeedbackPopup />}
+      {/* Daily feedback popup — wrapped so a crash inside it never blanks the editor */}
+      {isAuthenticated && mounted && (
+        <SafeBoundary name="FeedbackPopup">
+          <FeedbackPopup />
+        </SafeBoundary>
+      )}
     </div>
   );
 };

@@ -8,6 +8,22 @@ import { toast } from 'sonner';
 const LS_KEY = 'cvenom_feedback_last';
 const LS_OPTOUT = 'cvenom_feedback_optout';
 
+const safeReadLS = (key: string): string | null => {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const safeWriteLS = (key: string, value: string): void => {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // private mode / quota exceeded — silently ignore
+  }
+};
+
 const SATISFACTION_LABELS = [
   'Very dissatisfied',
   'Dissatisfied',
@@ -30,14 +46,17 @@ export default function FeedbackPopup() {
 
   useEffect(() => {
     const timer = setTimeout(async () => {
-      if (localStorage.getItem(LS_OPTOUT) === 'true') return;
-      const last = localStorage.getItem(LS_KEY);
+      if (safeReadLS(LS_OPTOUT) === 'true') return;
+      const last = safeReadLS(LS_KEY);
       const today = new Date().toISOString().slice(0, 10);
       if (last === today) return;
 
       try {
         const { eligible } = await checkFeedbackEligible();
-        if (eligible) setOpen(true);
+        if (eligible) {
+          setView('feedback'); // reset to main form in case a prior session ended on a sub-view
+          setOpen(true);
+        }
       } catch {
         // not logged in or network error — skip silently
       }
@@ -46,7 +65,7 @@ export default function FeedbackPopup() {
   }, []);
 
   const dismissToday = useCallback(() => {
-    localStorage.setItem(LS_KEY, new Date().toISOString().slice(0, 10));
+    safeWriteLS(LS_KEY, new Date().toISOString().slice(0, 10));
     setOpen(false);
   }, []);
 
@@ -56,7 +75,7 @@ export default function FeedbackPopup() {
   }, []);
 
   const handleOptOut = useCallback(() => {
-    localStorage.setItem(LS_OPTOUT, 'true');
+    safeWriteLS(LS_OPTOUT, 'true');
     setOpen(false);
   }, []);
 
