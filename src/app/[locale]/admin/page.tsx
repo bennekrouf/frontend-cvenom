@@ -7,6 +7,7 @@ import { useLocale } from 'next-intl';
 import SmtpConfigPanel from '@/components/admin/SmtpConfigPanel';
 import CreditManagementPanel from '@/components/admin/CreditManagementPanel';
 import FeedbackPanel from '@/components/admin/FeedbackPanel';
+import ModelConfigPanel from '@/components/admin/ModelConfigPanel';
 
 const ADMIN_EMAIL = 'mohamed.bennekrouf@gmail.com';
 
@@ -14,6 +15,7 @@ const TABS = [
   { id: 'credits', label: 'Credits' },
   { id: 'feedback', label: 'Feedback' },
   { id: 'smtp', label: 'SMTP' },
+  { id: 'models', label: 'Models' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -89,6 +91,7 @@ export default function AdminPage() {
           {activeTab === 'credits' && <CreditManagementPanel />}
           {activeTab === 'feedback' && <FeedbackPanel />}
           {activeTab === 'smtp' && <SmtpConfigPanel />}
+          {activeTab === 'models' && <ModelConfigPanel />}
         </section>
       </div>
     </div>

@@ -8,6 +8,7 @@ import type { StylingData } from '@/types/cvFormData';
 interface Props {
   data: StylingData;
   onChange: (data: StylingData) => void;
+  hasPhoto?: boolean;
 }
 
 // ── Colour picker ─────────────────────────────────────────────────────────────
@@ -78,7 +79,7 @@ const Toggle: React.FC<{
 
 // ── Section ───────────────────────────────────────────────────────────────────
 
-export const StylingSection: React.FC<Props> = ({ data, onChange }) => {
+export const StylingSection: React.FC<Props> = ({ data, onChange, hasPhoto = false }) => {
   const t = useTranslations('cvForm');
 
   return (
@@ -146,6 +147,11 @@ export const StylingSection: React.FC<Props> = ({ data, onChange }) => {
                 {t('showPhotoHint')}
               </span>
             </p>
+            {hasPhoto && !data.show_photo && (
+              <p className="mt-2 inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+                {t('photoUploadedButHidden')}
+              </p>
+            )}
             {data.show_photo && (
               <p className="mt-2 inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
                 {t('photoNormsWarning')}

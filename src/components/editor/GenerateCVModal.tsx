@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getTemplates } from '@/lib/api';
+import { getCvData } from '@/lib/cvDataService';
 
 interface Template {
   name: string;
@@ -14,7 +15,7 @@ interface GenerateCVModalProps {
   isOpen: boolean;
   onClose: () => void;
   collaboratorName: string | null;
-  onGenerateCV: (language: string, template: string) => Promise<void>;
+  onGenerateCV: (language: string, template: string, useCustomColors: boolean) => Promise<void>;
   isGenerating: boolean;
   /** Languages the profile already has (from experiences_XX.typ files) */
   availableLanguages?: string[];
@@ -290,11 +291,23 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
   const [selectedTemplate, setSelectedTemplate] = useState('default');
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [useDefaultColors, setUseDefaultColors] = useState(true);
+  const [customColors, setCustomColors] = useState<{ primary: string; secondary: string } | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       fetchTemplates();
       setSelectedLanguage(langs[0]); // reset to first available lang when opening
+      setUseDefaultColors(true);     // always start with template defaults
+      // Fetch the profile's saved custom colors for the info display
+      if (collaboratorName) {
+        getCvData(collaboratorName).then(data => {
+          setCustomColors({
+            primary:   data.styling.primary_color   || '#14A4E6',
+            secondary: data.styling.secondary_color || '#757575',
+          });
+        }).catch(() => setCustomColors(null));
+      }
     }
   }, [isOpen, collaboratorName]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -327,7 +340,7 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
     setLoadingTemplates(false);
   };
 
-  const handleGenerate = () => onGenerateCV(selectedLanguage, selectedTemplate);
+  const handleGenerate = () => onGenerateCV(selectedLanguage, selectedTemplate, !useDefaultColors);
 
   const handleClose = () => {
     if (!isGenerating) onClose();
@@ -479,6 +492,54 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
                 </p>
               ) : null;
             })()}
+          </div>
+
+          {/* Color mode selector */}
+          <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground">Use template default colors</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {useDefaultColors
+                  ? 'Template brand colors will be used.'
+                  : 'Your custom colors will be applied.'}
+              </p>
+              {/* Custom color swatches — shown when default is unchecked */}
+              {!useDefaultColors && customColors && (
+                <div className="flex items-center gap-3 mt-2">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className="inline-block w-4 h-4 rounded border border-border shadow-sm shrink-0"
+                      style={{ backgroundColor: customColors.primary }}
+                    />
+                    <span className="text-[11px] font-mono text-muted-foreground">{customColors.primary}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className="inline-block w-4 h-4 rounded border border-border shadow-sm shrink-0"
+                      style={{ backgroundColor: customColors.secondary }}
+                    />
+                    <span className="text-[11px] font-mono text-muted-foreground">{customColors.secondary}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            {/* Toggle */}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={useDefaultColors}
+              onClick={() => setUseDefaultColors(v => !v)}
+              disabled={isGenerating}
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50 ${
+                useDefaultColors ? 'bg-primary' : 'bg-muted'
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                  useDefaultColors ? 'translate-x-4' : 'translate-x-0'
+                }`}
+              />
+            </button>
           </div>
 
           {/* Photo warning for templates that recommend a photo */}

@@ -271,14 +271,16 @@ interface GeneratePdfResponse {
 export async function generateCV(
   personName: string,
   language: string,
-  template: string = 'default'
+  template: string = 'default',
+  useCustomColors: boolean = false
 ): Promise<Blob> {
   const result = await apiRequest<GeneratePdfResponse>('/generate', {
     method: 'POST',
     body: {
       profile: personName,
       lang: language,
-      template: template
+      template: template,
+      use_custom_colors: useCustomColors,
     },
     requireAuth: true
   });
@@ -318,6 +320,65 @@ export async function getCurrentUser() {
   return apiRequest('/me', {
     method: 'GET',
     requireAuth: true
+  });
+}
+
+// ── Model config admin ────────────────────────────────────────────────────────
+
+export interface ProviderModelConfig {
+  model: string;
+  max_tokens: number;
+  temperature: number;
+  api_key_masked?: string | null;
+}
+
+export interface OperationProviders {
+  cv_import: string;
+  translation: string;
+  job_matching: string;
+  cv_optimization: string;
+  cover_letter: string;
+  portfolio: string;
+}
+
+export interface ModelConfig {
+  providers: OperationProviders;
+  claude:   ProviderModelConfig | null;
+  cohere:   ProviderModelConfig | null;
+  deepseek: ProviderModelConfig | null;
+  mistral:  ProviderModelConfig | null;
+}
+
+export interface ModelConfigResponse {
+  success: boolean;
+  config: ModelConfig;
+  config_path: string;
+}
+
+export async function getModelConfig(): Promise<ModelConfigResponse> {
+  return apiRequest<ModelConfigResponse>('/admin/models', { requireAuth: true });
+}
+
+export interface UpdateProviderModelConfig {
+  model: string;
+  max_tokens: number;
+  temperature: number;
+  api_key?: string;
+}
+
+export interface UpdateModelConfigRequest {
+  providers: OperationProviders;
+  claude?:   UpdateProviderModelConfig;
+  cohere?:   UpdateProviderModelConfig;
+  deepseek?: UpdateProviderModelConfig;
+  mistral?:  UpdateProviderModelConfig;
+}
+
+export async function saveModelConfig(data: UpdateModelConfigRequest): Promise<{ success: boolean; message: string; restarted: boolean }> {
+  return apiRequest('/admin/models', {
+    method: 'POST',
+    body: data,
+    requireAuth: true,
   });
 }
 

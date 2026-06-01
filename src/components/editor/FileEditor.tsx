@@ -279,12 +279,12 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
     setIsLoading(false);
   };
 
-  const handleGenerateCV = async (language: string, template: string = 'default') => {
+  const handleGenerateCV = async (language: string, template: string = 'default', useCustomColors: boolean = false) => {
     if (!selectedCollaborator || !isAuthenticated) return;
 
     setIsGenerating(true);
     try {
-      const blob = await generateCV(selectedCollaborator, language, template);
+      const blob = await generateCV(selectedCollaborator, language, template, useCustomColors);
 
       // Backend streams the PDF directly — create a local object URL to trigger download.
       const url = URL.createObjectURL(blob);
@@ -917,6 +917,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
               language={selectedLanguage}
               availableLanguages={availableLanguages}
               onLanguageChange={setSelectedLanguage}
+              hasPhoto={profileHasPhoto}
             />
           ) : selectedFile ? (
             /* ── Code editor (raw TOML / Typst textarea) ── */

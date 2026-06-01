@@ -333,7 +333,8 @@
     "showPhotoLabel": "Show profile photo",
     "showPhotoDesc": "Displays your uploaded photo on the CV.",
     "showPhotoHint": "Upload via the ⋯ menu on your profile in the sidebar.",
-    "photoNormsWarning": "⚠ Photos are common in CH/EU/Asia but uncommon in US/UK — check local norms."
+    "photoNormsWarning": "⚠ Photos are common in CH/EU/Asia but uncommon in US/UK — check local norms.",
+    "photoUploadedButHidden": "⚠ Photo uploaded but hidden — toggle on to show it in your CV."
   },
   "preferences": {
     "title": "Preferences",

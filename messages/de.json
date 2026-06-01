@@ -333,6 +333,7 @@
     "showPhotoLabel": "Profilfoto anzeigen",
     "showPhotoDesc": "Zeigt Ihr hochgeladenes Foto im Lebenslauf an.",
     "showPhotoHint": "Über das ⋯-Menü in Ihrem Profil hochladen.",
-    "photoNormsWarning": "⚠ Fotos sind in CH/EU/Asien üblich, in den USA/UK weniger – lokale Gepflogenheiten prüfen."
+    "photoNormsWarning": "⚠ Fotos sind in CH/EU/Asien üblich, in den USA/UK weniger – lokale Gepflogenheiten prüfen.",
+    "photoUploadedButHidden": "⚠ Foto hochgeladen, aber ausgeblendet — aktivieren Sie den Schalter, um es im Lebenslauf anzuzeigen."
   }
 }

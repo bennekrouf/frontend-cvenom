@@ -31,6 +31,7 @@ interface Props {
   language?: string;
   availableLanguages?: string[];
   onLanguageChange?: (lang: string) => void;
+  hasPhoto?: boolean;
 }
 
 export interface CVFormEditorHandle {
@@ -40,7 +41,7 @@ export interface CVFormEditorHandle {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-const CVFormEditor = forwardRef<CVFormEditorHandle, Props>(({ profileName, language = 'en', availableLanguages = [], onLanguageChange }, ref) => {
+const CVFormEditor = forwardRef<CVFormEditorHandle, Props>(({ profileName, language = 'en', availableLanguages = [], onLanguageChange, hasPhoto = false }, ref) => {
   const t = useTranslations('cvForm');
   const [data, setData] = useState<CvFormData>(emptyCvFormData());
   const [isLoading, setIsLoading] = useState(true);
@@ -206,6 +207,7 @@ const CVFormEditor = forwardRef<CVFormEditorHandle, Props>(({ profileName, langu
         <StylingSection
           data={data.styling}
           onChange={(v) => update('styling', v)}
+          hasPhoto={hasPhoto}
         />
       </div>
     </div>

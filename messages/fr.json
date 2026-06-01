@@ -319,7 +319,8 @@
     "showPhotoLabel": "Afficher la photo de profil",
     "showPhotoDesc": "Affiche votre photo téléchargée sur le CV.",
     "showPhotoHint": "Téléversez via le menu ⋯ de votre profil dans la barre latérale.",
-    "photoNormsWarning": "⚠ Les photos sont courantes en CH/EU/Asie mais rares aux US/UK — vérifiez les normes locales."
+    "photoNormsWarning": "⚠ Les photos sont courantes en CH/EU/Asie mais rares aux US/UK — vérifiez les normes locales.",
+    "photoUploadedButHidden": "⚠ Photo téléchargée mais masquée — activez le bouton pour l'afficher dans votre CV."
   },
   "preferences": {
     "title": "Préférences",
