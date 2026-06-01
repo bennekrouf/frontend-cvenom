@@ -6,6 +6,7 @@ import {
   FiX, FiFileText, FiLoader, FiAlertCircle, FiClipboard, FiCheck, FiDownload,
 } from 'react-icons/fi';
 import { generateCoverLetter, exportCoverLetterDocx } from '@/lib/api';
+import { useTranslations } from 'next-intl';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -29,6 +30,7 @@ const CoverLetterModal: React.FC<CoverLetterModalProps> = ({
   onClose,
   collaboratorName,
 }) => {
+  const t = useTranslations('coverLetter');
   const [language, setLanguage] = useState('en');
   const [jobDescription, setJobDescription] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
@@ -53,7 +55,7 @@ const CoverLetterModal: React.FC<CoverLetterModalProps> = ({
       setCoverLetter(response.data.cover_letter);
       setPhase('done');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Cover letter generation failed';
+      const msg = err instanceof Error ? err.message : t('generationFailed');
       setErrorMessage(msg);
       setPhase('error');
     }
@@ -77,7 +79,7 @@ const CoverLetterModal: React.FC<CoverLetterModalProps> = ({
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Cover Letter – ${name}</title>
+  <title>${t('title')} – ${name}</title>
   <style>
     body { font-family: Calibri, Arial, sans-serif; font-size: 12pt; line-height: 1.5;
            max-width: 700px; margin: 40px auto; color: #1a1a1a; }
@@ -134,7 +136,7 @@ const CoverLetterModal: React.FC<CoverLetterModalProps> = ({
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div className="flex items-center gap-2">
             <FiFileText className="h-5 w-5 text-purple-500" />
-            <h2 className="text-base font-semibold text-foreground">Cover Letter</h2>
+            <h2 className="text-base font-semibold text-foreground">{t('title')}</h2>
             {collaboratorName && (
               <span className="rounded-full bg-purple-500/10 px-2.5 py-0.5 text-xs font-medium text-purple-600">
                 {collaboratorName}
@@ -165,18 +167,18 @@ const CoverLetterModal: React.FC<CoverLetterModalProps> = ({
                 </button>
               ))}
             </div>
-            <span className="text-xs text-muted-foreground">20 credits</span>
+            <span className="text-xs text-muted-foreground">{t('credits')}</span>
           </div>
 
           {/* Job description textarea */}
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              Job description <span className="text-destructive">*</span>
+              {t('jobDescriptionLabel')} <span className="text-destructive">*</span>
             </label>
             <textarea
               className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 disabled:opacity-50"
               rows={6}
-              placeholder="Paste the job posting text here (LinkedIn, company website, etc.)…"
+              placeholder={t('jobDescriptionPlaceholder')}
               value={jobDescription}
               onChange={(e) => setJobDescription(e.target.value)}
               disabled={phase === 'generating'}
@@ -195,14 +197,14 @@ const CoverLetterModal: React.FC<CoverLetterModalProps> = ({
           {phase === 'done' && coverLetter && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">Generated cover letter</span>
+                <span className="text-xs font-medium text-muted-foreground">{t('generatedLabel')}</span>
                 <div className="flex gap-2">
                   <button
                     onClick={handleCopy}
                     className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary"
                   >
                     {copied ? <FiCheck className="h-3.5 w-3.5 text-green-500" /> : <FiClipboard className="h-3.5 w-3.5" />}
-                    {copied ? 'Copied!' : 'Copy'}
+                    {copied ? t('copied') : t('copy')}
                   </button>
                   <button
                     onClick={handleDownloadPdf}
@@ -241,9 +243,9 @@ const CoverLetterModal: React.FC<CoverLetterModalProps> = ({
             className="flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {phase === 'generating' ? (
-              <><FiLoader className="h-4 w-4 animate-spin" /> Generating…</>
+              <><FiLoader className="h-4 w-4 animate-spin" /> {t('generating')}</>
             ) : (
-              <><FiFileText className="h-4 w-4" /> Generate Cover Letter</>
+              <><FiFileText className="h-4 w-4" /> {t('generateButton')}</>
             )}
           </button>
         </div>

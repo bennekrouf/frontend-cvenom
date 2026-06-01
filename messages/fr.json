@@ -347,5 +347,17 @@
     "cancel": "Annuler",
     "save": "Enregistrer",
     "saving": "Enregistrement..."
+  },
+  "coverLetter": {
+    "title": "Lettre de motivation",
+    "generatedLabel": "Lettre de motivation générée",
+    "jobDescriptionLabel": "Description du poste",
+    "jobDescriptionPlaceholder": "Collez le texte de l'offre d'emploi ici (LinkedIn, site de l'entreprise, etc.)…",
+    "generateButton": "Générer la lettre de motivation",
+    "generating": "Génération en cours…",
+    "credits": "20 crédits",
+    "copy": "Copier",
+    "copied": "Copié !",
+    "generationFailed": "Échec de la génération de la lettre de motivation"
   }
 }

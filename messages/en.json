@@ -361,5 +361,17 @@
     "cancel": "Cancel",
     "save": "Save",
     "saving": "Saving..."
+  },
+  "coverLetter": {
+    "title": "Cover Letter",
+    "generatedLabel": "Generated cover letter",
+    "jobDescriptionLabel": "Job description",
+    "jobDescriptionPlaceholder": "Paste the job posting text here (LinkedIn, company website, etc.)…",
+    "generateButton": "Generate Cover Letter",
+    "generating": "Generating…",
+    "credits": "20 credits",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "generationFailed": "Cover letter generation failed"
   }
 }
