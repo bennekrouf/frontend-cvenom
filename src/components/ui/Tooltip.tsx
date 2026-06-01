@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useLayoutEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 interface TooltipProps {
   content: string;
@@ -9,8 +10,13 @@ interface TooltipProps {
   delay?: number;
 }
 
+const GAP = 6; // px between trigger and tooltip
+
 const Tooltip: React.FC<TooltipProps> = ({ content, children, side = 'top', delay = 400 }) => {
   const [visible, setVisible] = useState(false);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const wrapperRef = useRef<HTMLSpanElement | null>(null);
+  const tooltipRef = useRef<HTMLSpanElement | null>(null);
   const timer = useRef<NodeJS.Timeout | null>(null);
 
   const show = () => {
@@ -19,34 +25,83 @@ const Tooltip: React.FC<TooltipProps> = ({ content, children, side = 'top', dela
   const hide = () => {
     if (timer.current) clearTimeout(timer.current);
     setVisible(false);
+    setCoords(null);
   };
 
-  const positionClass = {
-    top:    'bottom-full left-1/2 -translate-x-1/2 mb-1.5',
-    bottom: 'top-full  left-1/2 -translate-x-1/2 mt-1.5',
-    left:   'right-full top-1/2 -translate-y-1/2 mr-1.5',
-    right:  'left-full  top-1/2 -translate-y-1/2 ml-1.5',
-  }[side];
+  const reposition = useCallback(() => {
+    if (!wrapperRef.current || !tooltipRef.current) return;
+    const trigger = wrapperRef.current.getBoundingClientRect();
+    const tip = tooltipRef.current.getBoundingClientRect();
+    let top = 0;
+    let left = 0;
+    switch (side) {
+      case 'top':
+        top = trigger.top - tip.height - GAP;
+        left = trigger.left + trigger.width / 2 - tip.width / 2;
+        break;
+      case 'bottom':
+        top = trigger.bottom + GAP;
+        left = trigger.left + trigger.width / 2 - tip.width / 2;
+        break;
+      case 'left':
+        top = trigger.top + trigger.height / 2 - tip.height / 2;
+        left = trigger.left - tip.width - GAP;
+        break;
+      case 'right':
+        top = trigger.top + trigger.height / 2 - tip.height / 2;
+        left = trigger.right + GAP;
+        break;
+    }
+    // Clamp to viewport so it stays visible
+    const margin = 4;
+    left = Math.max(margin, Math.min(left, window.innerWidth - tip.width - margin));
+    top = Math.max(margin, Math.min(top, window.innerHeight - tip.height - margin));
+    setCoords({ top, left });
+  }, [side]);
 
-  const arrowClass = {
-    top:    'top-full  left-1/2 -translate-x-1/2 border-t-foreground/90 border-l-transparent border-r-transparent border-b-transparent',
-    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-b-foreground/90 border-l-transparent border-r-transparent border-t-transparent',
-    left:   'left-full  top-1/2 -translate-y-1/2 border-l-foreground/90 border-t-transparent border-b-transparent border-r-transparent',
-    right:  'right-full top-1/2 -translate-y-1/2 border-r-foreground/90 border-t-transparent border-b-transparent border-l-transparent',
-  }[side];
+  useLayoutEffect(() => {
+    if (!visible) return;
+    reposition();
+    const onScrollOrResize = () => reposition();
+    window.addEventListener('scroll', onScrollOrResize, true);
+    window.addEventListener('resize', onScrollOrResize);
+    return () => {
+      window.removeEventListener('scroll', onScrollOrResize, true);
+      window.removeEventListener('resize', onScrollOrResize);
+    };
+  }, [visible, reposition]);
+
+  const popup =
+    visible && typeof document !== 'undefined'
+      ? createPortal(
+          <span
+            ref={tooltipRef}
+            role="tooltip"
+            style={{
+              position: 'fixed',
+              top: coords?.top ?? -9999,
+              left: coords?.left ?? -9999,
+              visibility: coords ? 'visible' : 'hidden',
+            }}
+            className="pointer-events-none z-[9999] whitespace-nowrap rounded-md bg-foreground/90 px-2 py-1 text-xs text-background shadow-md"
+          >
+            {content}
+          </span>,
+          document.body,
+        )
+      : null;
 
   return (
-    <span className="relative inline-flex" onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}>
+    <span
+      ref={wrapperRef}
+      className="relative inline-flex"
+      onMouseEnter={show}
+      onMouseLeave={hide}
+      onFocus={show}
+      onBlur={hide}
+    >
       {children}
-      {visible && (
-        <span
-          role="tooltip"
-          className={`pointer-events-none absolute z-50 whitespace-nowrap rounded-md bg-foreground/90 px-2 py-1 text-xs text-background shadow-md ${positionClass}`}
-        >
-          {content}
-          <span className={`absolute border-4 ${arrowClass}`} />
-        </span>
-      )}
+      {popup}
     </span>
   );
 };

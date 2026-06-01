@@ -22,7 +22,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import CVFormEditor, { type CVFormEditorHandle } from './CVFormEditor';
 
 import DeleteCollaboratorModal from './DeleteCollaboratorModal';
-import { deleteCollaborator, renameCollaborator } from '@/lib/api';
+import { changeProfileLanguage, deleteCollaborator, renameCollaborator } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import CreateCollaboratorModal from './CreateCollaboratorModal';
 import OptimizeModal from './OptimizeModal';
@@ -385,6 +385,22 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
     }
   };
 
+  const handleChangeLanguage = async (
+    profileName: string,
+    newLang: string,
+    fromLang?: string,
+  ) => {
+    if (!isAuthenticated) return;
+    try {
+      await changeProfileLanguage(profileName, newLang, fromLang);
+      toast.success(`Language set to ${newLang.toUpperCase()} for "${profileName}"`);
+      await loadFileTree();
+    } catch (error) {
+      console.error('Error changing profile language:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to change language');
+    }
+  };
+
   /** Switch to Code view – flush any pending form auto-save first */
   const switchToCode = useCallback(async () => {
     if (viewMode === 'form' && cvFormEditorRef.current) {
@@ -646,6 +662,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
             onDeleteCollaborator={() => setShowDeleteModal(true)}
             onShowGenerateModal={() => setShowGenerateModal(true)}
             onRenameCollaborator={handleRenameCollaborator}
+            onChangeLanguage={handleChangeLanguage}
             onCloseSidebar={() => setSidebarOpen(false)}
           />
         )}

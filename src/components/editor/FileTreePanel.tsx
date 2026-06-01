@@ -15,6 +15,7 @@ import {
   FiFileText,
   FiTrash2,
   FiCheck,
+  FiGlobe,
 } from 'react-icons/fi';
 import { useTranslations } from 'next-intl';
 import { User } from 'firebase/auth';
@@ -41,8 +42,11 @@ interface FileTreePanelProps {
   onDeleteCollaborator: () => void;
   onShowGenerateModal: () => void;
   onRenameCollaborator?: (oldName: string, newName: string) => void;
+  onChangeLanguage?: (profileName: string, newLang: string, fromLang?: string) => void;
   onCloseSidebar: () => void;
 }
+
+const SUPPORTED_LANGS = ['en', 'fr', 'de'] as const;
 
 const FileTreePanel: React.FC<FileTreePanelProps> = ({
   fileTree,
@@ -62,11 +66,23 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
   onShowUploadModal,
   onShowGenerateModal,
   onRenameCollaborator,
+  onChangeLanguage,
   onCloseSidebar,
 }) => {
   const t = useTranslations('fileEditor');
   const [renamingCollaborator, setRenamingCollaborator] = useState<string | null>(null);
   const [newCollaboratorName, setNewCollaboratorName] = useState('');
+  const [langPickerOpen, setLangPickerOpen] = useState<string | null>(null);
+
+  const getProfileLanguages = (item: FileTreeItem): string[] => {
+    const children = item.children ?? {};
+    return Object.keys(children)
+      .flatMap((name) => {
+        const m = name.match(/^experiences_([a-z]{2})\.typ$/);
+        return m ? [m[1]] : [];
+      })
+      .sort();
+  };
 
   const isEditableFile = (filename: string) => {
     return filename.endsWith('.typ') || filename.endsWith('.toml');
@@ -116,15 +132,6 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
               : ''} ${!isEditable && !isFolder ? 'opacity-50' : ''
             }`}
           style={{ paddingLeft: `${8 + level * 16}px` }}
-          title={
-            isFolder
-              ? isCollaboratorFolder
-                ? `Collaborator folder: ${name} - Click to expand/collapse and select for actions`
-                : `Folder: ${name} - Click to expand/collapse contents`
-              : isEditable
-                ? `Editable file: ${name} - Click to open in editor (${getFileLanguage(name)})`
-                : `Read-only file: ${name} - File type not supported for editing`
-          }
           onClick={() => {
             if (isRenaming) return;
             if (isFolder) {
@@ -212,6 +219,64 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
                   <FiEdit3 className="w-3 h-3" />
                 </button>
               </Tooltip>
+
+              {onChangeLanguage && (() => {
+                const langs = getProfileLanguages(item);
+                const currentLang = langs[0] ?? 'en';
+                const isOpen = langPickerOpen === name;
+                return (
+                  <div className="relative">
+                    <Tooltip content={`CV language: ${currentLang.toUpperCase()} (click to change)`} side="top">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLangPickerOpen(isOpen ? null : name);
+                        }}
+                        className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground inline-flex items-center gap-0.5"
+                      >
+                        <FiGlobe className="w-3 h-3" />
+                        <span className="text-[10px] font-semibold leading-none uppercase">{currentLang}</span>
+                      </button>
+                    </Tooltip>
+                    {isOpen && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-40"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLangPickerOpen(null);
+                          }}
+                        />
+                        <div
+                          className="absolute right-0 top-full mt-1 z-50 min-w-[120px] rounded-md border border-border bg-popover shadow-lg py-1"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {SUPPORTED_LANGS.map((lang) => {
+                            const isCurrent = langs.includes(lang);
+                            const isSelected = lang === currentLang;
+                            return (
+                              <button
+                                key={lang}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setLangPickerOpen(null);
+                                  if (!isSelected) {
+                                    onChangeLanguage(name, lang, langs.length > 1 ? currentLang : undefined);
+                                  }
+                                }}
+                                className={`w-full text-left px-3 py-1.5 text-xs hover:bg-secondary flex items-center justify-between gap-2 ${isSelected ? 'font-semibold text-primary' : ''}`}
+                              >
+                                <span>{lang.toUpperCase()}</span>
+                                {isCurrent && <FiCheck className="w-3 h-3" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
 
               <Tooltip content="Upload profile photo (JPG, PNG)" side="top">
                 <button

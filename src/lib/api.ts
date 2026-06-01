@@ -548,6 +548,38 @@ export async function exportCoverLetterDocx(
   return response.blob();
 }
 
+export async function changeProfileLanguage(
+  profileName: string,
+  newLang: string,
+  fromLang?: string,
+): Promise<unknown> {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  if (!user) throw new Error('Authentication required');
+  const token = await user.getIdToken();
+
+  const response = await fetch(
+    `${getApiUrl()}/profiles/${encodeURIComponent(profileName)}/change-language`,
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        new_lang: newLang,
+        ...(fromLang ? { from_lang: fromLang } : {}),
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(errorData.error || `Request failed with status ${response.status}`);
+  }
+  return response.json();
+}
+
 export async function renameCollaborator(oldName: string, newName: string): Promise<unknown> {
   const auth = getAuth();
   const user = auth.currentUser;
