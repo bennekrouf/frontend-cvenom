@@ -30,6 +30,9 @@ interface InlineFieldProps {
   className?: string;
   /** Input type (e.g. "email", "tel") — only for single-line */
   type?: React.HTMLInputTypeAttribute;
+  /** Optional prefix prefilled when editing an empty value (e.g. "github.com/").
+   *  Cursor lands at the end of the prefix; committing with only the prefix saves an empty string. */
+  editPrefix?: string;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -43,6 +46,7 @@ export const InlineField: React.FC<InlineFieldProps> = ({
   rows = 3,
   className = '',
   type = 'text',
+  editPrefix,
 }) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -53,23 +57,30 @@ export const InlineField: React.FC<InlineFieldProps> = ({
     if (!editing) setDraft(value);
   }, [value, editing]);
 
-  // Focus + select-all when we enter edit mode
+  // Focus when we enter edit mode. If we prefilled a prefix, place the cursor at
+  // the end so the user can keep typing; otherwise select-all for easy replacement.
   useEffect(() => {
     if (editing && inputRef.current) {
       inputRef.current.focus();
-      inputRef.current.select();
+      if (editPrefix && draft === editPrefix) {
+        const end = draft.length;
+        inputRef.current.setSelectionRange(end, end);
+      } else {
+        inputRef.current.select();
+      }
     }
-  }, [editing]);
+  }, [editing, editPrefix, draft]);
 
   const startEdit = useCallback(() => {
-    setDraft(value);
+    setDraft(value || editPrefix || '');
     setEditing(true);
-  }, [value]);
+  }, [value, editPrefix]);
 
   const commit = useCallback(() => {
     setEditing(false);
-    if (draft !== value) onChange(draft);
-  }, [draft, value, onChange]);
+    const next = editPrefix && draft === editPrefix ? '' : draft;
+    if (next !== value) onChange(next);
+  }, [draft, value, onChange, editPrefix]);
 
   const cancel = useCallback(() => {
     setDraft(value);

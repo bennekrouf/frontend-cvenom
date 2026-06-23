@@ -39,11 +39,35 @@ export interface WorkExperienceEntry {
   technologies: string[];
 }
 
+/** Branding knobs forwarded to typst as sys.inputs. All optional;
+ *  empty string = "not set" → template falls back to its literal default
+ *  (or to the vibe preset when `vibe` is set). See backend `core/branding.rs`. */
+export type Vibe =
+  | '' | 'corporate' | 'consulting' | 'creative'
+  | 'academic' | 'legal' | 'tech' | 'minimal';
+
 export interface StylingData {
   primary_color: string;
   secondary_color: string;
   /** Whether the uploaded profile photo should appear on the CV */
   show_photo: boolean;
+
+  vibe?:             Vibe;
+  accent_color?:     string;
+  neutral_color?:    string;
+  background_tone?:  '' | 'light' | 'tinted' | 'dark_sidebar';
+  font_personality?: '' | 'modern_sans' | 'classic_serif' | 'geometric' | 'humanist' | 'mono_accent';
+  density?:          '' | 'compact' | 'comfortable' | 'generous';
+  layout?:           '' | 'single' | 'sidebar_left' | 'sidebar_right' | 'header_banner';
+  divider?:          '' | 'hairline' | 'bold' | 'none';
+  header_style?:     '' | 'big' | 'tagline' | 'compact';
+  photo_shape?:      '' | 'circle' | 'square' | 'none';
+  icon_style?:       '' | 'filled' | 'outline' | 'none';
+  skill_style?:      '' | 'bars' | 'tags' | 'list';
+  date_style?:       '' | 'badge' | 'inline' | 'column';
+  lang_style?:       '' | 'dots' | 'words' | 'bar';
+  label_tone?:       '' | 'formal' | 'casual';
+  paper?:            '' | 'a4' | 'letter';
 }
 
 export interface CvFormData {

@@ -22,7 +22,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import CVFormEditor, { type CVFormEditorHandle } from './CVFormEditor';
 
 import DeleteCollaboratorModal from './DeleteCollaboratorModal';
-import { changeProfileLanguage, deleteCollaborator, renameCollaborator } from '@/lib/api';
+import { deleteCollaborator, renameCollaborator } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import CreateCollaboratorModal from './CreateCollaboratorModal';
 import OptimizeModal from './OptimizeModal';
@@ -30,6 +30,7 @@ import CoverLetterModal from './CoverLetterModal';
 import UploadPictureModal from './UploadPictureModal';
 import GenerateCVModal from './GenerateCVModal';
 import GeneratePortfolioModal from './GeneratePortfolioModal';
+import LanguageManagerModal from './LanguageManagerModal';
 import PreferencesModal from './PreferencesModal';
 import {
   createCollaborator,
@@ -93,6 +94,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showPortfolioModal, setShowPortfolioModal] = useState(false);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showOptimizeModal, setShowOptimizeModal] = useState(false);
   const [showCoverLetterModal, setShowCoverLetterModal] = useState(false);
   const [showPreferencesModal, setShowPreferencesModal] = useState(false);
@@ -279,12 +281,17 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
     setIsLoading(false);
   };
 
-  const handleGenerateCV = async (language: string, template: string = 'default', useCustomColors: boolean = false) => {
+  const handleGenerateCV = async (
+    language: string,
+    template: string = 'default',
+    useCustomColors: boolean = false,
+    brandSlug: string | null = null,
+  ) => {
     if (!selectedCollaborator || !isAuthenticated) return;
 
     setIsGenerating(true);
     try {
-      const blob = await generateCV(selectedCollaborator, language, template, useCustomColors);
+      const blob = await generateCV(selectedCollaborator, language, template, useCustomColors, brandSlug);
 
       // Backend streams the PDF directly — create a local object URL to trigger download.
       const url = URL.createObjectURL(blob);
@@ -385,21 +392,6 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
     }
   };
 
-  const handleChangeLanguage = async (
-    profileName: string,
-    newLang: string,
-    fromLang?: string,
-  ) => {
-    if (!isAuthenticated) return;
-    try {
-      await changeProfileLanguage(profileName, newLang, fromLang);
-      toast.success(`Language set to ${newLang.toUpperCase()} for "${profileName}"`);
-      await loadFileTree();
-    } catch (error) {
-      console.error('Error changing profile language:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to change language');
-    }
-  };
 
   /** Switch to Code view – flush any pending form auto-save first */
   const switchToCode = useCallback(async () => {
@@ -662,7 +654,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
             onDeleteCollaborator={() => setShowDeleteModal(true)}
             onShowGenerateModal={() => setShowGenerateModal(true)}
             onRenameCollaborator={handleRenameCollaborator}
-            onChangeLanguage={handleChangeLanguage}
+            onShowLanguageModal={() => setShowLanguageModal(true)}
             onCloseSidebar={() => setSidebarOpen(false)}
           />
         )}
@@ -1017,6 +1009,14 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
             collaboratorName={selectedCollaborator}
             onDeleteCollaborator={handleDeleteCollaborator}
             isDeleting={isDeleting}
+          />
+
+          <LanguageManagerModal
+            isOpen={showLanguageModal}
+            onClose={() => setShowLanguageModal(false)}
+            profileName={selectedCollaborator ?? ''}
+            existingLanguages={availableLanguages}
+            onChanged={async () => { await loadFileTree(); setShowLanguageModal(false); }}
           />
         </>
       )}

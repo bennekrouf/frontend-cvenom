@@ -2,8 +2,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getTemplates } from '@/lib/api';
+import { getTemplates, listBrands, type BrandSummary } from '@/lib/api';
 import { getCvData } from '@/lib/cvDataService';
+import ManageBrandsModal from './ManageBrandsModal';
+
+// Key the "last selected brand" memory by collaborator so each profile
+// remembers its own choice across modal opens.
+const lastBrandKey = (collab: string) => `cvenom:last-brand:${collab}`;
 
 interface Template {
   name: string;
@@ -15,7 +20,12 @@ interface GenerateCVModalProps {
   isOpen: boolean;
   onClose: () => void;
   collaboratorName: string | null;
-  onGenerateCV: (language: string, template: string, useCustomColors: boolean) => Promise<void>;
+  onGenerateCV: (
+    language: string,
+    template: string,
+    useCustomColors: boolean,
+    brandSlug: string | null,
+  ) => Promise<void>;
   isGenerating: boolean;
   /** Languages the profile already has (from experiences_XX.typ files) */
   availableLanguages?: string[];
@@ -293,6 +303,22 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [useDefaultColors, setUseDefaultColors] = useState(true);
   const [customColors, setCustomColors] = useState<{ primary: string; secondary: string } | null>(null);
+  const [brands, setBrands] = useState<BrandSummary[]>([]);
+  // null = "Default" (no brand). A slug = use that brand.
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [showManageBrands, setShowManageBrands] = useState(false);
+
+  // Refetch the brand list (used after the manage modal mutates anything).
+  const refreshBrands = async () => {
+    try {
+      const list = await listBrands();
+      setBrands(list);
+      // Drop selection if it points at a brand that no longer exists.
+      setSelectedBrand((prev) => (prev && list.some(b => b.slug === prev) ? prev : null));
+    } catch {
+      setBrands([]);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -308,6 +334,25 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
           });
         }).catch(() => setCustomColors(null));
       }
+      // Fetch tenant brands; the dropdown only renders when there are any.
+      listBrands()
+        .then((list) => {
+          setBrands(list);
+          // Preselect the last brand this collaborator used, if it still exists.
+          if (collaboratorName) {
+            const remembered = localStorage.getItem(lastBrandKey(collaboratorName));
+            if (remembered && list.some(b => b.slug === remembered)) {
+              setSelectedBrand(remembered);
+              return;
+            }
+          }
+          setSelectedBrand(null);
+        })
+        .catch(() => {
+          // No brands endpoint / network error — silently fall back to Default.
+          setBrands([]);
+          setSelectedBrand(null);
+        });
     }
   }, [isOpen, collaboratorName]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -340,7 +385,16 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
     setLoadingTemplates(false);
   };
 
-  const handleGenerate = () => onGenerateCV(selectedLanguage, selectedTemplate, !useDefaultColors);
+  const handleGenerate = () => {
+    if (collaboratorName) {
+      if (selectedBrand) {
+        localStorage.setItem(lastBrandKey(collaboratorName), selectedBrand);
+      } else {
+        localStorage.removeItem(lastBrandKey(collaboratorName));
+      }
+    }
+    return onGenerateCV(selectedLanguage, selectedTemplate, !useDefaultColors, selectedBrand);
+  };
 
   const handleClose = () => {
     if (!isGenerating) onClose();
@@ -405,10 +459,10 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
                 })}
               </div>
             )}
-            {/* Nudge: suggest translation if only one language */}
+            {/* Nudge: suggest using the language manager for additional languages */}
             {langs.length === 1 && (
               <p className="mt-2 text-xs text-muted-foreground">
-                💡 Want another language? Use the chat to translate this profile first.
+                💡 Want another language? Use the 🌐 language button on your profile to add a translation.
               </p>
             )}
           </div>
@@ -494,7 +548,50 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
             })()}
           </div>
 
-          {/* Color mode selector */}
+          {/* Brand picker. When the tenant has brands, shows the dropdown +
+              a Manage link. When it has none, shows a low-key CTA to create one. */}
+          {brands.length > 0 ? (
+            <div className="rounded-lg border border-border p-3">
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-foreground">Brand</label>
+                <button
+                  type="button"
+                  onClick={() => setShowManageBrands(true)}
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  Manage brands
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">
+                Applies this brand's colors and logo. Choose Default to use the template's own styling.
+              </p>
+              <select
+                value={selectedBrand ?? ''}
+                onChange={(e) => setSelectedBrand(e.target.value || null)}
+                disabled={isGenerating}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
+              >
+                <option value="">Default (no brand)</option>
+                {brands.map((b) => (
+                  <option key={b.slug} value={b.slug}>
+                    {b.name}{b.has_logo ? ' · logo' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowManageBrands(true)}
+              className="w-full rounded-lg border border-dashed border-border px-3 py-2 text-xs font-medium text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+            >
+              + Add a brand (reuse your colors and logo across CVs)
+            </button>
+          )}
+
+          {/* Color mode selector — hidden when a brand is selected since the brand
+              owns the styling. */}
+          {!selectedBrand && (
           <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-3">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground">Use template default colors</p>
@@ -541,6 +638,7 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
               />
             </button>
           </div>
+          )}
 
           {/* Photo warning for templates that recommend a photo */}
           {!loadingTemplates && !hasPhoto && (() => {
@@ -605,6 +703,13 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Brand library — nested modal, sits on top of the generate modal. */}
+      <ManageBrandsModal
+        isOpen={showManageBrands}
+        onClose={() => setShowManageBrands(false)}
+        onChanged={refreshBrands}
+      />
     </div>
   );
 };

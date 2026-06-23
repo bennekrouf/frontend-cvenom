@@ -272,7 +272,8 @@ export async function generateCV(
   personName: string,
   language: string,
   template: string = 'default',
-  useCustomColors: boolean = false
+  useCustomColors: boolean = false,
+  brandSlug: string | null = null,
 ): Promise<Blob> {
   const result = await apiRequest<GeneratePdfResponse>('/generate', {
     method: 'POST',
@@ -281,6 +282,9 @@ export async function generateCV(
       lang: language,
       template: template,
       use_custom_colors: useCustomColors,
+      // Server treats absent / empty / "default" as "no brand". Sending null
+      // is the explicit "no brand" signal that matches that handling.
+      brand_slug: brandSlug || null,
     },
     requireAuth: true
   });
@@ -321,6 +325,121 @@ export async function getCurrentUser() {
     method: 'GET',
     requireAuth: true
   });
+}
+
+// ── Brand library (tenant-scoped) ─────────────────────────────────────────────
+
+export interface BrandSummary {
+  slug: string;
+  name: string;
+  description: string;
+  has_logo: boolean;
+}
+
+export async function listBrands(): Promise<BrandSummary[]> {
+  return apiRequest<BrandSummary[]>('/brands', {
+    method: 'GET',
+    requireAuth: true,
+  });
+}
+
+/** Full brand payload — `styling` mirrors backend StylingData (all fields optional
+ *  besides primary/secondary which were always present). */
+export interface Brand {
+  name: string;
+  description: string;
+  styling: {
+    primary_color: string;
+    secondary_color: string;
+    show_photo: boolean;
+    vibe?: string;
+    accent_color?: string;
+    neutral_color?: string;
+    background_tone?: string;
+    font_personality?: string;
+    density?: string;
+    layout?: string;
+    divider?: string;
+    header_style?: string;
+    photo_shape?: string;
+    icon_style?: string;
+    skill_style?: string;
+    date_style?: string;
+    lang_style?: string;
+    label_tone?: string;
+    paper?: string;
+  };
+}
+
+export async function getBrand(slug: string): Promise<Brand> {
+  return apiRequest<Brand>(`/brands/${encodeURIComponent(slug)}`, {
+    method: 'GET',
+    requireAuth: true,
+  });
+}
+
+export async function putBrand(slug: string, brand: Brand): Promise<Brand> {
+  return apiRequest<Brand>(`/brands/${encodeURIComponent(slug)}`, {
+    method: 'PUT',
+    body: brand,
+    requireAuth: true,
+  });
+}
+
+export async function deleteBrand(slug: string): Promise<{ deleted: string }> {
+  return apiRequest<{ deleted: string }>(`/brands/${encodeURIComponent(slug)}`, {
+    method: 'DELETE',
+    requireAuth: true,
+  });
+}
+
+export async function uploadBrandLogo(slug: string, file: File): Promise<void> {
+  const token = await getAuthToken();
+  if (!token) throw new Error('Authentication required');
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const apiUrl = getApiUrl();
+  const response = await fetch(`${apiUrl}/brands/${encodeURIComponent(slug)}/logo`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) throw new Error('Authentication required or token expired');
+    if (response.status === 413) throw new Error('Logo is too large (max 10 MB).');
+    let detail = `Upload failed: ${response.status}`;
+    try {
+      const json = await response.json();
+      if (json?.message) detail = json.message;
+    } catch { /* non-JSON error */ }
+    throw new Error(detail);
+  }
+}
+
+export async function deleteBrandLogo(slug: string): Promise<void> {
+  await apiRequest(`/brands/${encodeURIComponent(slug)}/logo`, {
+    method: 'DELETE',
+    requireAuth: true,
+  });
+}
+
+/** Cache-busted URL for previewing a brand logo. The `v` parameter forces
+ *  the browser to refetch after an upload/delete instead of showing a stale image. */
+export function brandLogoUrl(slug: string, cacheBust?: string | number): string {
+  const v = cacheBust !== undefined ? `?v=${encodeURIComponent(String(cacheBust))}` : '';
+  return `${getApiUrl()}/brands/${encodeURIComponent(slug)}/logo${v}`;
+}
+
+/** Mirror of backend `brand_store::slugify` — keeps client-derived slugs aligned
+ *  with what the server will accept on PUT. */
+export function slugifyBrandName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 // ── Model config admin ────────────────────────────────────────────────────────
@@ -639,6 +758,17 @@ export async function changeProfileLanguage(
     throw new Error(errorData.error || `Request failed with status ${response.status}`);
   }
   return response.json();
+}
+
+export async function translateCV(
+  profileName: string,
+  targetLang: string,
+): Promise<void> {
+  await apiRequest('/translate', {
+    method: 'POST',
+    body: { profile_name: profileName, target_lang: targetLang },
+    requireAuth: true,
+  });
 }
 
 export async function renameCollaborator(oldName: string, newName: string): Promise<unknown> {

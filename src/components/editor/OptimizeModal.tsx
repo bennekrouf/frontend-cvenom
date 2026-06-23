@@ -158,11 +158,23 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
       setBeforeScore(resp.data.before_score ?? null);
       setAfterScore(resp.data.after_score ?? null);
       setOptimizedCvJson(resp.data.optimized_cv_json ?? null);
-      // Pre-fill save name: "<profile>-ats" or "<profile>-<company>" if known
-      const suffix = resp.data.company_name
-        ? resp.data.company_name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/_+$/, '')
-        : 'ats';
-      setSaveProfileName(`${collaboratorName ?? 'profile'}_${suffix}`);
+      // Build a meaningful ATS profile name: "{company}_{job-title}" when both are
+      // known, falling back to "{profile}_{company}" or "{profile}_ats".
+      const slug = (s: string) =>
+        s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      const company = resp.data.company_name ? slug(resp.data.company_name) : '';
+      const title   = resp.data.job_title   ? slug(resp.data.job_title)   : '';
+      let suggested: string;
+      if (company && title) {
+        suggested = `${company}_${title}`;
+      } else if (company) {
+        suggested = `${collaboratorName ?? 'profile'}_${company}`;
+      } else {
+        suggested = `${collaboratorName ?? 'profile'}_ats`;
+      }
+      // Trim to a reasonable length (filesystem-safe)
+      if (suggested.length > 60) suggested = suggested.slice(0, 60).replace(/-+$/, '');
+      setSaveProfileName(suggested);
       setSavePhase('idle');
       setPhase('done');
     } catch (e) {

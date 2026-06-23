@@ -341,7 +341,11 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
     setLoadingHistory(true);
     try {
       const txs = await getTransactions();
-      setTransactions(txs);
+      // Most recent first
+      const sorted = [...txs].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      setTransactions(sorted);
     } catch {
       setTransactions([]);
     } finally {
@@ -433,23 +437,28 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Currency picker — only visible on step 1 */}
+          {/* Currency picker — only on top-up flow */}
+          {step === 'amount' && !showHistory && (
+            <CurrencyPicker value={currency} onChange={setCurrency} />
+          )}
+          {/* History tab toggle */}
           {step === 'amount' && (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => { const next = !showHistory; setShowHistory(next); if (next) loadHistory(); }}
-                className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors border ${
-                  showHistory
-                    ? 'border-primary bg-primary/5 text-primary'
-                    : 'border-border bg-muted/50 text-muted-foreground hover:bg-muted'
-                }`}
-              >
-                <FiClock className="h-3 w-3" />
-                History
-              </button>
-              <CurrencyPicker value={currency} onChange={setCurrency} />
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const next = !showHistory;
+                setShowHistory(next);
+                if (next) loadHistory();
+              }}
+              className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors border ${
+                showHistory
+                  ? 'border-primary bg-primary/5 text-primary'
+                  : 'border-border bg-muted/50 text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              <FiClock className="h-3 w-3" />
+              History
+            </button>
           )}
           {onClose && (
             <button
@@ -468,29 +477,51 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
         {step === 'amount' && (
           <div className="space-y-5">
             {showHistory ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Most recent transactions first.
+                </p>
                 {loadingHistory ? (
-                  <div className="flex justify-center py-8 text-sm text-muted-foreground">
-                    <FiLoader className="h-4 w-4 animate-spin mr-2" /> Loading…
+                  <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+                    <FiLoader className="h-4 w-4 animate-spin" /> Loading history…
                   </div>
                 ) : transactions.length === 0 ? (
-                  <div className="flex justify-center py-8 text-sm text-muted-foreground">No transactions yet</div>
+                  <div className="flex flex-col items-center gap-2 py-10 text-sm text-muted-foreground">
+                    <FiClock className="h-6 w-6 opacity-40" />
+                    <span>No transactions yet</span>
+                  </div>
                 ) : (
-                  <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
+                  <div className="max-h-80 overflow-y-auto space-y-1.5 pr-1">
                     {transactions.map((tx) => (
-                      <div key={tx.id} className="flex items-center justify-between rounded-md border border-border bg-background px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-base leading-none">{actionIcon(tx.action_type)}</span>
-                          <div>
-                            <p className="text-xs font-medium text-foreground">{actionLabel(tx.action_type)}</p>
+                      <div
+                        key={tx.id}
+                        className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2.5 gap-3"
+                      >
+                        {/* Icon + label + date */}
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="text-lg leading-none shrink-0">{actionIcon(tx.action_type)}</span>
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-foreground truncate">
+                              {actionLabel(tx.action_type)}
+                            </p>
+                            {tx.description && (
+                              <p className="text-[10px] text-muted-foreground truncate">{tx.description}</p>
+                            )}
                             <p className="text-[10px] text-muted-foreground">{formatTxDate(tx.created_at)}</p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className={`text-xs font-semibold ${tx.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
-                            {tx.amount > 0 ? '+' : ''}{tx.amount} cr
+                        {/* Amount + running balance */}
+                        <div className="text-right shrink-0">
+                          <p className={`text-sm font-bold tabular-nums ${
+                            tx.amount > 0
+                              ? 'text-green-600 dark:text-green-400'
+                              : 'text-red-500 dark:text-red-400'
+                          }`}>
+                            {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()}
                           </p>
-                          <p className="text-[10px] text-muted-foreground">{tx.balance_after} left</p>
+                          <p className="text-[10px] text-muted-foreground tabular-nums">
+                            {tx.balance_after.toLocaleString()} left
+                          </p>
                         </div>
                       </div>
                     ))}

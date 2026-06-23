@@ -26,6 +26,7 @@ export const LinksSection: React.FC<Props> = ({ data, onChange }) => {
             value={data.github}
             placeholder={t('placeholderGithub')}
             onChange={set('github')}
+            editPrefix="github.com/"
             className="flex-1"
           />
         </div>
@@ -36,6 +37,7 @@ export const LinksSection: React.FC<Props> = ({ data, onChange }) => {
             value={data.linkedin}
             placeholder={t('placeholderLinkedin')}
             onChange={set('linkedin')}
+            editPrefix="linkedin.com/in/"
             className="flex-1"
           />
         </div>
