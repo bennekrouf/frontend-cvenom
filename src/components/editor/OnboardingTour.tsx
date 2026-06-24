@@ -73,8 +73,8 @@ const STEPS: TourStep[] = [
   {
     target: '[data-tour="view-toggle"]',
     icon: <FiCode className="w-5 h-5 text-indigo-500" />,
-    title: 'Form, Code & Chat views',
-    body: 'Switch between a visual form editor, raw Typst code, or an AI chat assistant that can edit your profile for you.',
+    title: 'Form & Code views',
+    body: 'Switch between a visual form editor and the raw Typst code that powers your CV.',
     placement: 'bottom',
   },
   {
@@ -105,13 +105,8 @@ const STEPS: TourStep[] = [
     body: 'Create a visual portfolio PDF showcasing your projects and achievements alongside your CV.',
     placement: 'bottom',
   },
-  {
-    target: '[data-tour="chat-tab"]',
-    icon: <FiMessageSquare className="w-5 h-5 text-purple-500" />,
-    title: 'AI Chat assistant',
-    body: 'Ask the AI to rewrite sections, add missing skills, translate content, or fix wording. It edits your profile directly.',
-    placement: 'bottom',
-  },
+  // Chat tab step removed while the AI chat assistant is hidden from the UI.
+  // Re-add this step once the chat tab is restored in FileEditor.
   {
     target: null,
     icon: <FiArrowRight className="w-6 h-6 text-green-500" />,

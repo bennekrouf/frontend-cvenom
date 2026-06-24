@@ -734,6 +734,9 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
                       <FiCode className="h-3 w-3" />
                       <span className="hidden sm:inline">{t('viewCode')}</span>
                     </button>
+                    {/* Chat tab — hidden until the AI chat assistant is shipped.
+                        Restore by deleting the surrounding `{false && (…)}` guard. */}
+                    {false && (
                     <button
                       data-tour="chat-tab"
                       onClick={() => setViewMode('chat')}
@@ -747,6 +750,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
                       <FiMessageSquare className="h-3 w-3" />
                       <span className="hidden sm:inline">{t('viewChat')}</span>
                     </button>
+                    )}
                   </div>
                   <div className="h-5 w-px bg-border" />
                 </>
