@@ -14,6 +14,7 @@ interface Template {
   name: string;
   description: string;
   photo_recommended?: boolean;
+  shows_logo?: boolean;
 }
 
 interface GenerateCVModalProps {
@@ -273,6 +274,54 @@ const TEMPLATE_LABELS: Record<string, string> = {
 const getLabel = (name: string) =>
   TEMPLATE_LABELS[name] ?? name.charAt(0).toUpperCase() + name.slice(1);
 
+// ── Feature badges shown on each template thumbnail ───────────────────────────
+
+const TemplateBadges: React.FC<{ template: Template }> = ({ template }) => {
+  const badges: { key: string; title: string; icon: React.ReactNode }[] = [];
+
+  if (template.shows_logo) {
+    badges.push({
+      key: 'logo',
+      title: 'Renders your brand logo (company_logo.png)',
+      icon: (
+        // Bookmark/tag-style glyph: signals "brand mark"
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3 h-3">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2H7a2 2 0 01-2-2V5z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M14 3v6h5" />
+        </svg>
+      ),
+    });
+  }
+  if (template.photo_recommended) {
+    badges.push({
+      key: 'photo',
+      title: 'Reserves a prominent slot for your profile photo',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3 h-3">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h4l2-3h6l2 3h4v12H3V7z" />
+          <circle cx="12" cy="13" r="3.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ),
+    });
+  }
+
+  if (badges.length === 0) return null;
+
+  return (
+    <div className="absolute top-1.5 left-1.5 flex gap-1">
+      {badges.map((b) => (
+        <span
+          key={b.key}
+          title={b.title}
+          className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-900/70 text-white shadow-sm backdrop-blur-sm"
+        >
+          {b.icon}
+        </span>
+      ))}
+    </div>
+  );
+};
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 const ALL_LANGUAGES = [
@@ -508,6 +557,9 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
                       >
                         <TemplateThumbnail name={template.name} />
 
+                        {/* Feature badges (logo / photo) — top-left of thumbnail. */}
+                        <TemplateBadges template={template} />
+
                         {/* Selected checkmark */}
                         {isSelected && (
                           <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center shadow">
@@ -533,6 +585,30 @@ const GenerateCVModal: React.FC<GenerateCVModalProps> = ({
                     </button>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Badge legend — only shown when at least one template in view has badges. */}
+            {!loadingTemplates && templates.some((t) => t.shows_logo || t.photo_recommended) && (
+              <div className="mt-2 flex items-center gap-4 text-[11px] text-muted-foreground">
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-900/70 text-white">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-2.5 h-2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2H7a2 2 0 01-2-2V5z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14 3v6h5" />
+                    </svg>
+                  </span>
+                  Renders brand logo
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-900/70 text-white">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-2.5 h-2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h4l2-3h6l2 3h4v12H3V7z" />
+                      <circle cx="12" cy="13" r="3.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                  Reserves photo slot
+                </span>
               </div>
             )}
 
