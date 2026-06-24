@@ -299,11 +299,18 @@ export async function generateCV(
 export async function generatePortfolio(
   personName: string,
   language: string,
-  template: string = 'portfolio'
+  template: string = 'portfolio',
+  brandSlug: string | null = null,
 ): Promise<{ success: boolean; download_url: string; filename: string; profile: string }> {
   return apiRequest('/portfolio/generate', {
     method: 'POST',
-    body: { profile: personName, lang: language, template },
+    body: {
+      profile: personName,
+      lang: language,
+      template,
+      // Server treats absent / empty / "default" as "no brand" — same as /generate.
+      brand_slug: brandSlug || null,
+    },
     requireAuth: true,
   });
 }

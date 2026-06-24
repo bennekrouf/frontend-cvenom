@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FiX, FiFileText } from 'react-icons/fi';
+import { listBrands, type BrandSummary } from '@/lib/api';
 
 const ALL_LANGUAGES = [
   { value: 'en', label: '🇬🇧 English' },
@@ -9,11 +10,16 @@ const ALL_LANGUAGES = [
   { value: 'de', label: '🇩🇪 Deutsch' },
 ];
 
+// Reuse the same per-collaborator brand-memory key as GenerateCVModal so the
+// brand picked for the CV is preselected here too — that's the whole point
+// of a "consistent branded folder of materials".
+const lastBrandKey = (collab: string) => `cvenom:last-brand:${collab}`;
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   collaboratorName: string | null;
-  onGenerate: (language: string) => void;
+  onGenerate: (language: string, brandSlug: string | null) => void;
   isGenerating: boolean;
   availableLanguages: string[];
 }
@@ -28,10 +34,32 @@ export default function GeneratePortfolioModal({
 }: Props) {
   const langs = availableLanguages.length > 0 ? availableLanguages : ['en'];
   const [selectedLanguage, setSelectedLanguage] = useState(langs[0]);
+  const [brands, setBrands] = useState<BrandSummary[]>([]);
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen) setSelectedLanguage(langs[0]);
-  }, [isOpen]);
+    if (!isOpen) return;
+    setSelectedLanguage(langs[0]);
+    // Fetch brands and preselect whichever the user last picked for this
+    // collaborator (set by GenerateCVModal). Silent fallback to no brand
+    // if the call fails or the previous pick was deleted.
+    listBrands()
+      .then((list) => {
+        setBrands(list);
+        if (collaboratorName) {
+          const remembered = localStorage.getItem(lastBrandKey(collaboratorName));
+          if (remembered && list.some((b) => b.slug === remembered)) {
+            setSelectedBrand(remembered);
+            return;
+          }
+        }
+        setSelectedBrand(null);
+      })
+      .catch(() => {
+        setBrands([]);
+        setSelectedBrand(null);
+      });
+  }, [isOpen, collaboratorName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!isOpen) return null;
 
@@ -101,6 +129,31 @@ export default function GeneratePortfolioModal({
             )}
           </div>
 
+          {/* Brand picker — only shows when the tenant has at least one brand.
+              Picks up the same selection the CV modal uses so a generated CV
+              + portfolio pair share the same branding without re-selection. */}
+          {brands.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1">Brand</label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Applies this brand's colors and logo. Choose Default to use the template's own styling.
+              </p>
+              <select
+                value={selectedBrand ?? ''}
+                onChange={(e) => setSelectedBrand(e.target.value || null)}
+                disabled={isGenerating}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-50"
+              >
+                <option value="">Default (no brand)</option>
+                {brands.map((b) => (
+                  <option key={b.slug} value={b.slug}>
+                    {b.name}{b.has_logo ? ' · logo' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* toml snippet hint */}
           <details className="group">
             <summary className="text-xs text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors">
@@ -129,7 +182,16 @@ url = "https://github.com/you/project"`}</pre>
             Cancel
           </button>
           <button
-            onClick={() => onGenerate(selectedLanguage)}
+            onClick={() => {
+              if (collaboratorName) {
+                if (selectedBrand) {
+                  localStorage.setItem(lastBrandKey(collaboratorName), selectedBrand);
+                } else {
+                  localStorage.removeItem(lastBrandKey(collaboratorName));
+                }
+              }
+              onGenerate(selectedLanguage, selectedBrand);
+            }}
             disabled={isGenerating || !collaboratorName}
             className="flex items-center gap-2 px-5 py-2 rounded-md bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >

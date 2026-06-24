@@ -343,7 +343,10 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
     setIsGenerating(false);
   };
 
-  const handleGeneratePortfolio = async (language: string) => {
+  const handleGeneratePortfolio = async (
+    language: string,
+    brandSlug: string | null = null,
+  ) => {
     if (!selectedCollaborator || !isAuthenticated) return;
     setIsGeneratingPortfolio(true);
     try {
@@ -351,7 +354,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
       if (viewMode === 'form' && cvFormEditorRef.current) {
         await cvFormEditorRef.current.saveNow();
       }
-      const result = await generatePortfolio(selectedCollaborator, language);
+      const result = await generatePortfolio(selectedCollaborator, language, 'portfolio', brandSlug);
       const resp = await fetch(result.download_url);
       if (!resp.ok) throw new Error(`Failed to download portfolio PDF: HTTP ${resp.status}`);
       const blob = await resp.blob();
