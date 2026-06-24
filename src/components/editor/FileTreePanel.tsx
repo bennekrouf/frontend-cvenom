@@ -191,8 +191,11 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
             // profile folders pop (semibold, full foreground), nested folders
             // stay readable, files fade (smaller, muted) so the tree reads as
             // a list of profiles with details, not a wall of equally-weighted text.
+            // `min-w-0` is required so the inner `truncate` actually clips
+            // inside a flex parent — without it the span refuses to shrink
+            // below its content width and pushes the action icons off-row.
             <span
-              className={`flex-1 flex items-center gap-1.5 ${
+              className={`flex-1 min-w-0 flex items-center gap-1.5 ${
                 isCollaboratorFolder
                   ? 'text-sm font-semibold text-foreground'
                   : isFolder
@@ -202,7 +205,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
                       : 'text-xs text-muted-foreground'
               }`}
             >
-              {name}
+              <span className="truncate" title={name}>{name}</span>
               {isCollaboratorFolder && item.has_photo && (
                 <Tooltip content={item.has_own_photo ? "Custom photo" : "Using default photo"} side="top">
                   <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full shrink-0 ${
@@ -218,7 +221,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
           )}
 
           {isCollaboratorFolder && isSelectedCollaborator && isAuthenticated && !isRenaming && (
-            <div className="flex items-center space-x-1 opacity-60 group-hover:opacity-100 transition-opacity ml-2">
+            <div className="flex items-center space-x-1 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity ml-2">
               <Tooltip content="Rename profile" side="top">
                 <button
                   onClick={(e) => {
