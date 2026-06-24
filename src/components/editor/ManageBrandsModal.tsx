@@ -630,7 +630,7 @@ const LogoField: React.FC<{
     <div>
       <label className="block text-sm font-medium text-foreground mb-1">Logo</label>
       <p className="text-xs text-muted-foreground mb-2">
-        PNG only. Replaces the company logo on templates that show one.
+        PNG or JPEG. Replaces the company logo on templates that show one.
       </p>
       <div className="flex items-center gap-4">
         <div className="h-20 w-20 rounded-md border border-border bg-muted/30 flex items-center justify-center overflow-hidden">
@@ -647,7 +647,7 @@ const LogoField: React.FC<{
             {hasAnyLogo ? 'Replace logo' : 'Choose file'}
             <input
               type="file"
-              accept="image/png"
+              accept="image/png,image/jpeg"
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0] ?? null;
