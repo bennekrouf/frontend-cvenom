@@ -756,20 +756,36 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
                 </>
               )}
 
-              {/* Upload CV */}
-              {isAuthenticated && (
+              {/* ── Profile group — bring data in (create empty or upload existing CV).
+                  Both buttons make a new profile, so they're visually grouped. ── */}
+              <div className="flex items-center gap-1.5">
                 <button
-                  data-tour="upload-cv"
-                  onClick={() => setShowUploadZone(!showUploadZone)}
-                  className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                  title="Upload and convert a CV to create a new profile"
+                  onClick={isAuthenticated ? () => setShowCreateModal(true) : undefined}
+                  disabled={!isAuthenticated}
+                  className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                  title={isAuthenticated ? t('createCollaboratorTooltip') : t('authRequiredCollaborators')}
                 >
-                  <FiUpload className="h-3.5 w-3.5 shrink-0" />
-                  <span className="hidden lg:inline">Upload CV</span>
+                  <FiPlus className="h-3.5 w-3.5 shrink-0" />
+                  <span className="hidden md:inline">{t('addCollaborator')}</span>
                 </button>
-              )}
 
-              {/* Optimize for ATS */}
+                {isAuthenticated && (
+                  <button
+                    data-tour="upload-cv"
+                    onClick={() => setShowUploadZone(!showUploadZone)}
+                    className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                    title="Upload and convert a CV to create a new profile"
+                  >
+                    <FiUpload className="h-3.5 w-3.5 shrink-0" />
+                    <span className="hidden lg:inline">Upload CV</span>
+                  </button>
+                )}
+              </div>
+
+              {isAuthenticated && <div className="h-5 w-px bg-border" />}
+
+              {/* Optimize — mutates the current profile (in-place), so visually
+                  separated from the Output group below. */}
               {isAuthenticated && (
                 <button
                   data-tour="optimize"
@@ -783,58 +799,46 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
                 </button>
               )}
 
-              {/* Cover Letter */}
-              {isAuthenticated && (
-                <button
-                  data-tour="cover-letter"
-                  onClick={() => setShowCoverLetterModal(true)}
-                  disabled={!selectedCollaborator}
-                  className="flex items-center gap-1.5 rounded-md bg-purple-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-40"
-                  title={selectedCollaborator ? 'Generate a cover letter for a job posting' : 'Select a profile first'}
-                >
-                  <FiFileText className="h-3.5 w-3.5 shrink-0" />
-                  <span className="hidden lg:inline">Cover Letter</span>
-                </button>
-              )}
+              {isAuthenticated && <div className="h-5 w-px bg-border" />}
 
-              {/* Generate CV PDF */}
+              {/* ── Output group — produce a downloadable deliverable.
+                  Ordered: CV (primary output) → Cover Letter → Portfolio. ── */}
               {isAuthenticated && (
-                <button
-                  data-tour="generate-cv"
-                  onClick={() => setShowGenerateModal(true)}
-                  disabled={!selectedCollaborator}
-                  className="flex items-center gap-1.5 rounded-md bg-green-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
-                  title={selectedCollaborator ? t('generate') : 'Select a profile first'}
-                >
-                  <FiFileText className="h-3.5 w-3.5 shrink-0" />
-                  <span className="hidden lg:inline">{t('generate')}</span>
-                </button>
-              )}
+                <div className="flex items-center gap-1.5">
+                  <button
+                    data-tour="generate-cv"
+                    onClick={() => setShowGenerateModal(true)}
+                    disabled={!selectedCollaborator}
+                    className="flex items-center gap-1.5 rounded-md bg-green-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    title={selectedCollaborator ? 'Generate CV PDF' : 'Select a profile first'}
+                  >
+                    <FiFileText className="h-3.5 w-3.5 shrink-0" />
+                    <span className="hidden lg:inline">CV</span>
+                  </button>
 
-              {/* Generate Portfolio PDF */}
-              {isAuthenticated && (
-                <button
-                  data-tour="portfolio"
-                  onClick={() => setShowPortfolioModal(true)}
-                  disabled={!selectedCollaborator}
-                  className="flex items-center gap-1.5 rounded-md bg-violet-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-40"
-                  title={selectedCollaborator ? 'Generate portfolio PDF' : 'Select a profile first'}
-                >
-                  <FiFileText className="h-3.5 w-3.5 shrink-0" />
-                  <span className="hidden lg:inline">Portfolio</span>
-                </button>
-              )}
+                  <button
+                    data-tour="cover-letter"
+                    onClick={() => setShowCoverLetterModal(true)}
+                    disabled={!selectedCollaborator}
+                    className="flex items-center gap-1.5 rounded-md bg-purple-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    title={selectedCollaborator ? 'Generate a cover letter for a job posting' : 'Select a profile first'}
+                  >
+                    <FiFileText className="h-3.5 w-3.5 shrink-0" />
+                    <span className="hidden lg:inline">Cover Letter</span>
+                  </button>
 
-              {/* New profile */}
-              <button
-                onClick={isAuthenticated ? () => setShowCreateModal(true) : undefined}
-                disabled={!isAuthenticated}
-                className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-                title={isAuthenticated ? t('createCollaboratorTooltip') : t('authRequiredCollaborators')}
-              >
-                <FiPlus className="h-3.5 w-3.5 shrink-0" />
-                <span className="hidden md:inline">{t('addCollaborator')}</span>
-              </button>
+                  <button
+                    data-tour="portfolio"
+                    onClick={() => setShowPortfolioModal(true)}
+                    disabled={!selectedCollaborator}
+                    className="flex items-center gap-1.5 rounded-md bg-violet-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    title={selectedCollaborator ? 'Generate portfolio PDF' : 'Select a profile first'}
+                  >
+                    <FiFileText className="h-3.5 w-3.5 shrink-0" />
+                    <span className="hidden lg:inline">Portfolio</span>
+                  </button>
+                </div>
+              )}
 
               {/* Save — always rendered to keep width stable; invisible in form/chat mode */}
               <button
