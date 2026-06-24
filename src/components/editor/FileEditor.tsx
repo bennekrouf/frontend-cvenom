@@ -57,6 +57,20 @@ interface ApiSuccessResponse {
   [key: string]: unknown;
 }
 
+/** Tenant-root folders that are system-managed (not user CV profiles).
+ *  Hidden from the file-explorer panel so they don't masquerade as profiles. */
+const HIDDEN_TENANT_DIRS = new Set(['brands']);
+
+function stripHiddenTenantDirs(
+  tree: Record<string, FileTreeItem>,
+): Record<string, FileTreeItem> {
+  const out: Record<string, FileTreeItem> = {};
+  for (const [name, item] of Object.entries(tree)) {
+    if (!HIDDEN_TENANT_DIRS.has(name)) out[name] = item;
+  }
+  return out;
+}
+
 function getFirstProfile(tree: Record<string, FileTreeItem>): string | null {
   const profiles = Object.entries(tree)
     .filter(([, item]) => item.type === 'folder')
@@ -421,7 +435,8 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
 
     setIsLoading(true);
     try {
-      const tree = await getTenantFileTree();
+      const raw = await getTenantFileTree();
+      const tree = stripHiddenTenantDirs(raw);
       setFileTree(tree);
       return tree;
     } catch (error) {

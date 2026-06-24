@@ -187,7 +187,21 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
               </button>
             </div>
           ) : (
-            <span className="text-sm font-medium flex-1 flex items-center gap-1.5">
+            // Differentiate the rendered name by what the row represents:
+            // profile folders pop (semibold, full foreground), nested folders
+            // stay readable, files fade (smaller, muted) so the tree reads as
+            // a list of profiles with details, not a wall of equally-weighted text.
+            <span
+              className={`flex-1 flex items-center gap-1.5 ${
+                isCollaboratorFolder
+                  ? 'text-sm font-semibold text-foreground'
+                  : isFolder
+                    ? 'text-sm font-medium text-foreground/85'
+                    : isEditable
+                      ? 'text-xs text-foreground/80'
+                      : 'text-xs text-muted-foreground'
+              }`}
+            >
               {name}
               {isCollaboratorFolder && item.has_photo && (
                 <Tooltip content={item.has_own_photo ? "Custom photo" : "Using default photo"} side="top">
