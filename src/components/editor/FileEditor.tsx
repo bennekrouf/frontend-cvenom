@@ -305,6 +305,12 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
 
     setIsGenerating(true);
     try {
+      // Flush any pending form auto-save before generating — the server reads
+      // cv_params.toml from disk, so an in-flight 2s-debounced edit would be
+      // ignored and the PDF would reflect the *previous* values.
+      if (viewMode === 'form' && cvFormEditorRef.current) {
+        await cvFormEditorRef.current.saveNow();
+      }
       const blob = await generateCV(selectedCollaborator, language, template, useCustomColors, brandSlug);
 
       // Backend streams the PDF directly — create a local object URL to trigger download.
@@ -341,6 +347,10 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
     if (!selectedCollaborator || !isAuthenticated) return;
     setIsGeneratingPortfolio(true);
     try {
+      // Flush any pending form auto-save first — see handleGenerateCV.
+      if (viewMode === 'form' && cvFormEditorRef.current) {
+        await cvFormEditorRef.current.saveNow();
+      }
       const result = await generatePortfolio(selectedCollaborator, language);
       const resp = await fetch(result.download_url);
       if (!resp.ok) throw new Error(`Failed to download portfolio PDF: HTTP ${resp.status}`);
@@ -804,7 +814,14 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
               {isAuthenticated && (
                 <button
                   data-tour="optimize"
-                  onClick={() => setShowOptimizeModal(true)}
+                  onClick={async () => {
+                    // Flush form auto-save before opening; the modal's API calls
+                    // read from disk, so pending edits would be ignored.
+                    if (viewMode === 'form' && cvFormEditorRef.current) {
+                      await cvFormEditorRef.current.saveNow();
+                    }
+                    setShowOptimizeModal(true);
+                  }}
                   disabled={!selectedCollaborator}
                   className="flex items-center gap-1.5 rounded-md bg-orange-500 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-40"
                   title={selectedCollaborator ? 'Optimize CV for a job posting URL' : 'Select a profile first'}
@@ -833,7 +850,14 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
 
                   <button
                     data-tour="cover-letter"
-                    onClick={() => setShowCoverLetterModal(true)}
+                    onClick={async () => {
+                      // Flush form auto-save before opening; the modal's API
+                      // call reads from disk, same reason as Optimize/Generate.
+                      if (viewMode === 'form' && cvFormEditorRef.current) {
+                        await cvFormEditorRef.current.saveNow();
+                      }
+                      setShowCoverLetterModal(true);
+                    }}
                     disabled={!selectedCollaborator}
                     className="flex items-center gap-1.5 rounded-md bg-purple-600 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-40"
                     title={selectedCollaborator ? 'Generate a cover letter for a job posting' : 'Select a profile first'}
