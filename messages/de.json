@@ -98,6 +98,7 @@
     "editableFiles": "Bearbeitbar: nur .typ, .toml",
     "signInToEdit": "Anmelden zum Anzeigen und Bearbeiten Ihrer Profile",
     "noFileSelected": "Keine Datei ausgewählt",
+    "selectFileToEdit": "Wählen Sie im Explorer eine .typ- oder .toml-Datei zum Bearbeiten aus.",
     "profile": "Profil",
     "unsavedChanges": "Nicht gespeicherte Änderungen",
     "lastSaved": "Zuletzt gespeichert",

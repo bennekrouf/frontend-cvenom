@@ -84,6 +84,7 @@
     "editableFiles": "Modifiable : fichiers .typ, .toml uniquement",
     "signInToEdit": "Connecte-toi pour voir et éditer tes profils",
     "noFileSelected": "Aucun fichier sélectionné",
+    "selectFileToEdit": "Choisis un fichier .typ ou .toml dans l'explorateur pour l'éditer.",
     "profile": "Profil",
     "unsavedChanges": "Modifications non sauvegardées",
     "lastSaved": "Dernière sauvegarde",

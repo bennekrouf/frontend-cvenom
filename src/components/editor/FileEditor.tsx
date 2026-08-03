@@ -420,14 +420,6 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
   };
 
 
-  /** Switch to Code view – flush any pending form auto-save first */
-  const switchToCode = useCallback(async () => {
-    if (viewMode === 'form' && cvFormEditorRef.current) {
-      await cvFormEditorRef.current.saveNow();
-    }
-    setViewMode('code');
-  }, [viewMode]);
-
   /** Select a collaborator, keep current view mode, and sync the profile name into the URL. */
   const handleSelectCollaborator = useCallback((name: string) => {
     setSelectedCollaborator(name);
@@ -485,11 +477,13 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
     return 'text';
   };
 
-  const loadFile = async (filePath: string) => {
+  /** @param alreadyFlushed set by callers that already flushed the form auto-save,
+   *  so the profile isn't persisted twice. */
+  const loadFile = async (filePath: string, alreadyFlushed = false) => {
     if (!isEditableFile(filePath) || !isAuthenticated) return;
 
     // Flush any pending form auto-save then switch to code view
-    if (viewMode === 'form' && cvFormEditorRef.current) {
+    if (!alreadyFlushed && viewMode === 'form' && cvFormEditorRef.current) {
       await cvFormEditorRef.current.saveNow();
     }
     setViewMode('code');
@@ -514,6 +508,40 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
         }
       } else {
         setFileContent(t('errorLoadingFileUnknown'));
+      }
+    }
+  };
+
+  /** Most relevant source file of the active profile, used when Code view is
+   *  opened without a file already selected. */
+  const defaultCodeFile = (): string | null => {
+    if (!fileTree || !selectedCollaborator) return null;
+    const children = fileTree[selectedCollaborator]?.children ?? {};
+    const names = Object.keys(children).filter(
+      (name) => children[name].type === 'file' && isEditableFile(name),
+    );
+    const pick =
+      names.find((name) => name === `experiences_${selectedLanguage}.typ`) ??
+      names.find((name) => name.endsWith('.typ')) ??
+      names.find((name) => name === 'cv_params.toml') ??
+      names[0];
+    return pick ? `${selectedCollaborator}/${pick}` : null;
+  };
+
+  /** Switch to Code view – flush any pending form auto-save first.
+   *  Opens the profile's main source file when nothing is open yet, so the
+   *  Code tab always lands on the editor. */
+  const switchToCode = async () => {
+    if (viewMode === 'form' && cvFormEditorRef.current) {
+      await cvFormEditorRef.current.saveNow();
+    }
+    setViewMode('code');
+
+    if (!selectedFile) {
+      const fallback = defaultCodeFile();
+      if (fallback && selectedCollaborator) {
+        setExpandedFolders((prev) => new Set(prev).add(selectedCollaborator));
+        await loadFile(fallback, true);
       }
     }
   };
@@ -973,8 +1001,21 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
                 spellCheck={false}
               />
             </div>
+          ) : viewMode === 'code' ? (
+            /* ── Code view with no file open — never fall through to chat ── */
+            <div className="h-full flex items-center justify-center p-4">
+              <div className="text-center max-w-sm">
+                <FiCode className="mx-auto h-8 w-8 text-muted-foreground/60" />
+                <p className="mt-3 text-sm font-medium text-foreground">
+                  {t('noFileSelected')}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t('selectFileToEdit')}
+                </p>
+              </div>
+            </div>
           ) : (
-            /* ── Fallback: chat when no profile selected or code with no file ── */
+            /* ── Fallback: chat when no profile is selected ── */
             <ChatComponent
               isVisible={true}
               isAuthenticated={isAuthenticated}
