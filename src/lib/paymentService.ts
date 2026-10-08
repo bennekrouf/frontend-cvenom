@@ -83,7 +83,9 @@ export async function createPaymentIntent(
  * The backend will verify with Stripe and top-up api0 credits.
  */
 export async function confirmPayment(
-  paymentIntentId: string
+  paymentIntentId: string,
+  /** ISO time the buyer waived the 14-day withdrawal right (stored on the Stripe payment). */
+  withdrawalWaiverAcceptedAt: string
 ): Promise<ConfirmPaymentResult> {
   const token = await getAuthToken();
 
@@ -93,7 +95,10 @@ export async function confirmPayment(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ payment_intent_id: paymentIntentId }),
+    body: JSON.stringify({
+      payment_intent_id: paymentIntentId,
+      withdrawal_waiver_accepted_at: withdrawalWaiverAcceptedAt,
+    }),
   });
 
   const json = await res.json();

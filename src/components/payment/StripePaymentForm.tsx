@@ -34,7 +34,7 @@ import {
   FiClock,
 } from 'react-icons/fi';
 import { createPaymentIntent, confirmPayment, getTransactions, CreditTransaction } from '@/lib/paymentService';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   detectCurrency,
   formatAmount,
@@ -167,14 +167,24 @@ const PaymentFormContent: React.FC<PaymentFormContentProps> = ({
   onSuccess,
 }) => {
   const t = useTranslations('credits');
+  const locale = useLocale();
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // EU consumer law: digital content loses the 14-day withdrawal right only with the
+  // buyer's express consent given before payment, so paying is blocked until it's ticked.
+  const [waiverAcceptedAt, setWaiverAcceptedAt] = useState<string | null>(null);
+  // The landing site (which hosts the terms) only has en and fr.
+  const termsUrl = `https://cvenom.com/${locale === 'fr' ? 'fr' : 'en'}/terms`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stripe || !elements) return;
+    if (!waiverAcceptedAt) {
+      setError(t('withdrawalWaiverRequired'));
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -198,7 +208,7 @@ const PaymentFormContent: React.FC<PaymentFormContentProps> = ({
       }
 
       // 2. Notify cvenom backend → verify + top-up credits
-      const result = await confirmPayment(paymentIntent.id);
+      const result = await confirmPayment(paymentIntent.id, waiverAcceptedAt);
       onSuccess(result.credits_added, result.new_balance);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
@@ -244,6 +254,31 @@ const PaymentFormContent: React.FC<PaymentFormContentProps> = ({
         />
       </div>
 
+      {/* Withdrawal-right waiver (required before paying) */}
+      <label className="flex items-start gap-3 text-sm text-muted-foreground cursor-pointer">
+        <input
+          type="checkbox"
+          checked={waiverAcceptedAt !== null}
+          onChange={(e) => {
+            setWaiverAcceptedAt(e.target.checked ? new Date().toISOString() : null);
+            if (e.target.checked) setError(null);
+          }}
+          disabled={loading}
+          className="mt-0.5 h-4 w-4 flex-shrink-0 accent-primary"
+        />
+        <span>
+          {t('withdrawalWaiver')}{' '}
+          <a
+            href={termsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-foreground"
+          >
+            {t('termsLink')}
+          </a>
+        </span>
+      </label>
+
       {/* Error message */}
       {error && (
         <div className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
@@ -265,7 +300,7 @@ const PaymentFormContent: React.FC<PaymentFormContentProps> = ({
         </button>
         <button
           type="submit"
-          disabled={!stripe || !elements || loading}
+          disabled={!stripe || !elements || loading || !waiverAcceptedAt}
           className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
         >
           {loading ? (

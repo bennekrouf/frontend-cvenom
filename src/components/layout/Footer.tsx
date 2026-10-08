@@ -70,7 +70,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-2.5">
               <li>
                 <a
-                  href="https://mayorana.ch/en/privacy"
+                  href={`https://cvenom.com/${locale === 'fr' ? 'fr' : 'en'}/privacy`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
@@ -80,7 +80,7 @@ const Footer: React.FC = () => {
               </li>
               <li>
                 <a
-                  href="https://mayorana.ch/en/terms"
+                  href={`https://cvenom.com/${locale === 'fr' ? 'fr' : 'en'}/terms`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
