@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FiX, FiTarget, FiCheckCircle, FiAlertCircle, FiLoader, FiClipboard, FiArrowRight, FiPlusCircle } from 'react-icons/fi';
+import { FiX, FiTarget, FiCheckCircle, FiAlertCircle, FiLoader, FiClipboard, FiArrowRight, FiPlusCircle, FiLink } from 'react-icons/fi';
 import { optimizeCV, saveOptimizedProfile, KeywordAnalysis } from '@/lib/api';
 import { fileTreeEvents } from '@/lib/fileTreeEvents';
 
@@ -76,6 +76,7 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
   collaboratorName,
   onProfileCreated,
 }) => {
+  const [jobUrl, setJobUrl] = useState('');
   const [jobDescription, setJobDescription] = useState('');
   const [language, setLanguage] = useState('en');
 
@@ -103,6 +104,7 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     setPhase('idle');
+    setJobUrl('');
     setJobDescription('');
     setKeywordAnalysis(null);
     setJobTitle('');
@@ -132,8 +134,11 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
 
   if (!isOpen) return null;
 
+  const trimmedUrl = jobUrl.trim();
+  const isUrlValid = /^https?:\/\/\S+$/i.test(trimmedUrl);
+  // A pasted description wins: the backend skips scraping when one is sent.
   const isReady = Boolean(
-    collaboratorName && jobDescription.trim(),
+    collaboratorName && (jobDescription.trim() || isUrlValid),
   );
 
   const handleOptimize = async () => {
@@ -145,11 +150,11 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
     try {
       const resp = await optimizeCV(
         collaboratorName,
-        'manual',
+        isUrlValid ? trimmedUrl : 'manual',
         language,
         'default',
         undefined,
-        jobDescription.trim(),
+        jobDescription.trim() || undefined,
       );
       setJobTitle(resp.data.job_title);
       setCompanyName(resp.data.company_name);
@@ -232,6 +237,37 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
         </div>
 
         <div className="p-6 space-y-5">
+          {/* Job URL (scraped by the backend) */}
+          <div>
+            <label className="flex items-center gap-1.5 text-sm font-medium text-foreground mb-1.5">
+              <FiLink className="w-3.5 h-3.5 text-orange-500" />
+              LinkedIn job URL
+            </label>
+            <input
+              type="url"
+              value={jobUrl}
+              onChange={(e) => setJobUrl(e.target.value)}
+              disabled={phase === 'optimizing'}
+              placeholder="https://www.linkedin.com/jobs/view/..."
+              className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 disabled:opacity-50 placeholder:text-muted-foreground"
+              autoFocus
+            />
+            {trimmedUrl && !isUrlValid && (
+              <p className="mt-1.5 text-xs text-orange-500">Enter a full URL starting with https://</p>
+            )}
+            {isUrlValid && jobDescription.trim() && (
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                The pasted description below will be used instead of the URL.
+              </p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex-1 h-px bg-border" />
+            or paste the description
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
           {/* Job description paste area */}
           <div>
             <label className="flex items-center gap-1.5 text-sm font-medium text-foreground mb-1.5">
@@ -245,7 +281,6 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
               rows={8}
               placeholder="Paste the full job posting content here..."
               className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 disabled:opacity-50 placeholder:text-muted-foreground resize-y"
-              autoFocus
             />
             {!collaboratorName && (
               <p className="mt-1.5 text-xs text-orange-500">
