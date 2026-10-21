@@ -8,9 +8,10 @@ import React, {
   useImperativeHandle,
   forwardRef,
 } from 'react';
-import { FiCheck, FiLoader, FiAlertCircle } from 'react-icons/fi';
+import { FiCheck, FiLoader, FiAlertCircle, FiExternalLink } from 'react-icons/fi';
 import { useTranslations } from 'next-intl';
-import { getCvData, saveCvData } from '@/lib/cvDataService';
+import { getCvData, getProfileJob, saveCvData } from '@/lib/cvDataService';
+import type { JobSource } from '@/lib/cvDataService';
 import { emptyCvFormData } from '@/types/cvFormData';
 import type { CvFormData } from '@/types/cvFormData';
 
@@ -47,6 +48,7 @@ const CVFormEditor = forwardRef<CVFormEditorHandle, Props>(({ profileName, langu
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [jobSource, setJobSource] = useState<JobSource | null>(null);
 
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pendingDataRef = useRef<CvFormData | null>(null);
@@ -78,6 +80,16 @@ const CVFormEditor = forwardRef<CVFormEditorHandle, Props>(({ profileName, langu
     load();
     return () => { cancelled = true; };
   }, [profileName, language]);
+
+  // Job post this profile was tailored for (optional — failures are ignored)
+  useEffect(() => {
+    let cancelled = false;
+    setJobSource(null);
+    getProfileJob(profileName)
+      .then((job) => { if (!cancelled) setJobSource(job); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [profileName]);
 
   // ── Persist helper ────────────────────────────────────────────────────────
 
@@ -177,6 +189,7 @@ const CVFormEditor = forwardRef<CVFormEditorHandle, Props>(({ profileName, langu
 
       {/* Form sections */}
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
+        {jobSource && <JobSourceBanner job={jobSource} />}
         <PersonalSection
           data={data.personal}
           onChange={(v) => update('personal', v)}
@@ -254,5 +267,32 @@ const SavePill: React.FC<{ status: SaveStatus }> = ({ status }) => {
       {icon}
       {label}
     </span>
+  );
+};
+
+// ── Job source banner ─────────────────────────────────────────────────────────
+
+const JobSourceBanner: React.FC<{ job: JobSource }> = ({ job }) => {
+  const t = useTranslations('cvForm');
+  const role = [job.title, job.company].filter(Boolean).join(' — ');
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 rounded-lg border border-border bg-secondary/40 text-sm">
+      <span className="text-muted-foreground min-w-0">
+        {t('tailoredFor')}{' '}
+        <span className="font-medium text-foreground">{role || '—'}</span>
+      </span>
+      {job.url && (
+        <a
+          href={job.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline"
+        >
+          {t('openJobPost')}
+          <FiExternalLink className="w-3.5 h-3.5" />
+        </a>
+      )}
+    </div>
   );
 };

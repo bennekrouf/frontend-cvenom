@@ -266,6 +266,8 @@ interface GeneratePdfResponse {
   download_url: string;
   filename: string;
   profile: string;
+  /** Original job post, for CVs tailored to one. */
+  job_url?: string;
 }
 
 export async function generateCV(
@@ -670,6 +672,7 @@ export async function saveOptimizedProfile(
   profileName: string,
   cvJson: string,
   language: string = 'en',
+  job?: { jobUrl?: string; jobTitle?: string; companyName?: string },
 ): Promise<{ success: boolean; message: string }> {
   return apiRequest('/save-optimized', {
     method: 'POST',
@@ -677,6 +680,10 @@ export async function saveOptimizedProfile(
       profile_name: profileName,
       cv_json: cvJson,
       lang: language,
+      // Recorded in the profile so the CV keeps a link to its job post.
+      job_url: job?.jobUrl,
+      job_title: job?.jobTitle,
+      company_name: job?.companyName,
     },
     requireAuth: true,
   });

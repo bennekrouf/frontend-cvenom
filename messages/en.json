@@ -264,6 +264,8 @@
     "statusSaving": "Saving…",
     "statusSaved": "Saved",
     "statusSaveFailed": "Save failed",
+    "tailoredFor": "Tailored for",
+    "openJobPost": "Open original job post",
     "sectionPersonal": "Personal Information",
     "labelFullName": "Full Name",
     "labelProfessionalTitle": "Professional Title",

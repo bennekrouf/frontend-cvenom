@@ -264,6 +264,8 @@
     "statusSaving": "Speichern...",
     "statusSaved": "Gespeichert",
     "statusSaveFailed": "Speichern fehlgeschlagen",
+    "tailoredFor": "Angepasst für",
+    "openJobPost": "Ursprüngliche Stellenanzeige öffnen",
     "sectionPersonal": "Persönliche Informationen",
     "labelFullName": "Vollständiger Name",
     "labelProfessionalTitle": "Berufsbezeichnung",
