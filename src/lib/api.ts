@@ -30,6 +30,7 @@ export const getConfig = (): SiteConfig => {
 
 // Updated lib/api.ts with centralized config
 import { auth } from './firebase';
+import { localRequests } from './liveEvents';
 
 export interface AuthError {
   code: string;
@@ -135,11 +136,11 @@ export async function apiRequest<T = unknown>(
   const apiUrl = getApiUrl();
 
   // Make request
-  const response = await fetch(`${apiUrl}${endpoint}`, {
+  const response = await localRequests.track(fetch(`${apiUrl}${endpoint}`, {
     method,
     headers: requestHeaders,
     body: body ? JSON.stringify(body) : undefined,
-  });
+  }));
 
   // Handle non-JSON responses (like PDF downloads)
   const contentType = response.headers.get('Content-Type');

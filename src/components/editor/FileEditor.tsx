@@ -46,6 +46,7 @@ import {
 import ChatComponent from '../chat/ChatComponent';
 import { signInWithGoogle } from '@/lib/firebase';
 import { fileTreeEvents } from '@/lib/fileTreeEvents';
+import { useLiveEvents } from '@/hooks/useLiveEvents';
 import OnboardingTour from './OnboardingTour';
 import FeedbackPopup from './FeedbackPopup';
 import SafeBoundary from './SafeBoundary';
@@ -565,15 +566,8 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
   const handleUploadSuccess = useCallback(async (personName: string) => {
     setShowUploadZone(false);
 
-    // The cv-import service may finish writing files slightly after returning success.
-    // Poll until the new profile appears in the file tree (max ~10s).
-    const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
-    let found = false;
-    for (let attempt = 0; attempt < 10 && !found; attempt++) {
-      if (attempt > 0) await sleep(1000);
-      const tree = await loadFileTree();
-      found = !!(tree && personName in tree);
-    }
+    // The backend writes the profile before responding, so one reload suffices.
+    await loadFileTree();
 
     setSelectedCollaborator(personName);
     setExpandedFolders(new Set(['data', personName]));
@@ -594,6 +588,9 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [saveFile]);
+
+  // Server push: changes made by the MCP tools, the chat or another tab.
+  useLiveEvents(isAuthenticated);
 
   // Refresh the file tree whenever a chat command (or any other component)
   // signals that the profile list may have changed.

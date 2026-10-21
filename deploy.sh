@@ -22,6 +22,16 @@ step() { echo -e "\n${CYAN}=== $1 ===${NC}\n"; }
 [ "$EUID" -ne 0 ] && err "Run as root: sudo bash deploy.sh"
 [ -f "$FRONT_ENV" ] || err "Missing $FRONT_ENV — cannot rebuild frontend"
 
+# One deploy at a time: a second run (e.g. two quick pushes) waits for the
+# first instead of colliding on git or on Next's .next/lock. Released on exit.
+DEPLOY_LOCK="/var/lock/cvenom-frontend-deploy.lock"
+exec 9>"$DEPLOY_LOCK"
+if ! flock -n 9; then
+  warn "Another frontend deploy is running — waiting (max 30 min) ..."
+  flock -w 1800 9 || err "Timed out waiting for $DEPLOY_LOCK"
+fi
+log "Deploy lock acquired"
+
 # =============================================================================
 step "1/3 — Pull latest frontend from git"
 # =============================================================================
@@ -45,6 +55,9 @@ log "Ownership restored to $DEPLOY_USER"
 # =============================================================================
 step "2/3 — Rebuild frontend"
 # =============================================================================
+
+# We hold the deploy lock, so any .next/lock is left over from a killed build.
+rm -f "$FRONTEND_SRC/.next/lock"
 
 echo "  → Running yarn install + yarn build ..."
 sudo -u "$DEPLOY_USER" HOME="/home/$DEPLOY_USER" \

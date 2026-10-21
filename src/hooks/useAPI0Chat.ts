@@ -9,6 +9,7 @@ import {
 import type { StandardApiResponse } from '@/lib/api0';
 import type { FileAttachment } from '@/utils/chatUtils';
 import { fileTreeEvents } from '@/lib/fileTreeEvents';
+import { localRequests } from '@/lib/liveEvents';
 
 interface API0ChatResult {
   success: boolean;
@@ -55,7 +56,7 @@ export function useAPI0Chat(profileName?: string) {
 
     try {
       // Pass the active profile so api0 can auto-fill profile_name parameters
-      const result = await processCommand(sentence, attachments, profileName);
+      const result = await localRequests.track(processCommand(sentence, attachments, profileName));
 
       // If a real API endpoint was hit (not just a conversational reply),
       // the file tree may have changed — notify FileEditor to refresh.
