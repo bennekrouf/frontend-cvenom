@@ -7,6 +7,7 @@
 //   POST /payment/intent  → create Stripe PaymentIntent
 //   POST /payment/confirm → verify payment & top-up api0 credits
 //   GET  /payment/balance → return current user's credit balance
+//   GET  /payment/transactions?limit=N → credit transaction history
 
 import { auth } from './firebase';
 
@@ -138,15 +139,26 @@ export interface CreditTransaction {
   created_at: string;
 }
 
-export async function getTransactions(): Promise<CreditTransaction[]> {
+/** Largest history the store returns in one call. */
+export const MAX_TRANSACTIONS = 1000;
+
+/**
+ * Fetch the authenticated user's credit transactions, most recent first.
+ * Without `limit` the backend returns its default (latest 50).
+ */
+export async function getTransactions(limit?: number): Promise<CreditTransaction[]> {
   const token = await getAuthToken();
-  const response = await fetch(`${getApiBase()}/payment/transactions`, {
+  const query = limit ? `?limit=${limit}` : '';
+  const response = await fetch(`${getApiBase()}/payment/transactions${query}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!response.ok) throw new Error('Failed to fetch transactions');
   const data = await response.json();
   return data.transactions ?? [];
 }
+
+/** Fired on window after a balance change so other widgets (navbar) can refresh. */
+export const CREDITS_UPDATED_EVENT = 'cvenom:credits-updated';
 
 // ── Referral ──────────────────────────────────────────────────────────────────
 

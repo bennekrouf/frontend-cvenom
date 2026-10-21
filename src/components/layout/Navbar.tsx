@@ -33,6 +33,7 @@ const Navbar: React.FC = () => {
   }, [isAuthenticated]);
 
   const navItems: { label: string; path: string; }[] = [
+    ...(isAuthenticated ? [{ label: t('credits'), path: '/credits' }] : []),
     ...(isBd && !isAdmin ? [{ label: 'BD Portal', path: '/bd' }] : []),
   ];
 

@@ -34,6 +34,7 @@ import {
   FiClock,
 } from 'react-icons/fi';
 import { createPaymentIntent, confirmPayment, getTransactions, CreditTransaction } from '@/lib/paymentService';
+import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import {
   detectCurrency,
@@ -336,6 +337,7 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
   onClose,
 }) => {
   const t = useTranslations('credits');
+  const locale = useLocale();
   const isDark = useIsDark();
   const [step, setStep] = useState<Step>('amount');
   const [amount, setAmount] = useState(10);
@@ -513,9 +515,18 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
           <div className="space-y-5">
             {showHistory ? (
               <div className="space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  Most recent transactions first.
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    Most recent transactions first.
+                  </p>
+                  <Link
+                    href={`/${locale}/credits`}
+                    onClick={onClose}
+                    className="text-xs font-medium text-primary hover:underline"
+                  >
+                    {t('viewFullHistory')} →
+                  </Link>
+                </div>
                 {loadingHistory ? (
                   <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
                     <FiLoader className="h-4 w-4 animate-spin" /> Loading history…
