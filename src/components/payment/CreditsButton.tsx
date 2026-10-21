@@ -18,7 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { signInWithGoogle } from '@/lib/firebase';
 import StripePaymentForm from './StripePaymentForm';
 import ReferralWidget from './ReferralWidget';
-import { getBalance } from '@/lib/paymentService';
+import { getBalance, CREDITS_UPDATED_EVENT } from '@/lib/paymentService';
 
 const CreditsButton: React.FC = () => {
   const t = useTranslations('credits');
@@ -47,6 +47,13 @@ const CreditsButton: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated) fetchBalance();
     else setBalance(null);
+  }, [isAuthenticated, fetchBalance]);
+
+  // Refresh when credits change elsewhere (e.g. top-up on the /credits page)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    window.addEventListener(CREDITS_UPDATED_EVENT, fetchBalance);
+    return () => window.removeEventListener(CREDITS_UPDATED_EVENT, fetchBalance);
   }, [isAuthenticated, fetchBalance]);
 
   // Close on Escape

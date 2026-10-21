@@ -75,7 +75,8 @@
     "editor": "Editor",
     "toggle_menu": "Toggle menu",
     "toggle_language": "Toggle language",
-    "toggle_theme": "Toggle theme"
+    "toggle_theme": "Toggle theme",
+    "credits": "Credits"
   },
   "footer": {
     "description": "Your app description",
@@ -254,7 +255,8 @@
     "referralCopied": "Copied",
     "referralFriendSingular": "friend joined",
     "referralFriendsPlural": "friends joined",
-    "referralCreditsEarned": "credits earned"
+    "referralCreditsEarned": "credits earned",
+    "viewFullHistory": "View full history"
   },
   "cvForm": {
     "loadingCvData": "Loading CV data…",
@@ -380,5 +382,46 @@
     "copy": "Copy",
     "copied": "Copied!",
     "generationFailed": "Cover letter generation failed"
+  },
+  "creditsPage": {
+    "title": "Credits",
+    "subtitle": "Your balance and every credit you have used or added.",
+    "signInTitle": "Sign in to see your credits",
+    "signInButton": "Sign in with Google",
+    "balanceLabel": "Current balance",
+    "usedLabel": "Used",
+    "addedLabel": "Added",
+    "shownNote": "Totals cover the transactions listed below.",
+    "addCredits": "Add credits",
+    "historyTitle": "Transaction history",
+    "filterAll": "All",
+    "filterUsed": "Used",
+    "filterAdded": "Added",
+    "colDate": "Date",
+    "colAction": "Action",
+    "colAmount": "Credits",
+    "colBalance": "Balance after",
+    "empty": "No transactions yet",
+    "emptyFiltered": "No transactions match this filter",
+    "loadError": "Could not load your credit history.",
+    "retry": "Retry",
+    "truncated": "Showing the latest {count} transactions.",
+    "refundSuffix": "refund",
+    "actions": {
+      "cv_generation": "CV generated",
+      "cover_letter": "Cover letter",
+      "optimize": "CV optimization",
+      "translate": "Translation",
+      "cv_import": "CV import",
+      "cv_import_text": "CV import (text)",
+      "portfolio_generation": "Portfolio generated",
+      "topup": "Credit purchase",
+      "welcome": "Welcome bonus",
+      "referral_bonus": "Referral bonus",
+      "referral_welcome_bonus": "Referral welcome bonus",
+      "feedback_reward": "Feedback reward",
+      "admin_topup": "Credits added by support",
+      "admin_deduct": "Credits removed by support"
+    }
   }
 }

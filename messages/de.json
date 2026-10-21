@@ -75,7 +75,8 @@
     "editor": "Editor",
     "toggle_menu": "Menü umschalten",
     "toggle_language": "Sprache umschalten",
-    "toggle_theme": "Design umschalten"
+    "toggle_theme": "Design umschalten",
+    "credits": "Credits"
   },
   "footer": {
     "description": "Ihre App-Beschreibung",
@@ -254,7 +255,8 @@
     "referralCopied": "Kopiert",
     "referralFriendSingular": "Freund beigetreten",
     "referralFriendsPlural": "Freunde beigetreten",
-    "referralCreditsEarned": "Guthaben verdient"
+    "referralCreditsEarned": "Guthaben verdient",
+    "viewFullHistory": "Vollständigen Verlauf ansehen"
   },
   "cvForm": {
     "loadingCvData": "CV-Daten werden geladen...",
@@ -341,5 +343,46 @@
     "showPhotoHint": "Über das ⋯-Menü in Ihrem Profil hochladen.",
     "photoNormsWarning": "⚠ Fotos sind in CH/EU/Asien üblich, in den USA/UK weniger – lokale Gepflogenheiten prüfen.",
     "photoUploadedButHidden": "⚠ Foto hochgeladen, aber ausgeblendet — aktivieren Sie den Schalter, um es im Lebenslauf anzuzeigen."
+  },
+  "creditsPage": {
+    "title": "Credits",
+    "subtitle": "Ihr Guthaben und alle verwendeten oder hinzugefügten Credits.",
+    "signInTitle": "Melden Sie sich an, um Ihre Credits zu sehen",
+    "signInButton": "Mit Google anmelden",
+    "balanceLabel": "Aktuelles Guthaben",
+    "usedLabel": "Verwendet",
+    "addedLabel": "Hinzugefügt",
+    "shownNote": "Die Summen beziehen sich auf die unten aufgeführten Transaktionen.",
+    "addCredits": "Credits hinzufügen",
+    "historyTitle": "Transaktionsverlauf",
+    "filterAll": "Alle",
+    "filterUsed": "Verwendet",
+    "filterAdded": "Hinzugefügt",
+    "colDate": "Datum",
+    "colAction": "Aktion",
+    "colAmount": "Credits",
+    "colBalance": "Guthaben danach",
+    "empty": "Noch keine Transaktionen",
+    "emptyFiltered": "Keine Transaktionen für diesen Filter",
+    "loadError": "Ihr Credit-Verlauf konnte nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "truncated": "Die letzten {count} Transaktionen werden angezeigt.",
+    "refundSuffix": "Erstattung",
+    "actions": {
+      "cv_generation": "Lebenslauf erstellt",
+      "cover_letter": "Anschreiben",
+      "optimize": "Lebenslauf-Optimierung",
+      "translate": "Übersetzung",
+      "cv_import": "Lebenslauf-Import",
+      "cv_import_text": "Lebenslauf-Import (Text)",
+      "portfolio_generation": "Portfolio erstellt",
+      "topup": "Credit-Kauf",
+      "welcome": "Willkommensbonus",
+      "referral_bonus": "Empfehlungsbonus",
+      "referral_welcome_bonus": "Empfehlungs-Willkommensbonus",
+      "feedback_reward": "Feedback-Belohnung",
+      "admin_topup": "Vom Support hinzugefügt",
+      "admin_deduct": "Vom Support entfernt"
+    }
   }
 }

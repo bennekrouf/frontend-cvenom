@@ -61,7 +61,8 @@
     "editor": "Éditeur",
     "toggle_menu": "Basculer le menu",
     "toggle_language": "Changer de langue",
-    "toggle_theme": "Changer de thème"
+    "toggle_theme": "Changer de thème",
+    "credits": "Crédits"
   },
   "footer": {
     "description": "Description de ton app",
@@ -240,7 +241,8 @@
     "referralCopied": "Copié",
     "referralFriendSingular": "ami inscrit",
     "referralFriendsPlural": "amis inscrits",
-    "referralCreditsEarned": "crédits gagnés"
+    "referralCreditsEarned": "crédits gagnés",
+    "viewFullHistory": "Voir l'historique complet"
   },
   "cvForm": {
     "loadingCvData": "Chargement des données CV…",
@@ -366,5 +368,46 @@
     "copy": "Copier",
     "copied": "Copié !",
     "generationFailed": "Échec de la génération de la lettre de motivation"
+  },
+  "creditsPage": {
+    "title": "Crédits",
+    "subtitle": "Votre solde et chaque crédit utilisé ou ajouté.",
+    "signInTitle": "Connectez-vous pour voir vos crédits",
+    "signInButton": "Se connecter avec Google",
+    "balanceLabel": "Solde actuel",
+    "usedLabel": "Utilisés",
+    "addedLabel": "Ajoutés",
+    "shownNote": "Les totaux portent sur les transactions listées ci-dessous.",
+    "addCredits": "Ajouter des crédits",
+    "historyTitle": "Historique des transactions",
+    "filterAll": "Toutes",
+    "filterUsed": "Utilisés",
+    "filterAdded": "Ajoutés",
+    "colDate": "Date",
+    "colAction": "Action",
+    "colAmount": "Crédits",
+    "colBalance": "Solde après",
+    "empty": "Aucune transaction pour le moment",
+    "emptyFiltered": "Aucune transaction pour ce filtre",
+    "loadError": "Impossible de charger l'historique de vos crédits.",
+    "retry": "Réessayer",
+    "truncated": "Affichage des {count} dernières transactions.",
+    "refundSuffix": "remboursement",
+    "actions": {
+      "cv_generation": "CV généré",
+      "cover_letter": "Lettre de motivation",
+      "optimize": "Optimisation du CV",
+      "translate": "Traduction",
+      "cv_import": "Import de CV",
+      "cv_import_text": "Import de CV (texte)",
+      "portfolio_generation": "Portfolio généré",
+      "topup": "Achat de crédits",
+      "welcome": "Bonus de bienvenue",
+      "referral_bonus": "Bonus de parrainage",
+      "referral_welcome_bonus": "Bonus de bienvenue (parrainage)",
+      "feedback_reward": "Récompense pour avis",
+      "admin_topup": "Crédits ajoutés par le support",
+      "admin_deduct": "Crédits retirés par le support"
+    }
   }
 }
