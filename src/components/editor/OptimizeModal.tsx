@@ -194,7 +194,11 @@ const OptimizeModal: React.FC<OptimizeModalProps> = ({
     setSaveError('');
     try {
       const name = saveProfileName.trim();
-      await saveOptimizedProfile(name, optimizedCvJson, language);
+      await saveOptimizedProfile(name, optimizedCvJson, language, {
+        jobUrl: isUrlValid ? trimmedUrl : undefined,
+        jobTitle,
+        companyName,
+      });
       fileTreeEvents.emit();
       onProfileCreated?.(name);
       onClose();

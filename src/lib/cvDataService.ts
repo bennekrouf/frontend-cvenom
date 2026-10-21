@@ -32,3 +32,21 @@ export async function saveCvData(profileName: string, data: CvFormData, lang = '
     requireAuth: true,
   });
 }
+
+/** The job post a tailored profile was generated from (job.toml on the backend). */
+export interface JobSource {
+  url?: string;
+  company: string;
+  title: string;
+  created_at: string;
+}
+
+/** Returns null when the profile was not made from a job post. */
+export async function getProfileJob(profileName: string): Promise<JobSource | null> {
+  const encoded = encodeURIComponent(profileName);
+  const resp = await apiRequest<{ data: JobSource | null }>(`/profiles/${encoded}/job`, {
+    method: 'GET',
+    requireAuth: true,
+  });
+  return resp.data ?? null;
+}

@@ -250,6 +250,8 @@
     "statusSaving": "Sauvegarde…",
     "statusSaved": "Sauvegardé",
     "statusSaveFailed": "Échec de la sauvegarde",
+    "tailoredFor": "Adapté pour",
+    "openJobPost": "Ouvrir l’offre d’origine",
     "sectionPersonal": "Informations personnelles",
     "labelFullName": "Nom complet",
     "labelProfessionalTitle": "Titre professionnel",
