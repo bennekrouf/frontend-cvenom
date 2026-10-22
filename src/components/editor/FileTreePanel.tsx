@@ -313,7 +313,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col w-80">
+    <div className="h-full flex flex-col w-full min-w-0">
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-2">
