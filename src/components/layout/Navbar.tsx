@@ -1,6 +1,6 @@
 'use client';
 
-// import Image from 'next/image';
+import Image from 'next/image';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -78,8 +78,16 @@ const Navbar: React.FC = () => {
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur-sm">
       <div className="container flex h-16 items-center justify-between">
 
-        <div className="flex items-center">
-          <span className="text-sm text-muted-foreground italic" suppressHydrationWarning>
+        <div className="flex items-center gap-4 min-w-0">
+          <Link
+            href={`/${locale}`}
+            className="flex shrink-0 items-center gap-2 transition-opacity hover:opacity-80"
+            aria-label={t('home')}
+          >
+            <Image src="/logo.png" alt="" width={32} height={32} priority />
+            <span className="hidden sm:inline text-lg font-bold tracking-tight text-foreground">cVenom</span>
+          </Link>
+          <span className="hidden lg:inline truncate text-sm text-muted-foreground italic" suppressHydrationWarning>
             {getMotivationalMessage()}
           </span>
         </div>
