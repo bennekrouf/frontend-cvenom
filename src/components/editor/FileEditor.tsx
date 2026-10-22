@@ -79,6 +79,16 @@ function getFirstProfile(tree: Record<string, FileTreeItem>): string | null {
   return profiles.length > 0 ? profiles[0][0] : null;
 }
 
+/** Desktop sidebar width bounds (px); user-resizable via the right border. */
+const SIDEBAR_DEFAULT_WIDTH = 320;
+const SIDEBAR_MIN_WIDTH = 240;
+const SIDEBAR_MAX_WIDTH = 640;
+const SIDEBAR_WIDTH_KEY = 'cvenom.editor.sidebarWidth';
+
+function clampSidebarWidth(w: number): number {
+  return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, Math.round(w)));
+}
+
 interface FileEditorProps {
   initialProfile?: string;
 }
@@ -103,6 +113,8 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
+  const [isResizingSidebar, setIsResizingSidebar] = useState(false);
 
   // Collaborator and modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -149,6 +161,45 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Restore persisted sidebar width
+  useEffect(() => {
+    try {
+      const saved = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
+      if (saved) setSidebarWidth(clampSidebarWidth(saved));
+    } catch {}
+  }, []);
+
+  // Drag the sidebar's right border to resize it
+  const startSidebarResize = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+    let latest = startWidth;
+    setIsResizingSidebar(true);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const onMove = (ev: PointerEvent) => {
+      latest = clampSidebarWidth(startWidth + ev.clientX - startX);
+      setSidebarWidth(latest);
+    };
+    const onUp = () => {
+      setIsResizingSidebar(false);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      try { localStorage.setItem(SIDEBAR_WIDTH_KEY, String(latest)); } catch {}
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }, [sidebarWidth]);
+
+  const resetSidebarWidth = useCallback(() => {
+    setSidebarWidth(SIDEBAR_DEFAULT_WIDTH);
+    try { localStorage.removeItem(SIDEBAR_WIDTH_KEY); } catch {}
   }, []);
 
   // Mobile detection
@@ -683,9 +734,10 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
         ${isMobile ? 'fixed left-0 top-16 h-[calc(100vh-4rem)] z-40' : 'relative h-full'}
         transition-transform duration-300 ease-in-out
-        ${sidebarOpen && !isMobile ? 'w-80' : 'w-0'}
-        bg-card border-r border-border flex flex-col
-      `}>
+        ${sidebarOpen && isMobile ? 'w-80' : ''}
+        ${!sidebarOpen ? 'w-0' : ''}
+        shrink-0 bg-card border-r border-border flex flex-col
+      `} style={sidebarOpen && !isMobile ? { width: sidebarWidth } : undefined}>
         {sidebarOpen && (
           <FileTreePanel
             fileTree={fileTree}
@@ -709,6 +761,16 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
             onRenameCollaborator={handleRenameCollaborator}
             onShowLanguageModal={() => setShowLanguageModal(true)}
             onCloseSidebar={() => setSidebarOpen(false)}
+          />
+        )}
+        {sidebarOpen && !isMobile && (
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            title="Drag to resize · double-click to reset"
+            onPointerDown={startSidebarResize}
+            onDoubleClick={resetSidebarWidth}
+            className={`absolute top-0 -right-1 z-30 h-full w-2 cursor-col-resize transition-colors hover:bg-primary/40 ${isResizingSidebar ? 'bg-primary/60' : ''}`}
           />
         )}
       </div>
