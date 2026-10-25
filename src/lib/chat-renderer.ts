@@ -374,8 +374,8 @@ export class ChatRenderer {
       );
     }
 
-    // /api/payment/balance → { balance }
-    if (data && typeof data === 'object' && 'balance' in data && Object.keys(data as object).length <= 3) {
+    // /api/payment/balance → { balance, plan_credits_left, plan }
+    if (data && typeof data === 'object' && 'balance' in data && Object.keys(data as object).length <= 4) {
       const b = data as { balance: number };
       return React.createElement('div', { className: 'text-sm' },
         React.createElement('span', { className: 'font-medium' }, '💳 Credits: '),

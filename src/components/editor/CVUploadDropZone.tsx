@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import { getAuth } from 'firebase/auth';
 import { getApiUrl } from '@/lib/config';
 import { fileTreeEvents } from '@/lib/fileTreeEvents';
+import { notifyIfOutOfCredits } from '@/lib/paymentService';
 
 interface CVUploadDropZoneProps {
   onUploadSuccess?: (personName: string) => void;
@@ -103,6 +104,7 @@ const CVUploadDropZone: React.FC<CVUploadDropZoneProps> = ({ onUploadSuccess, cl
           onUploadSuccess(result.person_name);
         }
       } else {
+        notifyIfOutOfCredits(result);
         let errorMessage = result.error || 'Upload failed';
         if (result.suggestions && result.suggestions.length > 0) {
           errorMessage += '\n\nSuggestions:\n• ' + result.suggestions.join('\n• ');

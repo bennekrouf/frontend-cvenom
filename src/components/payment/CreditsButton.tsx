@@ -2,9 +2,12 @@
 // src/components/payment/CreditsButton.tsx
 //
 // Always-visible Credits button in the Navbar.
-// - Authenticated   → opens the Stripe payment modal directly.
+// - Authenticated   → opens the "Get credits" panel (plans, then top-up).
 // - Unauthenticated → opens a lightweight "sign in first" prompt;
-//                     after sign-in the payment modal opens automatically.
+//                     after sign-in the panel opens automatically.
+// It also opens when something asks for it (GET_CREDITS_EVENT: an operation
+// that failed for lack of credits), and refreshes the balance whenever the tab
+// comes back into view, e.g. after subscribing on mayorana.ch in another tab.
 //
 // Both modals are rendered via React Portal (attached to document.body)
 // so they escape the Navbar's sticky/z-index stacking context and always
@@ -16,19 +19,21 @@ import { FiZap, FiUser, FiFileText, FiGlobe, FiGift, FiMail } from 'react-icons/
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/contexts/AuthContext';
 import { signInWithGoogle } from '@/lib/firebase';
-import StripePaymentForm from './StripePaymentForm';
+import GetCreditsPanel from './GetCreditsPanel';
 import ReferralWidget from './ReferralWidget';
-import { getBalance, CREDITS_UPDATED_EVENT } from '@/lib/paymentService';
+import { getBalance, CREDITS_UPDATED_EVENT, GET_CREDITS_EVENT } from '@/lib/paymentService';
 
 const CreditsButton: React.FC = () => {
   const t = useTranslations('credits');
   const { isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState<string | undefined>();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
   const promptRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const paymentCardRef = useRef<HTMLDivElement>(null);
 
   const fetchBalance = useCallback(async () => {
@@ -56,6 +61,32 @@ const CreditsButton: React.FC = () => {
     return () => window.removeEventListener(CREDITS_UPDATED_EVENT, fetchBalance);
   }, [isAuthenticated, fetchBalance]);
 
+  // Back from mayorana.ch (or anywhere): the plan may have just started.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchBalance(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [isAuthenticated, fetchBalance]);
+
+  // Opened from elsewhere, e.g. an operation refused for lack of credits.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      // The navbar has one button for desktop and one for mobile; only the
+      // one on screen answers, so the panel opens once.
+      if (buttonRef.current?.offsetParent === null) return;
+      setReason((e as CustomEvent<{ reason?: string }>).detail?.reason);
+      if (isAuthenticated) {
+        setOpen(true);
+        fetchBalance();
+      } else {
+        setShowLoginPrompt(true);
+      }
+    };
+    window.addEventListener(GET_CREDITS_EVENT, handler);
+    return () => window.removeEventListener(GET_CREDITS_EVENT, handler);
+  }, [isAuthenticated, fetchBalance]);
+
   // Close on Escape
   useEffect(() => {
     if (!open && !showLoginPrompt) return;
@@ -73,6 +104,7 @@ const CreditsButton: React.FC = () => {
   }, [open, showLoginPrompt]);
 
   const handleButtonClick = () => {
+    setReason(undefined);
     if (isAuthenticated) {
       setOpen(true);
     } else {
@@ -94,12 +126,14 @@ const CreditsButton: React.FC = () => {
   const handleSuccess = (creditsAdded: number, newBalance: number) => {
     console.info(`[cvenom] ${creditsAdded} credits added to account`);
     setBalance(newBalance);
+    window.dispatchEvent(new Event(CREDITS_UPDATED_EVENT));
   };
 
   return (
     <>
       {/* Trigger button — always visible in Navbar */}
       <button
+        ref={buttonRef}
         onClick={handleButtonClick}
         className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-secondary"
         aria-label={t('buttonAriaLabel')}
@@ -200,8 +234,9 @@ const CreditsButton: React.FC = () => {
         >
           <div className="flex min-h-full items-center justify-center p-4">
             <div ref={paymentCardRef} className="flex flex-col gap-4 w-full max-w-md">
-              <StripePaymentForm
-                onSuccess={handleSuccess}
+              <GetCreditsPanel
+                reason={reason}
+                onTopUpSuccess={handleSuccess}
                 onClose={() => setOpen(false)}
               />
               <ReferralWidget />
