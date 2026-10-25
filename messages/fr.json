@@ -378,7 +378,7 @@
     "usedLabel": "Utilisés",
     "addedLabel": "Ajoutés",
     "shownNote": "Les totaux portent sur les transactions listées ci-dessous.",
-    "addCredits": "Ajouter des crédits",
+    "addCredits": "Obtenir des crédits",
     "historyTitle": "Historique des transactions",
     "filterAll": "Toutes",
     "filterUsed": "Utilisés",
@@ -408,6 +408,35 @@
       "feedback_reward": "Récompense pour avis",
       "admin_topup": "Crédits ajoutés par le support",
       "admin_deduct": "Crédits retirés par le support"
-    }
+    },
+    "balanceSplit": "{plan} de votre abonnement ce mois-ci · {own} à vous",
+    "subscribedReady": "Votre abonnement est actif : ses crédits sont dans votre solde.",
+    "subscribedPending": "Merci pour votre abonnement ! Ses crédits apparaissent ici d’ici une minute. Sinon, vérifiez que vous vous êtes connecté sur mayorana.ch avec l’e-mail de ce compte."
+  },
+  "getCredits": {
+    "title": "Obtenir des crédits",
+    "subtitle": "Abonnez-vous pour des crédits chaque mois, ou rechargez une fois.",
+    "close": "Fermer",
+    "plansHeading": "Abonnements mensuels · meilleur prix",
+    "otherPlans": "Changer d’abonnement",
+    "planActive": "Votre abonnement mayorana : {count} crédits restants ce mois-ci",
+    "planNamed": "Votre abonnement {name} : {left} crédits restants sur {granted} ce mois-ci",
+    "planRenews": "Se renouvelle le {date}, avec un nouveau mois de crédits.",
+    "planEnds": "Se termine le {date} : il ne sera pas renouvelé.",
+    "planActiveNote": "Les crédits de l’abonnement sont utilisés en premier et se renouvellent chaque mois ; vos propres crédits n’expirent jamais.",
+    "managePlan": "Gérer l’abonnement sur mayorana.ch",
+    "popular": "Populaire",
+    "perMonth": "/ mois",
+    "planCredits": "{credits} crédits par mois · ≈ {cvs} CV",
+    "allApps": "Inclut toutes les apps mayorana",
+    "plusApps": "Débloque aussi {apps}",
+    "cvenomOnly": "Pour CVenom",
+    "subscribe": "S’abonner sur mayorana.ch",
+    "seePlans": "Voir les abonnements sur mayorana.ch",
+    "sameEmail": "Connectez-vous sur mayorana.ch avec {email} pour que les crédits de l’abonnement comptent ici.",
+    "sameEmailSignedOut": "Connectez-vous sur mayorana.ch avec le même compte Google qu’ici, pour que les crédits comptent dans CVenom.",
+    "topUpTitle": "Recharge ponctuelle",
+    "topUpSubtitle": "Un seul paiement, crédits sans expiration · dès 5 = 20 crédits",
+    "backToPlans": "Retour aux abonnements"
   }
 }

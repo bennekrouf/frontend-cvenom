@@ -2,22 +2,30 @@
 // src/components/payment/CreditsPage.tsx
 //
 // /[locale]/credits — the user's credit balance and full transaction history.
-// The top-up form opens in place; a successful payment refreshes the page data
-// and tells the navbar balance to refresh (CREDITS_UPDATED_EVENT).
+// The balance shows how much of it is the user's mayorana plan, and the plan
+// itself (PlanStatus) when they have one. "Get credits"
+// opens the plans and top-up panel in place; a successful top-up refreshes the
+// page data and tells the navbar balance to refresh (CREDITS_UPDATED_EVENT).
+// The page reloads when its tab comes back into view, so credits bought on
+// mayorana.ch show up on return (?subscribed=1 is where mayorana sends them).
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FiZap, FiArrowDownRight, FiArrowUpRight, FiClock, FiLoader, FiAlertTriangle, FiUser } from 'react-icons/fi';
+import { FiZap, FiArrowDownRight, FiArrowUpRight, FiClock, FiLoader, FiAlertTriangle, FiUser, FiCheck } from 'react-icons/fi';
+import { useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useAuth } from '@/contexts/AuthContext';
 import { signInWithGoogle } from '@/lib/firebase';
 import {
-  getBalance,
+  getCredits,
   getTransactions,
   CreditTransaction,
   MAX_TRANSACTIONS,
   CREDITS_UPDATED_EVENT,
+  MAYORANA_PRICING_URL,
+  PlanSummary,
 } from '@/lib/paymentService';
-import StripePaymentForm from './StripePaymentForm';
+import GetCreditsPanel from './GetCreditsPanel';
+import PlanStatus from './PlanStatus';
 
 type Filter = 'all' | 'used' | 'added';
 
@@ -28,7 +36,12 @@ const CreditsPage: React.FC = () => {
   const locale = useLocale();
   const { isAuthenticated, loading: authLoading } = useAuth();
 
+  const searchParams = useSearchParams();
+  const justSubscribed = searchParams.get('subscribed') === '1';
+
   const [balance, setBalance] = useState<number | null>(null);
+  const [planCreditsLeft, setPlanCreditsLeft] = useState(0);
+  const [plan, setPlan] = useState<PlanSummary | null>(null);
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -40,8 +53,10 @@ const CreditsPage: React.FC = () => {
     setLoading(true);
     setError(false);
     try {
-      const [b, txs] = await Promise.all([getBalance(), getTransactions(MAX_TRANSACTIONS)]);
-      setBalance(b);
+      const [credits, txs] = await Promise.all([getCredits(), getTransactions(MAX_TRANSACTIONS)]);
+      setBalance(credits.balance);
+      setPlanCreditsLeft(credits.planCreditsLeft);
+      setPlan(credits.plan);
       setTransactions(
         [...txs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       );
@@ -54,6 +69,13 @@ const CreditsPage: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) load();
+  }, [isAuthenticated, load]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const onVisible = () => { if (document.visibilityState === 'visible') load(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, [isAuthenticated, load]);
 
   const totals = useMemo(() => {
@@ -151,10 +173,21 @@ const CreditsPage: React.FC = () => {
         </button>
       </div>
 
-      {showTopUp && (
-        <div className="mx-auto max-w-md">
-          <StripePaymentForm onSuccess={handleTopUpSuccess} onClose={() => setShowTopUp(false)} />
+      {justSubscribed && (
+        <div className="flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300">
+          <FiCheck className="mt-0.5 h-4 w-4 flex-shrink-0" />
+          <span>{plan || planCreditsLeft > 0 ? t('subscribedReady') : t('subscribedPending')}</span>
         </div>
+      )}
+
+      {showTopUp && (
+        <div className="mx-auto flex max-w-md justify-center">
+          <GetCreditsPanel onTopUpSuccess={handleTopUpSuccess} onClose={() => setShowTopUp(false)} />
+        </div>
+      )}
+
+      {(plan || planCreditsLeft > 0) && !showTopUp && (
+        <PlanStatus plan={plan} planCreditsLeft={planCreditsLeft} pricingUrl={MAYORANA_PRICING_URL} />
       )}
 
       {/* Summary */}
@@ -165,6 +198,14 @@ const CreditsPage: React.FC = () => {
             <FiZap className="h-6 w-6 text-primary" />
             {balance === null ? '—' : formatNumber(balance)}
           </p>
+          {planCreditsLeft > 0 && balance !== null && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t('balanceSplit', {
+                plan: formatNumber(planCreditsLeft),
+                own: formatNumber(Math.max(balance - planCreditsLeft, 0)),
+              })}
+            </p>
+          )}
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('usedLabel')}</p>

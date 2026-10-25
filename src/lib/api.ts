@@ -1,6 +1,7 @@
 // src/lib/config.ts
 import { getAuth } from 'firebase/auth';
 import { getApiUrl } from './config';
+import { notifyIfOutOfCredits } from './paymentService';
 interface ApiConfig {
   baseUrl: string;
   timeout: number;
@@ -162,6 +163,9 @@ export async function apiRequest<T = unknown>(
 
   // Handle JSON responses
   const jsonData = await response.json();
+
+  // Out of credits: offer the ways to get more wherever the call came from.
+  notifyIfOutOfCredits(jsonData);
 
   // Check for success:false in response body (even with HTTP 200)
   if (jsonData && typeof jsonData === 'object' && 'success' in jsonData && jsonData.success === false) {

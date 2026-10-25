@@ -392,7 +392,7 @@
     "usedLabel": "Used",
     "addedLabel": "Added",
     "shownNote": "Totals cover the transactions listed below.",
-    "addCredits": "Add credits",
+    "addCredits": "Get credits",
     "historyTitle": "Transaction history",
     "filterAll": "All",
     "filterUsed": "Used",
@@ -422,6 +422,35 @@
       "feedback_reward": "Feedback reward",
       "admin_topup": "Credits added by support",
       "admin_deduct": "Credits removed by support"
-    }
+    },
+    "balanceSplit": "{plan} from your plan this month · {own} your own",
+    "subscribedReady": "Your plan is active: its credits are in your balance.",
+    "subscribedPending": "Thanks for subscribing! Your plan’s credits appear here within a minute. If they don’t, check you signed in on mayorana.ch with this account’s email."
+  },
+  "getCredits": {
+    "title": "Get credits",
+    "subtitle": "Subscribe for monthly credits, or top up once.",
+    "close": "Close",
+    "plansHeading": "Monthly plans · best value",
+    "otherPlans": "Change plan",
+    "planActive": "Your mayorana plan: {count} credits left this month",
+    "planNamed": "Your {name} plan: {left} of {granted} credits left this month",
+    "planRenews": "Renews on {date}, with a fresh month of credits.",
+    "planEnds": "Ends on {date}: it won’t renew.",
+    "planActiveNote": "Plan credits are spent first and renew every month; your own credits never expire.",
+    "managePlan": "Manage plan on mayorana.ch",
+    "popular": "Popular",
+    "perMonth": "/ month",
+    "planCredits": "{credits} credits a month · ≈ {cvs} CVs",
+    "allApps": "Includes every mayorana app",
+    "plusApps": "Also unlocks {apps}",
+    "cvenomOnly": "For CVenom",
+    "subscribe": "Subscribe on mayorana.ch",
+    "seePlans": "See the plans on mayorana.ch",
+    "sameEmail": "Sign in on mayorana.ch with {email} so the plan’s credits count here.",
+    "sameEmailSignedOut": "Sign in on mayorana.ch with the same Google account you use here, so the plan’s credits count in CVenom.",
+    "topUpTitle": "One-off top-up",
+    "topUpSubtitle": "Pay once, credits never expire · from 5 = 20 credits",
+    "backToPlans": "Back to plans"
   }
 }

@@ -353,7 +353,7 @@
     "usedLabel": "Verwendet",
     "addedLabel": "Hinzugefügt",
     "shownNote": "Die Summen beziehen sich auf die unten aufgeführten Transaktionen.",
-    "addCredits": "Credits hinzufügen",
+    "addCredits": "Credits erhalten",
     "historyTitle": "Transaktionsverlauf",
     "filterAll": "Alle",
     "filterUsed": "Verwendet",
@@ -383,6 +383,35 @@
       "feedback_reward": "Feedback-Belohnung",
       "admin_topup": "Vom Support hinzugefügt",
       "admin_deduct": "Vom Support entfernt"
-    }
+    },
+    "balanceSplit": "{plan} aus Ihrem Abo diesen Monat · {own} eigene",
+    "subscribedReady": "Ihr Abo ist aktiv: seine Credits sind in Ihrem Guthaben.",
+    "subscribedPending": "Danke für Ihr Abo! Die Credits erscheinen hier innerhalb einer Minute. Falls nicht, prüfen Sie, ob Sie sich auf mayorana.ch mit der E-Mail dieses Kontos angemeldet haben."
+  },
+  "getCredits": {
+    "title": "Credits erhalten",
+    "subtitle": "Abonnieren Sie monatliche Credits oder laden Sie einmalig auf.",
+    "close": "Schliessen",
+    "plansHeading": "Monatsabos · bester Preis",
+    "otherPlans": "Abo wechseln",
+    "planActive": "Ihr mayorana-Abo: noch {count} Credits diesen Monat",
+    "planNamed": "Ihr {name}-Plan: noch {left} von {granted} Credits diesen Monat",
+    "planRenews": "Verlängert sich am {date} mit neuen Monats-Credits.",
+    "planEnds": "Endet am {date}: er wird nicht verlängert.",
+    "planActiveNote": "Abo-Credits werden zuerst verbraucht und erneuern sich monatlich; Ihre eigenen Credits verfallen nie.",
+    "managePlan": "Abo auf mayorana.ch verwalten",
+    "popular": "Beliebt",
+    "perMonth": "/ Monat",
+    "planCredits": "{credits} Credits pro Monat · ≈ {cvs} Lebensläufe",
+    "allApps": "Enthält alle mayorana-Apps",
+    "plusApps": "Schaltet auch {apps} frei",
+    "cvenomOnly": "Für CVenom",
+    "subscribe": "Auf mayorana.ch abonnieren",
+    "seePlans": "Abos auf mayorana.ch ansehen",
+    "sameEmail": "Melden Sie sich auf mayorana.ch mit {email} an, damit die Abo-Credits hier zählen.",
+    "sameEmailSignedOut": "Melden Sie sich auf mayorana.ch mit demselben Google-Konto wie hier an, damit die Credits in CVenom zählen.",
+    "topUpTitle": "Einmalige Aufladung",
+    "topUpSubtitle": "Einmal zahlen, Credits verfallen nie · ab 5 = 20 Credits",
+    "backToPlans": "Zurück zu den Abos"
   }
 }
