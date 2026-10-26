@@ -2,8 +2,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { FiX, FiSettings, FiLoader, FiMail } from 'react-icons/fi';
-import { getPreferences, updatePreferences, EmailPreferences } from '@/lib/api';
+import { FiX, FiSettings, FiLoader, FiMail, FiCpu } from 'react-icons/fi';
+import {
+  getPreferences, updatePreferences, EmailPreferences, getAiRegions, updateAiRegion, AiRegion, AiPrices,
+} from '@/lib/api';
 import { useTranslations } from 'next-intl';
 
 interface PreferencesModalProps {
@@ -29,6 +31,15 @@ const EMAIL_TOGGLES: EmailToggle[] = [
   { key: 'new_template',       labelKey: 'emailNewTemplate',       descKey: 'emailNewTemplateDesc' },
 ];
 
+// The AI actions whose price the region sets, in the order they are listed.
+const AI_ACTIONS: { key: string; labelKey: string }[] = [
+  { key: 'cv_import',    labelKey: 'aiActionCvImport' },
+  { key: 'optimize',     labelKey: 'aiActionOptimize' },
+  { key: 'translate',    labelKey: 'aiActionTranslate' },
+  { key: 'cover_letter', labelKey: 'aiActionCoverLetter' },
+  { key: 'portfolio',    labelKey: 'aiActionPortfolio' },
+];
+
 const LANGUAGES = [
   { code: 'en', label: 'English' },
   { code: 'fr', label: 'Francais' },
@@ -39,17 +50,30 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose }) 
 
   const [emailPrefs, setEmailPrefs] = useState<EmailPreferences>({});
   const [preferredLang, setPreferredLang] = useState('en');
+  // api0 AI regions on offer (null: could not be listed) and the user's pick (null: default).
+  const [aiRegions, setAiRegions] = useState<AiRegion[] | null>(null);
+  const [defaultPrices, setDefaultPrices] = useState<AiPrices>({});
+  const [aiRegion, setAiRegion] = useState<string | null>(null);
+  const [savedAiRegion, setSavedAiRegion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const loadPrefs = useCallback(async () => {
     setLoading(true);
+    const [prefs, regions] = await Promise.allSettled([getPreferences(), getAiRegions()]);
     try {
-      const data = await getPreferences();
-      setEmailPrefs(data.email_prefs ?? {});
-      setPreferredLang(data.preferred_lang ?? 'en');
-    } catch {
-      // defaults are fine
+      if (prefs.status === 'fulfilled') {
+        setEmailPrefs(prefs.value.email_prefs ?? {});
+        setPreferredLang(prefs.value.preferred_lang ?? 'en');
+      }
+      if (regions.status === 'fulfilled') {
+        setAiRegions(regions.value.regions ?? []);
+        setDefaultPrices(regions.value.default_prices ?? {});
+        setAiRegion(regions.value.current ?? null);
+        setSavedAiRegion(regions.value.current ?? null);
+      } else {
+        setAiRegions(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -71,6 +95,13 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose }) 
 
   if (!isOpen) return null;
 
+  // Default first, then the regions on offer, each with what it charges.
+  const aiChoices = [
+    { id: null as string | null, flag: '', label: t('aiRegionDefault'), note: t('aiRegionDefaultNote'), prices: defaultPrices },
+    ...(aiRegions ?? []).map((r) => ({ id: r.id as string | null, flag: r.flag, label: r.label, note: '', prices: r.prices ?? {} })),
+  ];
+  const selectedPrices = aiChoices.find((c) => c.id === aiRegion)?.prices;
+
   const isEnabled = (key: keyof EmailPreferences) => emailPrefs[key] !== false;
 
   const toggle = (key: keyof EmailPreferences) => {
@@ -81,6 +112,7 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose }) 
     setSaving(true);
     try {
       await updatePreferences({ email_prefs: emailPrefs, preferred_lang: preferredLang });
+      if (aiRegion !== savedAiRegion) await updateAiRegion(aiRegion);
       onClose();
     } catch {
       // stay open on error
@@ -135,6 +167,50 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose }) 
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* AI region */}
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <FiCpu className="w-4 h-4 text-blue-500" />
+                <span className="text-sm font-medium text-foreground">{t('aiRegion')}</span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">{t('aiRegionDesc')}</p>
+              {aiRegions && aiRegions.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    {aiChoices.map((r) => (
+                      <button
+                        key={r.id ?? 'default'}
+                        onClick={() => setAiRegion(r.id)}
+                        className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors text-left ${
+                          aiRegion === r.id
+                            ? 'bg-blue-500 text-white border-blue-500'
+                            : 'bg-background border-border text-foreground hover:bg-secondary'
+                        }`}
+                      >
+                        {r.flag && <span className="mr-1.5">{r.flag}</span>}
+                        {r.label}
+                        <span className="block text-xs font-normal opacity-75">
+                          {[r.note, r.prices.optimize !== undefined && t('aiRegionTailorPrice', { credits: r.prices.optimize })]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  {selectedPrices && (
+                    <p className="text-xs text-muted-foreground mt-3">
+                      <span className="font-medium text-foreground">{t('aiRegionPrices')}</span>{' '}
+                      {AI_ACTIONS.filter((a) => selectedPrices[a.key] !== undefined)
+                        .map((a) => `${t(a.labelKey)} ${selectedPrices[a.key]}`)
+                        .join(' · ')}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">{t('aiRegionUnavailable')}</p>
+              )}
             </div>
 
             {/* Email toggles */}

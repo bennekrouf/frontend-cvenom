@@ -22,7 +22,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import CVFormEditor, { type CVFormEditorHandle } from './CVFormEditor';
 
 import DeleteCollaboratorModal from './DeleteCollaboratorModal';
-import { deleteCollaborator, renameCollaborator } from '@/lib/api';
+import { deleteCollaborator, renameCollaborator, setProfileArchived } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import CreateCollaboratorModal from './CreateCollaboratorModal';
 import OptimizeModal from './OptimizeModal';
@@ -74,7 +74,7 @@ function stripHiddenTenantDirs(
 
 function getFirstProfile(tree: Record<string, FileTreeItem>): string | null {
   const profiles = Object.entries(tree)
-    .filter(([, item]) => item.type === 'folder')
+    .filter(([, item]) => item.type === 'folder' && !item.archived)
     .sort(([, a], [, b]) => getLatestModified(b) - getLatestModified(a));
   return profiles.length > 0 ? profiles[0][0] : null;
 }
@@ -427,6 +427,23 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
     setIsGeneratingPortfolio(false);
   };
 
+  const handleToggleArchive = async (name: string, archived: boolean) => {
+    if (!isAuthenticated) return;
+
+    try {
+      const data = (await setProfileArchived(name, archived)) as ApiSuccessResponse;
+      if (data.success) {
+        toast.success(t(archived ? 'archiveSuccess' : 'unarchiveSuccess', { name }));
+        await loadFileTree();
+      } else {
+        toast.error(data.message || t('archiveFailed'));
+      }
+    } catch (error) {
+      console.error('Error archiving profile:', error);
+      toast.error(error instanceof Error ? error.message : t('archiveFailed'));
+    }
+  };
+
   const handleRenameCollaborator = async (oldName: string, newName: string) => {
     if (!isAuthenticated) return;
 
@@ -760,6 +777,7 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
             onShowGenerateModal={() => setShowGenerateModal(true)}
             onRenameCollaborator={handleRenameCollaborator}
             onShowLanguageModal={() => setShowLanguageModal(true)}
+            onToggleArchive={handleToggleArchive}
             onCloseSidebar={() => setSidebarOpen(false)}
           />
         )}
