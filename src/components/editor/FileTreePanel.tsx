@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   FiFolder,
   FiFile,
@@ -49,6 +49,8 @@ interface FileTreePanelProps {
   onCloseSidebar: () => void;
 }
 
+/** Below this sidebar width (px), unselected rows show their actions on hover only. */
+const COMPACT_WIDTH = 300;
 
 const FileTreePanel: React.FC<FileTreePanelProps> = ({
   fileTree,
@@ -76,14 +78,31 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
   const [renamingCollaborator, setRenamingCollaborator] = useState<string | null>(null);
   const [newCollaboratorName, setNewCollaboratorName] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  // In a narrow sidebar, action buttons on every row would squeeze profile names
+  // to nothing, so unselected rows then show them on hover only.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [compact, setCompact] = useState(false);
+
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => setCompact(entry.contentRect.width < COMPACT_WIDTH));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const byLatest = ([, a]: [string, FileTreeItem], [, b]: [string, FileTreeItem]) =>
     getLatestModified(b) - getLatestModified(a);
   const entries = Object.entries(fileTree ?? {}).sort(byLatest);
   const activeEntries = entries.filter(([, item]) => !item.archived);
   const archivedEntries = entries.filter(([, item]) => item.archived);
-  // Keep the archived section open while one of its profiles is selected.
-  const archivedOpen = showArchived || archivedEntries.some(([name]) => name === selectedCollaborator);
+  const selectedIsArchived = archivedEntries.some(([name]) => name === selectedCollaborator);
+
+  // Open the archived section when an archived profile becomes selected (from the
+  // URL, or right after archiving it); the user can still collapse it afterwards.
+  useEffect(() => {
+    if (selectedIsArchived) setShowArchived(true);
+  }, [selectedCollaborator, selectedIsArchived]);
 
   const getProfileLanguages = (item: FileTreeItem): string[] => {
     const children = item.children ?? {};
@@ -133,6 +152,12 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
     const isCollaboratorFolder = (level === 1 && path.startsWith('data/')) || (level === 0 && name !== 'data' && isFolder);
     const isSelectedCollaborator = isCollaboratorFolder && selectedCollaborator === name;
     const isRenaming = renamingCollaborator === name;
+    // Modal actions work on the selected profile, so select this row first.
+    const runOnProfile = (action: () => void) => (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!isSelectedCollaborator) onSelectCollaborator(name);
+      action();
+    };
 
     return (
       <div key={path}>
@@ -233,8 +258,8 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
             </span>
           )}
 
-          {isCollaboratorFolder && isSelectedCollaborator && isAuthenticated && !isRenaming && (
-            <div className="flex items-center space-x-1 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity ml-2">
+          {isCollaboratorFolder && isAuthenticated && !isRenaming && (
+            <div className={`${compact && !isSelectedCollaborator ? 'hidden group-hover:flex' : 'flex'} items-center space-x-1 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity ml-2`}>
               <Tooltip content="Rename profile" side="top">
                 <button
                   onClick={(e) => {
@@ -256,10 +281,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
                 return (
                   <Tooltip content={`Languages: ${langSummary} — click to manage`} side="top">
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onShowLanguageModal();
-                      }}
+                      onClick={runOnProfile(onShowLanguageModal)}
                       className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground inline-flex items-center gap-0.5"
                     >
                       <FiGlobe className="w-3 h-3" />
@@ -271,10 +293,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
 
               <Tooltip content="Upload profile photo (JPG, PNG)" side="top">
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onShowUploadModal();
-                  }}
+                  onClick={runOnProfile(onShowUploadModal)}
                   className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground"
                 >
                   <FiCamera className="w-3 h-3" />
@@ -283,10 +302,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
 
               <Tooltip content="Generate PDF" side="top">
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onShowGenerateModal();
-                  }}
+                  onClick={runOnProfile(onShowGenerateModal)}
                   className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground"
                 >
                   <FiFileText className="w-3 h-3" />
@@ -309,10 +325,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
 
               <Tooltip content="Delete profile and all files" side="top">
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteCollaborator();
-                  }}
+                  onClick={runOnProfile(onDeleteCollaborator)}
                   className="p-1 hover:bg-red-500/20 rounded text-muted-foreground hover:text-red-500"
                 >
                   <FiTrash2 className="w-3 h-3" />
@@ -340,7 +353,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col w-full min-w-0">
+    <div ref={panelRef} className="h-full flex flex-col w-full min-w-0">
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-2">
@@ -435,10 +448,10 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
             {archivedEntries.length > 0 && (
               <div className="pt-2 mt-2 border-t border-border">
                 <button
-                  onClick={() => setShowArchived(!archivedOpen)}
+                  onClick={() => setShowArchived(!showArchived)}
                   className="w-full flex items-center py-1 px-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-sm transition-colors"
                 >
-                  {archivedOpen ? (
+                  {showArchived ? (
                     <FiChevronDown className="w-3 h-3 mr-1" />
                   ) : (
                     <FiChevronRight className="w-3 h-3 mr-1" />
@@ -446,7 +459,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
                   <FiArchive className="w-3.5 h-3.5 mr-2" />
                   {t('archivedProfiles', { count: archivedEntries.length })}
                 </button>
-                {archivedOpen && (
+                {showArchived && (
                   <div className="space-y-1 mt-1">
                     {archivedEntries.map(([name, item]) => renderFileTreeItem(name, name, item))}
                   </div>
