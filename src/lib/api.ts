@@ -49,6 +49,8 @@ export interface FileTreeItem {
   has_photo?: boolean;
   /** True only if the profile has its own custom photo (not the tenant default). */
   has_own_photo?: boolean;
+  /** True if the profile is archived (listed apart, still fully usable). */
+  archived?: boolean;
 }
 
 export function modifiedToMs(modified: FileTreeItem['modified']): number {
@@ -203,6 +205,14 @@ export async function deleteCollaborator(personName: string) {
   return apiRequest('/delete-profile', {
     method: 'POST',
     body: { profile: personName },
+    requireAuth: true
+  });
+}
+
+export async function setProfileArchived(profile: string, archived: boolean) {
+  return apiRequest('/profiles/archive', {
+    method: 'POST',
+    body: { profile, archived },
     requireAuth: true
   });
 }
@@ -919,6 +929,41 @@ export async function updatePreferences(prefs: Partial<UserPreferences>): Promis
   return apiRequest('/preferences', {
     method: 'PUT',
     body: prefs,
+    requireAuth: true,
+  });
+}
+
+// ── AI region ───────────────────────────────────────────────────────────────
+
+/** Credits each AI action costs, by action: cv_import, optimize, translate, cover_letter, portfolio. */
+export type AiPrices = Record<string, number>;
+
+/** One of the api0 AI regions, as GitAgent offers them. */
+export interface AiRegion {
+  id: string;
+  flag: string;
+  label: string;
+  /** A credit here costs this many times the plain rate. */
+  multiplier: number;
+  prices: AiPrices;
+}
+
+export interface AiRegions {
+  /** The region the user picked; null runs on cvenom's default providers. */
+  current: string | null;
+  default_prices: AiPrices;
+  regions: AiRegion[];
+}
+
+export async function getAiRegions(): Promise<AiRegions> {
+  return apiRequest('/ai/regions', { requireAuth: true });
+}
+
+/** null goes back to cvenom's default providers. */
+export async function updateAiRegion(region: string | null): Promise<{ success: boolean }> {
+  return apiRequest('/ai/region', {
+    method: 'PUT',
+    body: { region: region ?? 'default' },
     requireAuth: true,
   });
 }

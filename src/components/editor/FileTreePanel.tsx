@@ -16,6 +16,8 @@ import {
   FiTrash2,
   FiCheck,
   FiGlobe,
+  FiArchive,
+  FiRotateCcw,
 } from 'react-icons/fi';
 import { useTranslations } from 'next-intl';
 import { User } from 'firebase/auth';
@@ -43,6 +45,7 @@ interface FileTreePanelProps {
   onShowGenerateModal: () => void;
   onRenameCollaborator?: (oldName: string, newName: string) => void;
   onShowLanguageModal?: () => void;
+  onToggleArchive?: (name: string, archived: boolean) => void;
   onCloseSidebar: () => void;
 }
 
@@ -66,11 +69,21 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
   onShowGenerateModal,
   onRenameCollaborator,
   onShowLanguageModal,
+  onToggleArchive,
   onCloseSidebar,
 }) => {
   const t = useTranslations('fileEditor');
   const [renamingCollaborator, setRenamingCollaborator] = useState<string | null>(null);
   const [newCollaboratorName, setNewCollaboratorName] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
+
+  const byLatest = ([, a]: [string, FileTreeItem], [, b]: [string, FileTreeItem]) =>
+    getLatestModified(b) - getLatestModified(a);
+  const entries = Object.entries(fileTree ?? {}).sort(byLatest);
+  const activeEntries = entries.filter(([, item]) => !item.archived);
+  const archivedEntries = entries.filter(([, item]) => item.archived);
+  // Keep the archived section open while one of its profiles is selected.
+  const archivedOpen = showArchived || archivedEntries.some(([name]) => name === selectedCollaborator);
 
   const getProfileLanguages = (item: FileTreeItem): string[] => {
     const children = item.children ?? {};
@@ -128,7 +141,7 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
             } ${isSelectedCollaborator
               ? 'bg-blue-100 dark:bg-blue-900/40 border-l-2 border-blue-500 text-blue-700 dark:text-blue-300 font-semibold'
               : ''} ${!isEditable && !isFolder ? 'opacity-50' : ''
-            }`}
+            } ${isCollaboratorFolder && item.archived && !isSelectedCollaborator ? 'opacity-60' : ''}`}
           style={{ paddingLeft: `${8 + level * 16}px` }}
           onClick={() => {
             if (isRenaming) return;
@@ -280,6 +293,20 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
                 </button>
               </Tooltip>
 
+              {onToggleArchive && (
+                <Tooltip content={item.archived ? t('unarchiveProfile') : t('archiveProfile')} side="top">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleArchive(name, !item.archived);
+                    }}
+                    className="p-1 hover:bg-secondary rounded text-muted-foreground hover:text-foreground"
+                  >
+                    {item.archived ? <FiRotateCcw className="w-3 h-3" /> : <FiArchive className="w-3 h-3" />}
+                  </button>
+                </Tooltip>
+              )}
+
               <Tooltip content="Delete profile and all files" side="top">
                 <button
                   onClick={(e) => {
@@ -403,11 +430,29 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({
           </div>
         ) : (
           <div className="space-y-1">
-            {Object.entries(fileTree)
-              .sort(([, a], [, b]) => getLatestModified(b) - getLatestModified(a))
-              .map(([name, item]) =>
-                renderFileTreeItem(name, name, item)
-              )}
+            {activeEntries.map(([name, item]) => renderFileTreeItem(name, name, item))}
+
+            {archivedEntries.length > 0 && (
+              <div className="pt-2 mt-2 border-t border-border">
+                <button
+                  onClick={() => setShowArchived(!archivedOpen)}
+                  className="w-full flex items-center py-1 px-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-sm transition-colors"
+                >
+                  {archivedOpen ? (
+                    <FiChevronDown className="w-3 h-3 mr-1" />
+                  ) : (
+                    <FiChevronRight className="w-3 h-3 mr-1" />
+                  )}
+                  <FiArchive className="w-3.5 h-3.5 mr-2" />
+                  {t('archivedProfiles', { count: archivedEntries.length })}
+                </button>
+                {archivedOpen && (
+                  <div className="space-y-1 mt-1">
+                    {archivedEntries.map(([name, item]) => renderFileTreeItem(name, name, item))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
