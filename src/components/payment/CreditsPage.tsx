@@ -8,6 +8,8 @@
 // page data and tells the navbar balance to refresh (CREDITS_UPDATED_EVENT).
 // The page reloads when its tab comes back into view, so credits bought on
 // mayorana.ch show up on return (?subscribed=1 is where mayorana sends them).
+// When credits come only from the plan (per-person billing), the balance is
+// the plan's credits left this month and the button opens the plans, not a top-up.
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FiZap, FiArrowDownRight, FiArrowUpRight, FiClock, FiLoader, FiAlertTriangle, FiUser, FiCheck } from 'react-icons/fi';
@@ -42,6 +44,7 @@ const CreditsPage: React.FC = () => {
   const [balance, setBalance] = useState<number | null>(null);
   const [planCreditsLeft, setPlanCreditsLeft] = useState(0);
   const [plan, setPlan] = useState<PlanSummary | null>(null);
+  const [planOnly, setPlanOnly] = useState(false);
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -57,6 +60,7 @@ const CreditsPage: React.FC = () => {
       setBalance(credits.balance);
       setPlanCreditsLeft(credits.planCreditsLeft);
       setPlan(credits.plan);
+      setPlanOnly(credits.planOnly);
       setTransactions(
         [...txs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       );
@@ -162,14 +166,14 @@ const CreditsPage: React.FC = () => {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">{t('title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
+          <p className="text-sm text-muted-foreground">{t(planOnly ? 'subtitlePlanOnly' : 'subtitle')}</p>
         </div>
         <button
           onClick={() => setShowTopUp((v) => !v)}
           className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <FiZap className="h-4 w-4" />
-          {t('addCredits')}
+          {t(planOnly ? 'changePlan' : 'addCredits')}
         </button>
       </div>
 
@@ -187,18 +191,18 @@ const CreditsPage: React.FC = () => {
       )}
 
       {(plan || planCreditsLeft > 0) && !showTopUp && (
-        <PlanStatus plan={plan} planCreditsLeft={planCreditsLeft} pricingUrl={MAYORANA_PRICING_URL} />
+        <PlanStatus plan={plan} planCreditsLeft={planCreditsLeft} pricingUrl={MAYORANA_PRICING_URL} planOnly={planOnly} />
       )}
 
       {/* Summary */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('balanceLabel')}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t(planOnly ? 'planBalanceLabel' : 'balanceLabel')}</p>
           <p className="mt-1 flex items-center gap-2 text-3xl font-bold tabular-nums text-foreground">
             <FiZap className="h-6 w-6 text-primary" />
             {balance === null ? '—' : formatNumber(balance)}
           </p>
-          {planCreditsLeft > 0 && balance !== null && (
+          {!planOnly && planCreditsLeft > 0 && balance !== null && (
             <p className="mt-1 text-xs text-muted-foreground">
               {t('balanceSplit', {
                 plan: formatNumber(planCreditsLeft),

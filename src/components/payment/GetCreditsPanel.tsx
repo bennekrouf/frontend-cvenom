@@ -8,6 +8,8 @@
 //     mayorana's sign-in has the same email as this one.
 //   - A one-off top-up (StripePaymentForm), which never expires.
 // A subscriber sees their plan (PlanStatus) and a link to manage it.
+// When credits come only from the plan (per-person billing), there is no
+// top-up: the panel is the plan and the plans to change to.
 //
 // Opened from the navbar's credits button, the /credits page, and wherever an
 // operation fails for lack of credits (openGetCredits, with `reason`).
@@ -49,6 +51,7 @@ const GetCreditsPanel: React.FC<GetCreditsPanelProps> = ({ reason, onClose, onTo
   const [plansLoad, setPlansLoad] = useState<PlansLoad>({ kind: 'loading' });
   const [planCreditsLeft, setPlanCreditsLeft] = useState(0);
   const [plan, setPlan] = useState<PlanSummary | null>(null);
+  const [planOnly, setPlanOnly] = useState(false);
   const [showTopUp, setShowTopUp] = useState(false);
 
   useEffect(() => {
@@ -63,11 +66,12 @@ const GetCreditsPanel: React.FC<GetCreditsPanelProps> = ({ reason, onClose, onTo
       .then((c) => {
         setPlanCreditsLeft(c.planCreditsLeft);
         setPlan(c.plan);
+        setPlanOnly(c.planOnly);
       })
       .catch(() => {});
   }, [isAuthenticated]);
 
-  if (showTopUp) {
+  if (showTopUp && !planOnly) {
     return (
       <div className="flex w-full max-w-md flex-col gap-2">
         <StripePaymentForm onSuccess={onTopUpSuccess} onClose={onClose} />
@@ -93,8 +97,8 @@ const GetCreditsPanel: React.FC<GetCreditsPanelProps> = ({ reason, onClose, onTo
     <div className="w-full max-w-md rounded-xl border border-border bg-card shadow-sm">
       <div className="flex items-center justify-between border-b border-border px-6 py-4">
         <div>
-          <h2 className="font-semibold text-foreground">{t('title')}</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">{t('subtitle')}</p>
+          <h2 className="font-semibold text-foreground">{t(planOnly ? 'titlePlanOnly' : 'title')}</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">{t(planOnly ? 'subtitlePlanOnly' : 'subtitle')}</p>
         </div>
         {onClose && (
           <button
@@ -115,7 +119,9 @@ const GetCreditsPanel: React.FC<GetCreditsPanelProps> = ({ reason, onClose, onTo
           </div>
         )}
 
-        {hasPlan && <PlanStatus plan={plan} planCreditsLeft={planCreditsLeft} pricingUrl={pricingUrl} />}
+        {hasPlan && (
+          <PlanStatus plan={plan} planCreditsLeft={planCreditsLeft} pricingUrl={pricingUrl} planOnly={planOnly} />
+        )}
 
         <div>
           <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -197,6 +203,7 @@ const GetCreditsPanel: React.FC<GetCreditsPanelProps> = ({ reason, onClose, onTo
           )}
         </div>
 
+        {!planOnly && (
         <div className="border-t border-border pt-4">
           <button
             type="button"
@@ -210,6 +217,7 @@ const GetCreditsPanel: React.FC<GetCreditsPanelProps> = ({ reason, onClose, onTo
             <span aria-hidden className="text-muted-foreground">→</span>
           </button>
         </div>
+        )}
       </div>
     </div>
   );

@@ -15,9 +15,11 @@ interface PlanStatusProps {
   plan: PlanSummary | null;
   planCreditsLeft: number;
   pricingUrl: string;
+  /** Credits come only from the plan, so there are no "own credits" to mention. */
+  planOnly?: boolean;
 }
 
-const PlanStatus: React.FC<PlanStatusProps> = ({ plan, planCreditsLeft, pricingUrl }) => {
+const PlanStatus: React.FC<PlanStatusProps> = ({ plan, planCreditsLeft, pricingUrl, planOnly = false }) => {
   const t = useTranslations('getCredits');
   const locale = useLocale();
   const n = (value: number) => value.toLocaleString(locale);
@@ -47,7 +49,7 @@ const PlanStatus: React.FC<PlanStatusProps> = ({ plan, planCreditsLeft, pricingU
           {plan?.cancel_at_period_end ? t('planEnds', { date: endsOn }) : t('planRenews', { date: endsOn })}
         </p>
       )}
-      {!plan?.cancel_at_period_end && <p className="mt-1 text-xs text-muted-foreground">{t('planActiveNote')}</p>}
+      {!plan?.cancel_at_period_end && <p className="mt-1 text-xs text-muted-foreground">{t(planOnly ? 'planOnlyNote' : 'planActiveNote')}</p>}
       <a
         href={pricingUrl}
         target="_blank"

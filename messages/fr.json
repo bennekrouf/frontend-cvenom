@@ -429,7 +429,10 @@
     },
     "balanceSplit": "{plan} de votre abonnement ce mois-ci · {own} à vous",
     "subscribedReady": "Votre abonnement est actif : ses crédits sont dans votre solde.",
-    "subscribedPending": "Merci pour votre abonnement ! Ses crédits apparaissent ici d’ici une minute. Sinon, vérifiez que vous vous êtes connecté sur mayorana.ch avec l’e-mail de ce compte."
+    "subscribedPending": "Merci pour votre abonnement ! Ses crédits apparaissent ici d’ici une minute. Sinon, vérifiez que vous vous êtes connecté sur mayorana.ch avec l’e-mail de ce compte.",
+    "subtitlePlanOnly": "Les crédits de votre abonnement ce mois-ci, et votre historique.",
+    "changePlan": "Abonnements",
+    "planBalanceLabel": "Crédits restants ce mois-ci"
   },
   "getCredits": {
     "title": "Obtenir des crédits",
@@ -455,6 +458,9 @@
     "sameEmailSignedOut": "Connectez-vous sur mayorana.ch avec le même compte Google qu’ici, pour que les crédits comptent dans CVenom.",
     "topUpTitle": "Recharge ponctuelle",
     "topUpSubtitle": "Un seul paiement, crédits sans expiration · dès 5 = 20 crédits",
-    "backToPlans": "Retour aux abonnements"
+    "backToPlans": "Retour aux abonnements",
+    "titlePlanOnly": "Votre abonnement",
+    "subtitlePlanOnly": "Dans CVenom, les crédits viennent de votre abonnement mayorana et se renouvellent chaque mois.",
+    "planOnlyNote": "Les crédits se renouvellent chaque mois ; ceux non utilisés expirent au renouvellement."
   }
 }
