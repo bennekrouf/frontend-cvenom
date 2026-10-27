@@ -13,7 +13,9 @@
 //
 // Credits come two ways: a mayorana plan (monthly, spent first, lapses at
 // renewal; it counts here when mayorana's sign-in has the same email) or a
-// one-off top-up on this site (never expires).
+// one-off top-up on this site (never expires). When CVenom's api0 workspace
+// bills each person's plan (`billing_mode: "user"`), the plan is the only way:
+// the balance is the plan's credits left, and there are no top-ups.
 
 import { auth } from './firebase';
 
@@ -40,6 +42,8 @@ export interface BalanceResult {
   plan_credits_left?: number;
   /** The live mayorana plan, null without one (absent on an older backend). */
   plan?: PlanSummary | null;
+  /** "user": credits come only from the plan, no top-ups. Absent or "tenant" otherwise. */
+  billing_mode?: string | null;
 }
 
 /** The user's live mayorana plan, as the api0 store describes it. */
@@ -57,6 +61,8 @@ export interface Credits {
   balance: number;
   planCreditsLeft: number;
   plan: PlanSummary | null;
+  /** Credits come only from the mayorana plan: no balance, no top-ups. */
+  planOnly: boolean;
 }
 
 export interface MayoranaPlan {
@@ -177,7 +183,12 @@ export async function getCredits(): Promise<Credits> {
   }
 
   const result = json as BalanceResult;
-  return { balance: result.balance, planCreditsLeft: result.plan_credits_left ?? 0, plan: result.plan ?? null };
+  return {
+    balance: result.balance,
+    planCreditsLeft: result.plan_credits_left ?? 0,
+    plan: result.plan ?? null,
+    planOnly: result.billing_mode === 'user',
+  };
 }
 
 // ── Plans (mayorana) ──────────────────────────────────────────────────────────

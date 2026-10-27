@@ -392,7 +392,10 @@
     },
     "balanceSplit": "{plan} aus Ihrem Abo diesen Monat · {own} eigene",
     "subscribedReady": "Ihr Abo ist aktiv: seine Credits sind in Ihrem Guthaben.",
-    "subscribedPending": "Danke für Ihr Abo! Die Credits erscheinen hier innerhalb einer Minute. Falls nicht, prüfen Sie, ob Sie sich auf mayorana.ch mit der E-Mail dieses Kontos angemeldet haben."
+    "subscribedPending": "Danke für Ihr Abo! Die Credits erscheinen hier innerhalb einer Minute. Falls nicht, prüfen Sie, ob Sie sich auf mayorana.ch mit der E-Mail dieses Kontos angemeldet haben.",
+    "subtitlePlanOnly": "Die Credits Ihres Abos in diesem Monat und Ihr Verlauf.",
+    "changePlan": "Abos",
+    "planBalanceLabel": "Verbleibende Abo-Credits diesen Monat"
   },
   "getCredits": {
     "title": "Credits erhalten",
@@ -418,6 +421,9 @@
     "sameEmailSignedOut": "Melden Sie sich auf mayorana.ch mit demselben Google-Konto wie hier an, damit die Credits in CVenom zählen.",
     "topUpTitle": "Einmalige Aufladung",
     "topUpSubtitle": "Einmal zahlen, Credits verfallen nie · ab 5 = 20 Credits",
-    "backToPlans": "Zurück zu den Abos"
+    "backToPlans": "Zurück zu den Abos",
+    "titlePlanOnly": "Ihr Abo",
+    "subtitlePlanOnly": "Credits in CVenom kommen aus Ihrem mayorana-Abo und werden jeden Monat erneuert.",
+    "planOnlyNote": "Credits werden jeden Monat erneuert; ungenutzte verfallen bei der Erneuerung."
   }
 }

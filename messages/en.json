@@ -443,7 +443,10 @@
     },
     "balanceSplit": "{plan} from your plan this month · {own} your own",
     "subscribedReady": "Your plan is active: its credits are in your balance.",
-    "subscribedPending": "Thanks for subscribing! Your plan’s credits appear here within a minute. If they don’t, check you signed in on mayorana.ch with this account’s email."
+    "subscribedPending": "Thanks for subscribing! Your plan’s credits appear here within a minute. If they don’t, check you signed in on mayorana.ch with this account’s email.",
+    "subtitlePlanOnly": "Your plan credits this month, and your credit history.",
+    "changePlan": "Plans",
+    "planBalanceLabel": "Plan credits left this month"
   },
   "getCredits": {
     "title": "Get credits",
@@ -469,6 +472,9 @@
     "sameEmailSignedOut": "Sign in on mayorana.ch with the same Google account you use here, so the plan’s credits count in CVenom.",
     "topUpTitle": "One-off top-up",
     "topUpSubtitle": "Pay once, credits never expire · from 5 = 20 credits",
-    "backToPlans": "Back to plans"
+    "backToPlans": "Back to plans",
+    "titlePlanOnly": "Your plan",
+    "subtitlePlanOnly": "Credits in CVenom come from your mayorana plan and renew every month.",
+    "planOnlyNote": "Credits renew every month; unused ones lapse at renewal."
   }
 }
