@@ -409,7 +409,7 @@
     "balanceLabel": "Current balance",
     "usedLabel": "Used",
     "addedLabel": "Added",
-    "shownNote": "Totals cover the transactions listed below.",
+    "totalsSince": "Since {date}, not just this month",
     "addCredits": "Get credits",
     "historyTitle": "Transaction history",
     "filterAll": "All",

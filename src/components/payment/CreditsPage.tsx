@@ -93,7 +93,9 @@ const CreditsPage: React.FC = () => {
       if (tx.amount < 0) used += -tx.amount;
       else added += tx.amount;
     }
-    return { used, added };
+    // Sorted newest first, so the last one is where the totals start.
+    const since = transactions.length > 0 ? transactions[transactions.length - 1].created_at : null;
+    return { used, added, since };
   }, [transactions]);
 
   const visible = useMemo(() => {
@@ -115,6 +117,14 @@ const CreditsPage: React.FC = () => {
     });
 
   const formatNumber = (n: number): string => n.toLocaleString(locale);
+
+  const formatDay = (iso: string): string =>
+    new Date(iso).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
+
+  // The plan box counts this month only; Used/Added count the whole history shown below.
+  const sinceNote = totals.since ? (
+    <p className="mt-1 text-xs text-muted-foreground">{t('totalsSince', { date: formatDay(totals.since) })}</p>
+  ) : null;
 
   const handleTopUpSuccess = (_creditsAdded: number, newBalance: number) => {
     setBalance(newBalance);
@@ -221,6 +231,7 @@ const CreditsPage: React.FC = () => {
             <FiArrowDownRight className="h-5 w-5" />
             {formatNumber(totals.used)}
           </p>
+          {sinceNote}
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('addedLabel')}</p>
@@ -228,9 +239,9 @@ const CreditsPage: React.FC = () => {
             <FiArrowUpRight className="h-5 w-5" />
             {formatNumber(totals.added)}
           </p>
+          {sinceNote}
         </div>
       </div>
-      <p className="-mt-3 text-xs text-muted-foreground">{t('shownNote')}</p>
 
       {/* History */}
       <div className="rounded-xl border border-border bg-card">

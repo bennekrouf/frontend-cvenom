@@ -395,7 +395,7 @@
     "balanceLabel": "Solde actuel",
     "usedLabel": "Utilisés",
     "addedLabel": "Ajoutés",
-    "shownNote": "Les totaux portent sur les transactions listées ci-dessous.",
+    "totalsSince": "Depuis le {date}, pas seulement ce mois-ci",
     "addCredits": "Obtenir des crédits",
     "historyTitle": "Historique des transactions",
     "filterAll": "Toutes",
