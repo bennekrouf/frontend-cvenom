@@ -358,7 +358,7 @@
     "balanceLabel": "Aktuelles Guthaben",
     "usedLabel": "Verwendet",
     "addedLabel": "Hinzugefügt",
-    "shownNote": "Die Summen beziehen sich auf die unten aufgeführten Transaktionen.",
+    "totalsSince": "Seit {date}, nicht nur diesen Monat",
     "addCredits": "Credits erhalten",
     "historyTitle": "Transaktionsverlauf",
     "filterAll": "Alle",
