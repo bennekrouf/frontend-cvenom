@@ -21,7 +21,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { signInWithGoogle } from '@/lib/firebase';
 import GetCreditsPanel from './GetCreditsPanel';
 import ReferralWidget from './ReferralWidget';
-import { getBalance, CREDITS_UPDATED_EVENT, GET_CREDITS_EVENT } from '@/lib/paymentService';
+import { getCredits, CREDITS_UPDATED_EVENT, GET_CREDITS_EVENT } from '@/lib/paymentService';
 
 const CreditsButton: React.FC = () => {
   const t = useTranslations('credits');
@@ -32,14 +32,17 @@ const CreditsButton: React.FC = () => {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
+  // Per-person billing: credits come only from the plan, so no referral bonus to offer.
+  const [planOnly, setPlanOnly] = useState(false);
   const promptRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const paymentCardRef = useRef<HTMLDivElement>(null);
 
   const fetchBalance = useCallback(async () => {
     try {
-      const b = await getBalance();
-      setBalance(b);
+      const c = await getCredits();
+      setBalance(c.balance);
+      setPlanOnly(c.planOnly);
     } catch {
       // silently ignore — user may not be signed in yet
     }
@@ -239,7 +242,7 @@ const CreditsButton: React.FC = () => {
                 onTopUpSuccess={handleSuccess}
                 onClose={() => setOpen(false)}
               />
-              <ReferralWidget />
+              {!planOnly && <ReferralWidget />}
             </div>
           </div>
         </div>,

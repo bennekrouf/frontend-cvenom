@@ -239,10 +239,15 @@ const MAYORANA_APP_NAMES: Record<string, string> = {
   spreadwatch: 'SpreadRadar',
 };
 
+/** A mayorana app's name from its product id. */
+export function appName(id: string): string {
+  return MAYORANA_APP_NAMES[id] ?? id;
+}
+
 /** `null` when the plan unlocks every app. */
 export function planAppNames(products: string[]): string[] | null {
   if (products.includes('*')) return null;
-  return products.filter((p) => p !== 'cvenom').map((p) => MAYORANA_APP_NAMES[p] ?? p);
+  return products.filter((p) => p !== 'cvenom').map(appName);
 }
 
 // ── Getting credits ───────────────────────────────────────────────────────────
@@ -266,9 +271,10 @@ export function notifyIfOutOfCredits(body: unknown): void {
 }
 
 export interface CreditTransaction {
-  id: number;
+  id: number | string;
   amount: number;
-  balance_after: number;
+  /** Null for a plan's usage, which has no running balance. */
+  balance_after: number | null;
   action_type: string;
   description: string | null;
   created_at: string;
@@ -276,6 +282,9 @@ export interface CreditTransaction {
 
 /** Largest history the store returns in one call. */
 export const MAX_TRANSACTIONS = 1000;
+
+/** Largest page of plan usage the store returns in one call. */
+export const MAX_PLAN_USAGE = 200;
 
 /**
  * Fetch the authenticated user's credit transactions, most recent first.
@@ -290,6 +299,41 @@ export async function getTransactions(limit?: number): Promise<CreditTransaction
   if (!response.ok) throw new Error('Failed to fetch transactions');
   const data = await response.json();
   return data.transactions ?? [];
+}
+
+/** One row of the user's mayorana plan usage, as GET /payment/plan-usage returns it. */
+interface PlanUsageRow {
+  id: string;
+  created_at: string;
+  /** The app that spent it, by product id ("cvenom", "jobscout"…). */
+  app: string;
+  /** What it was spent on: CVenom's action ("cv_generation") or another app's AI model. */
+  model: string;
+  /** Negative for a refund. */
+  credits: number;
+  ok: boolean;
+}
+
+/**
+ * The user's plan usage as transactions, most recent first: with per-person
+ * billing this is their whole history, every app that spends the plan included.
+ */
+export async function getPlanUsage(limit?: number): Promise<CreditTransaction[]> {
+  const token = await getAuthToken();
+  const query = limit ? `?limit=${limit}` : '';
+  const response = await fetch(`${getApiBase()}/payment/plan-usage${query}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) throw new Error('Failed to fetch plan usage');
+  const data = await response.json();
+  return ((data.usage ?? []) as PlanUsageRow[]).map((u) => ({
+    id: u.id,
+    amount: -u.credits,
+    balance_after: null,
+    action_type: u.model,
+    description: u.app && u.app !== 'cvenom' ? appName(u.app) : null,
+    created_at: u.created_at,
+  }));
 }
 
 /** Fired on window after a balance change so other widgets (navbar) can refresh. */
