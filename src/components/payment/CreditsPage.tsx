@@ -19,9 +19,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { signInWithGoogle } from '@/lib/firebase';
 import {
   getCredits,
+  getPlanUsage,
   getTransactions,
   CreditTransaction,
   MAX_TRANSACTIONS,
+  MAX_PLAN_USAGE,
   CREDITS_UPDATED_EVENT,
   MAYORANA_PRICING_URL,
   PlanSummary,
@@ -56,7 +58,9 @@ const CreditsPage: React.FC = () => {
     setLoading(true);
     setError(false);
     try {
-      const [credits, txs] = await Promise.all([getCredits(), getTransactions(MAX_TRANSACTIONS)]);
+      // Per-person billing: the history is the plan's usage, not balance transactions.
+      const credits = await getCredits();
+      const txs = await (credits.planOnly ? getPlanUsage(MAX_PLAN_USAGE) : getTransactions(MAX_TRANSACTIONS));
       setBalance(credits.balance);
       setPlanCreditsLeft(credits.planCreditsLeft);
       setPlan(credits.plan);
@@ -274,7 +278,7 @@ const CreditsPage: React.FC = () => {
                 <th className="px-4 py-2 font-medium">{t('colDate')}</th>
                 <th className="px-4 py-2 font-medium">{t('colAction')}</th>
                 <th className="px-4 py-2 text-right font-medium">{t('colAmount')}</th>
-                <th className="px-4 py-2 text-right font-medium">{t('colBalance')}</th>
+                {!planOnly && <th className="px-4 py-2 text-right font-medium">{t('colBalance')}</th>}
               </tr>
             </thead>
             <tbody>
@@ -296,13 +300,17 @@ const CreditsPage: React.FC = () => {
                     }`}
                   >
                     {tx.amount > 0 ? '+' : ''}{formatNumber(tx.amount)}
-                    <p className="text-xs font-normal text-muted-foreground sm:hidden">
-                      {formatNumber(tx.balance_after)}
-                    </p>
+                    {tx.balance_after !== null && (
+                      <p className="text-xs font-normal text-muted-foreground sm:hidden">
+                        {formatNumber(tx.balance_after)}
+                      </p>
+                    )}
                   </td>
-                  <td className="hidden whitespace-nowrap px-4 py-3 text-right tabular-nums text-muted-foreground sm:table-cell">
-                    {formatNumber(tx.balance_after)}
-                  </td>
+                  {!planOnly && (
+                    <td className="hidden whitespace-nowrap px-4 py-3 text-right tabular-nums text-muted-foreground sm:table-cell">
+                      {tx.balance_after === null ? '—' : formatNumber(tx.balance_after)}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -310,8 +318,10 @@ const CreditsPage: React.FC = () => {
         )}
       </div>
 
-      {transactions.length >= MAX_TRANSACTIONS && (
-        <p className="text-xs text-muted-foreground">{t('truncated', { count: MAX_TRANSACTIONS })}</p>
+      {transactions.length >= (planOnly ? MAX_PLAN_USAGE : MAX_TRANSACTIONS) && (
+        <p className="text-xs text-muted-foreground">
+          {t('truncated', { count: planOnly ? MAX_PLAN_USAGE : MAX_TRANSACTIONS })}
+        </p>
       )}
     </div>
   );

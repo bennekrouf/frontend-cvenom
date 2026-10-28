@@ -565,9 +565,11 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
                           }`}>
                             {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()}
                           </p>
-                          <p className="text-[10px] text-muted-foreground tabular-nums">
-                            {tx.balance_after.toLocaleString()} left
-                          </p>
+                          {tx.balance_after !== null && (
+                            <p className="text-[10px] text-muted-foreground tabular-nums">
+                              {tx.balance_after.toLocaleString()} left
+                            </p>
+                          )}
                         </div>
                       </div>
                     ))}
