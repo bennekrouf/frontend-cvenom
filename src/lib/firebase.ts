@@ -24,6 +24,9 @@ export const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 googleProvider.addScope('email');
 googleProvider.addScope('profile');
+// Always show Google's account chooser, so signing out and back in (or
+// switching account) doesn't silently reuse the last Google session.
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 // Auth functions with clear error handling
 export interface AuthError {

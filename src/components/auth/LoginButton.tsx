@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { FiUser, FiLogOut, FiChevronDown, FiTrash2, FiAlertTriangle } from 'react-icons/fi';
+import { FiUser, FiLogOut, FiChevronDown, FiTrash2, FiAlertTriangle, FiRepeat } from 'react-icons/fi';
 import Image from 'next/image';
 import { signInWithGoogle, signOutUser } from '@/lib/firebase';
 import { deleteAccount } from '@/lib/api';
@@ -187,10 +187,33 @@ const LoginButton: React.FC = () => {
     setIsSigningIn(false);
   };
 
+  // Reload after an account change so no data from the previous user
+  // (profiles, chat, credits, cached manifests) stays on screen.
+  const reloadApp = () => window.location.reload();
+
   const handleSignOut = async () => {
-    const error = await signOutUser();
-    if (error) console.error('Sign-out failed:', error);
     setShowDropdown(false);
+    const error = await signOutUser();
+    if (error) {
+      console.error('Sign-out failed:', error);
+      return;
+    }
+    reloadApp();
+  };
+
+  const handleSwitchAccount = async () => {
+    setShowDropdown(false);
+    const previousUid = user?.uid;
+    // signInWithPopup replaces the current user; cancelling keeps the old one.
+    const result = await signInWithGoogle();
+    if (result.error) {
+      // Closing the chooser is not an error worth showing
+      if (result.error.code !== 'auth/popup-closed-by-user' && result.error.code !== 'auth/cancelled-popup-request') {
+        console.error('Switch account failed:', result.error);
+      }
+      return;
+    }
+    if (result.user && result.user.uid !== previousUid) reloadApp();
   };
 
   const handleDeleteClick = () => {
@@ -201,6 +224,7 @@ const LoginButton: React.FC = () => {
   const handleDeleteConfirm = async () => {
     await deleteAccount();
     await signOutUser();
+    reloadApp();
   };
 
   // Loading state
@@ -235,6 +259,14 @@ const LoginButton: React.FC = () => {
                 </p>
                 <p className="text-xs text-muted-foreground truncate">{user.email}</p>
               </div>
+
+              <button
+                onClick={handleSwitchAccount}
+                className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-foreground hover:bg-secondary transition-colors"
+              >
+                <FiRepeat className="w-4 h-4" />
+                <span>Switch account</span>
+              </button>
 
               <button
                 onClick={handleSignOut}
