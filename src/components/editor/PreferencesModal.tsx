@@ -95,10 +95,13 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose }) 
 
   if (!isOpen) return null;
 
-  // Default first, then the regions on offer, each with what it charges.
+  // Default first, then every region: what it charges, or Coming soon.
   const aiChoices = [
-    { id: null as string | null, flag: '', label: t('aiRegionDefault'), note: t('aiRegionDefaultNote'), prices: defaultPrices },
-    ...(aiRegions ?? []).map((r) => ({ id: r.id as string | null, flag: r.flag, label: r.label, note: '', prices: r.prices ?? {} })),
+    { id: null as string | null, flag: '', label: t('aiRegionDefault'), note: t('aiRegionDefaultNote'), prices: defaultPrices, soon: false },
+    ...(aiRegions ?? []).map((r) => {
+      const soon = r.available === false;
+      return { id: r.id as string | null, flag: r.flag, label: r.label, note: soon ? t('aiRegionComingSoon') : '', prices: r.prices ?? {}, soon };
+    }),
   ];
   const selectedPrices = aiChoices.find((c) => c.id === aiRegion)?.prices;
 
@@ -183,10 +186,12 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose }) 
                       <button
                         key={r.id ?? 'default'}
                         onClick={() => setAiRegion(r.id)}
-                        className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors text-left ${
+                        disabled={r.soon}
+                        title={r.soon ? t('aiRegionComingSoon') : undefined}
+                        className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors text-left disabled:opacity-50 disabled:cursor-default ${
                           aiRegion === r.id
                             ? 'bg-blue-500 text-white border-blue-500'
-                            : 'bg-background border-border text-foreground hover:bg-secondary'
+                            : `bg-background border-border text-foreground ${r.soon ? '' : 'hover:bg-secondary'}`
                         }`}
                       >
                         {r.flag && <span className="mr-1.5">{r.flag}</span>}
@@ -199,7 +204,7 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose }) 
                       </button>
                     ))}
                   </div>
-                  {selectedPrices && (
+                  {selectedPrices && Object.keys(selectedPrices).length > 0 && (
                     <p className="text-xs text-muted-foreground mt-3">
                       <span className="font-medium text-foreground">{t('aiRegionPrices')}</span>{' '}
                       {AI_ACTIONS.filter((a) => selectedPrices[a.key] !== undefined)

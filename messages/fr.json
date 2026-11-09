@@ -352,6 +352,7 @@
     "aiActionTranslate": "traduction",
     "aiActionCoverLetter": "lettre de motivation",
     "aiActionPortfolio": "portfolio",
+    "aiRegionComingSoon": "Bientôt disponible",
     "aiRegionUnavailable": "Les régions IA ne sont pas disponibles pour le moment — le choix par défaut de cvenom est utilisé.",
     "emailCvReady": "CV prêt",
     "emailCvReadyDesc": "Lorsque votre CV PDF a été généré.",
