@@ -943,9 +943,11 @@ export interface AiRegion {
   id: string;
   flag: string;
   label: string;
+  /** False for a region not open yet: shown greyed, not selectable, no prices. */
+  available?: boolean;
   /** A credit here costs this many times the plain rate. */
-  multiplier: number;
-  prices: AiPrices;
+  multiplier?: number;
+  prices?: AiPrices;
 }
 
 export interface AiRegions {

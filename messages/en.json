@@ -366,6 +366,7 @@
     "aiActionTranslate": "translate",
     "aiActionCoverLetter": "cover letter",
     "aiActionPortfolio": "portfolio",
+    "aiRegionComingSoon": "Coming soon",
     "aiRegionUnavailable": "AI regions are not available right now — cvenom's default is used.",
     "emailCvReady": "CV ready",
     "emailCvReadyDesc": "When your CV PDF has been generated.",
