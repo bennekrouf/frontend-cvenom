@@ -466,65 +466,6 @@ export function slugifyBrandName(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-// ── Model config admin ────────────────────────────────────────────────────────
-
-export interface ProviderModelConfig {
-  model: string;
-  max_tokens: number;
-  temperature: number;
-  api_key_masked?: string | null;
-}
-
-export interface OperationProviders {
-  cv_import: string;
-  translation: string;
-  job_matching: string;
-  cv_optimization: string;
-  cover_letter: string;
-  portfolio: string;
-}
-
-export interface ModelConfig {
-  providers: OperationProviders;
-  claude:   ProviderModelConfig | null;
-  cohere:   ProviderModelConfig | null;
-  deepseek: ProviderModelConfig | null;
-  mistral:  ProviderModelConfig | null;
-}
-
-export interface ModelConfigResponse {
-  success: boolean;
-  config: ModelConfig;
-  config_path: string;
-}
-
-export async function getModelConfig(): Promise<ModelConfigResponse> {
-  return apiRequest<ModelConfigResponse>('/admin/models', { requireAuth: true });
-}
-
-export interface UpdateProviderModelConfig {
-  model: string;
-  max_tokens: number;
-  temperature: number;
-  api_key?: string;
-}
-
-export interface UpdateModelConfigRequest {
-  providers: OperationProviders;
-  claude?:   UpdateProviderModelConfig;
-  cohere?:   UpdateProviderModelConfig;
-  deepseek?: UpdateProviderModelConfig;
-  mistral?:  UpdateProviderModelConfig;
-}
-
-export async function saveModelConfig(data: UpdateModelConfigRequest): Promise<{ success: boolean; message: string; restarted: boolean }> {
-  return apiRequest('/admin/models', {
-    method: 'POST',
-    body: data,
-    requireAuth: true,
-  });
-}
-
 // ── SMTP admin ────────────────────────────────────────────────────────────────
 
 export interface SmtpConfig {
@@ -951,9 +892,8 @@ export interface AiRegion {
 }
 
 export interface AiRegions {
-  /** The region the user picked; null runs on cvenom's default providers. */
-  current: string | null;
-  default_prices: AiPrices;
+  /** The region the user's AI calls run in: their pick, or the default one. */
+  current: string;
   regions: AiRegion[];
 }
 
@@ -961,11 +901,11 @@ export async function getAiRegions(): Promise<AiRegions> {
   return apiRequest('/ai/regions', { requireAuth: true });
 }
 
-/** null goes back to cvenom's default providers. */
-export async function updateAiRegion(region: string | null): Promise<{ success: boolean }> {
+/** Every AI action runs in a region, on the model api0 selected there. */
+export async function updateAiRegion(region: string): Promise<{ success: boolean }> {
   return apiRequest('/ai/region', {
     method: 'PUT',
-    body: { region: region ?? 'default' },
+    body: { region },
     requireAuth: true,
   });
 }

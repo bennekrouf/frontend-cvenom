@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FiX, FiSettings, FiLoader, FiMail, FiCpu } from 'react-icons/fi';
 import {
-  getPreferences, updatePreferences, EmailPreferences, getAiRegions, updateAiRegion, AiRegion, AiPrices,
+  getPreferences, updatePreferences, EmailPreferences, getAiRegions, updateAiRegion, AiRegion,
 } from '@/lib/api';
 import { useTranslations } from 'next-intl';
 
@@ -50,9 +50,8 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose }) 
 
   const [emailPrefs, setEmailPrefs] = useState<EmailPreferences>({});
   const [preferredLang, setPreferredLang] = useState('en');
-  // api0 AI regions on offer (null: could not be listed) and the user's pick (null: default).
+  // api0 AI regions (null: could not be listed) and the one the user's AI calls run in.
   const [aiRegions, setAiRegions] = useState<AiRegion[] | null>(null);
-  const [defaultPrices, setDefaultPrices] = useState<AiPrices>({});
   const [aiRegion, setAiRegion] = useState<string | null>(null);
   const [savedAiRegion, setSavedAiRegion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -68,7 +67,6 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose }) 
       }
       if (regions.status === 'fulfilled') {
         setAiRegions(regions.value.regions ?? []);
-        setDefaultPrices(regions.value.default_prices ?? {});
         setAiRegion(regions.value.current ?? null);
         setSavedAiRegion(regions.value.current ?? null);
       } else {
@@ -95,14 +93,11 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose }) 
 
   if (!isOpen) return null;
 
-  // Default first, then every region: what it charges, or Coming soon.
-  const aiChoices = [
-    { id: null as string | null, flag: '', label: t('aiRegionDefault'), note: t('aiRegionDefaultNote'), prices: defaultPrices, soon: false },
-    ...(aiRegions ?? []).map((r) => {
-      const soon = r.available === false;
-      return { id: r.id as string | null, flag: r.flag, label: r.label, note: soon ? t('aiRegionComingSoon') : '', prices: r.prices ?? {}, soon };
-    }),
-  ];
+  // Every region: what it charges, or Coming soon. Every AI action runs in one.
+  const aiChoices = (aiRegions ?? []).map((r) => {
+    const soon = r.available === false;
+    return { id: r.id, flag: r.flag, label: r.label, note: soon ? t('aiRegionComingSoon') : '', prices: r.prices ?? {}, soon };
+  });
   const selectedPrices = aiChoices.find((c) => c.id === aiRegion)?.prices;
 
   const isEnabled = (key: keyof EmailPreferences) => emailPrefs[key] !== false;
@@ -115,7 +110,7 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose }) 
     setSaving(true);
     try {
       await updatePreferences({ email_prefs: emailPrefs, preferred_lang: preferredLang });
-      if (aiRegion !== savedAiRegion) await updateAiRegion(aiRegion);
+      if (aiRegion && aiRegion !== savedAiRegion) await updateAiRegion(aiRegion);
       onClose();
     } catch {
       // stay open on error
@@ -184,7 +179,7 @@ const PreferencesModal: React.FC<PreferencesModalProps> = ({ isOpen, onClose }) 
                   <div className="grid grid-cols-2 gap-2">
                     {aiChoices.map((r) => (
                       <button
-                        key={r.id ?? 'default'}
+                        key={r.id}
                         onClick={() => setAiRegion(r.id)}
                         disabled={r.soon}
                         title={r.soon ? t('aiRegionComingSoon') : undefined}
