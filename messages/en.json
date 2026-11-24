@@ -485,7 +485,7 @@
     "allApps": "Includes every mayorana app",
     "plusApps": "Also unlocks {apps}",
     "cvenomOnly": "For CVenom",
-    "subscribe": "Subscribe on mayorana.ch",
+    "subscribe": "Subscribe",
     "seePlans": "See the plans on mayorana.ch",
     "sameEmail": "Sign in on mayorana.ch with {email} so the plan’s credits count here.",
     "sameEmailSignedOut": "Sign in on mayorana.ch with the same Google account you use here, so the plan’s credits count in CVenom.",

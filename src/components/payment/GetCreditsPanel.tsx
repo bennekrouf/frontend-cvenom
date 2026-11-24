@@ -19,6 +19,7 @@ import { FiAlertTriangle, FiExternalLink, FiLoader, FiStar, FiZap } from 'react-
 import { useLocale, useTranslations } from 'next-intl';
 import { useAuth } from '@/contexts/AuthContext';
 import {
+  createPlanCheckout,
   getCredits,
   getPlans,
   formatPlanPrice,
@@ -53,6 +54,30 @@ const GetCreditsPanel: React.FC<GetCreditsPanelProps> = ({ reason, onClose, onTo
   const [plan, setPlan] = useState<PlanSummary | null>(null);
   const [planOnly, setPlanOnly] = useState(false);
   const [showTopUp, setShowTopUp] = useState(false);
+  // The plan whose Checkout is being made, and why the last one failed.
+  const [checkoutPlanId, setCheckoutPlanId] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  // Signed in, a plan card goes straight to that plan's Stripe Checkout. The
+  // tab opens on the click itself (so no popup blocker), then moves to Stripe
+  // once the backend has made the session; the studio stays open behind it.
+  const startCheckout = async (planId: string) => {
+    if (checkoutPlanId) return;
+    setCheckoutError(null);
+    setCheckoutPlanId(planId);
+    const tab = window.open('', '_blank');
+    if (tab) tab.opener = null;
+    try {
+      const url = await createPlanCheckout(planId, locale);
+      if (tab && !tab.closed) tab.location.href = url;
+      else window.location.assign(url);
+    } catch (e) {
+      tab?.close();
+      setCheckoutError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setCheckoutPlanId(null);
+    }
+  };
 
   useEffect(() => {
     getPlans()
@@ -149,16 +174,12 @@ const GetCreditsPanel: React.FC<GetCreditsPanelProps> = ({ reason, onClose, onTo
             {plans.map((plan, index) => {
               const apps = planAppNames(plan.products);
               const featured = index === featuredIndex;
-              return (
-                <a
-                  key={plan.id}
-                  href={pricingUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`group block rounded-lg border p-3 transition-colors hover:bg-muted/50 ${
-                    featured ? 'border-primary ring-1 ring-primary' : 'border-border'
-                  }`}
-                >
+              const starting = checkoutPlanId === plan.id;
+              const cardClass = `group block w-full rounded-lg border p-3 text-left transition-colors hover:bg-muted/50 disabled:cursor-wait disabled:opacity-70 ${
+                featured ? 'border-primary ring-1 ring-primary' : 'border-border'
+              }`;
+              const body = (
+                <>
                   <div className="flex items-baseline justify-between gap-3">
                     <span className="flex items-center gap-1.5 font-semibold text-foreground">
                       {plan.name}
@@ -189,12 +210,43 @@ const GetCreditsPanel: React.FC<GetCreditsPanelProps> = ({ reason, onClose, onTo
                         : t('cvenomOnly')}
                   </p>
                   <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary group-hover:underline">
-                    {t('subscribe')} <FiExternalLink className="h-3 w-3" />
+                    {t('subscribe')}{' '}
+                    {starting ? <FiLoader className="h-3 w-3 animate-spin" /> : <FiExternalLink className="h-3 w-3" />}
                   </span>
+                </>
+              );
+              // Checkout needs the buyer's email: signed out, the card is mayorana's pricing page.
+              return isAuthenticated ? (
+                <button
+                  key={plan.id}
+                  type="button"
+                  onClick={() => startCheckout(plan.id)}
+                  disabled={checkoutPlanId !== null}
+                  aria-busy={starting}
+                  data-plan-id={plan.id}
+                  className={cardClass}
+                >
+                  {body}
+                </button>
+              ) : (
+                <a key={plan.id} href={pricingUrl} target="_blank" rel="noopener noreferrer" className={cardClass}>
+                  {body}
                 </a>
               );
             })}
           </div>
+
+          {checkoutError && (
+            <div role="alert" className="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-foreground">
+              <FiAlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
+              <span>
+                {checkoutError}{' '}
+                <a href={pricingUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
+                  {t('seePlans')}
+                </a>
+              </span>
+            </div>
+          )}
 
           {plansLoad.kind !== 'error' && (
             <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
