@@ -326,6 +326,10 @@ const FileEditor = ({ initialProfile }: FileEditorProps) => {
       if (data.success) {
         toast.success(t('pictureUploadedSuccess'));
         setShowUploadModal(false);
+        // The server turned show_photo on; keep the open form in sync so its
+        // next save doesn't write show_photo = false back.
+        cvFormEditorRef.current?.enablePhoto();
+        await loadFileTree();
       } else {
         toast.error(data.message || t('uploadPictureFailed'));
       }

@@ -6,7 +6,7 @@
 // are identical to every other API call in the app.
 
 import { apiRequest } from './api';
-import type { CvFormData } from '@/types/cvFormData';
+import type { CvFormData, SkillsMatrixGroup } from '@/types/cvFormData';
 
 /**
  * Fetch the unified CV data for a profile.
@@ -49,4 +49,30 @@ export async function getProfileJob(profileName: string): Promise<JobSource | nu
     requireAuth: true,
   });
   return resp.data ?? null;
+}
+
+export interface SkillsMatrixSuggestion {
+  groups: SkillsMatrixGroup[];
+  ai_used: boolean;
+  /** The AI was asked but failed; the computed values still came back. */
+  ai_error?: string;
+}
+
+/**
+ * Default years and levels for the skills matrix. Years come from the mission
+ * dates, levels from the years; with `ai` the AI refines them (uses credits).
+ * Values the user typed are kept. Writes nothing: save the form to keep them.
+ * With no groups, the backend starts from the stored matrix or the profile.
+ */
+export async function suggestSkillsMatrix(
+  profileName: string,
+  groups: SkillsMatrixGroup[],
+  ai: boolean,
+  lang = 'en',
+): Promise<SkillsMatrixSuggestion> {
+  const encoded = encodeURIComponent(profileName);
+  return apiRequest<SkillsMatrixSuggestion>(
+    `/profiles/${encoded}/skills-matrix/suggest?lang=${encodeURIComponent(lang)}`,
+    { method: 'POST', body: { groups, ai }, requireAuth: true },
+  );
 }

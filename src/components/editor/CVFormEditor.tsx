@@ -20,6 +20,7 @@ import { LinksSection } from './form/LinksSection';
 import { WorkExperienceSection } from './form/WorkExperienceSection';
 import { EducationSection } from './form/EducationSection';
 import { SkillsSection } from './form/SkillsSection';
+import { SkillsMatrixSection } from './form/SkillsMatrixSection';
 import { LanguagesSection } from './form/LanguagesSection';
 import { StylingSection } from './form/StylingSection';
 
@@ -38,6 +39,11 @@ interface Props {
 export interface CVFormEditorHandle {
   /** Flush any pending auto-save immediately. Returns a promise that resolves when done. */
   saveNow: () => Promise<void>;
+  /**
+   * Mirror the server-side show_photo = true that a photo upload writes, so a
+   * later save from this (stale) form doesn't turn it back off.
+   */
+  enablePhoto: () => void;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -117,6 +123,11 @@ const CVFormEditor = forwardRef<CVFormEditorHandle, Props>(({ profileName, langu
       }
       const payload = pendingDataRef.current ?? data;
       await persist(payload);
+    },
+    enablePhoto: () => {
+      const withPhoto = (d: CvFormData): CvFormData => ({ ...d, styling: { ...d.styling, show_photo: true } });
+      if (pendingDataRef.current) pendingDataRef.current = withPhoto(pendingDataRef.current);
+      setData(withPhoto);
     },
   }), [data, persist]);
 
@@ -212,6 +223,12 @@ const CVFormEditor = forwardRef<CVFormEditorHandle, Props>(({ profileName, langu
         <SkillsSection
           data={data.skills}
           onChange={(v) => update('skills', v)}
+        />
+        <SkillsMatrixSection
+          profileName={profileName}
+          language={language}
+          data={data.skills_matrix ?? []}
+          onChange={(v) => update('skills_matrix', v)}
         />
         <LanguagesSection
           data={data.languages}
