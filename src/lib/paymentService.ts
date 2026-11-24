@@ -214,6 +214,28 @@ export async function getPlans(): Promise<PlansResult> {
   };
 }
 
+/**
+ * A fresh Stripe Checkout Session for one plan, on mayorana's Stripe account
+ * (the backend asks the api0 gateway, under the signed-in user's email).
+ * Returns its checkout.stripe.com url, which is single-use: ask again per click.
+ */
+export async function createPlanCheckout(planId: string, locale?: string): Promise<string> {
+  const token = await getAuthToken();
+  const res = await fetch(`${getApiBase()}/payment/plan-checkout`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ plan_id: planId, locale }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || !json.success || typeof json.url !== 'string') {
+    throw new Error(json.error || `Checkout could not be started (${res.status})`);
+  }
+  return json.url;
+}
+
 /** A plan's monthly price, e.g. "CHF 19" (`price_cents` is in the smallest unit). */
 export function formatPlanPrice(plan: Pick<MayoranaPlan, 'price_cents' | 'currency'>, locale: string): string {
   const currency = plan.currency.toUpperCase();

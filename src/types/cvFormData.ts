@@ -70,6 +70,25 @@ export interface StylingData {
   paper?:            '' | 'a4' | 'letter';
 }
 
+/** Where a skills-matrix value came from: typed by the user, computed from
+ *  the mission dates, guessed from the years, or proposed by the AI. */
+export type MatrixSource = 'user' | 'computed' | 'estimate' | 'ai';
+
+export interface SkillsMatrixItem {
+  name: string;
+  /** "5", "10+", or "" when unknown */
+  years: string;
+  /** 1-4, 0 when unknown */
+  level: number;
+  years_source?: MatrixSource;
+  level_source?: MatrixSource;
+}
+
+export interface SkillsMatrixGroup {
+  category: string;
+  items: SkillsMatrixItem[];
+}
+
 export interface CvFormData {
   personal: PersonalData;
   links: LinksData;
@@ -79,6 +98,9 @@ export interface CvFormData {
   languages: LanguagesData;
   work_experience: WorkExperienceEntry[];
   styling: StylingData;
+  /** enterprise3's skills matrix (skill · years · level). Omitted by the
+   *  backend's older versions; sending [] removes it. */
+  skills_matrix?: SkillsMatrixGroup[];
 }
 
 /** Empty/default CV form data to use as initial state */
